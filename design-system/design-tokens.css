@@ -1,0 +1,360 @@
+/* ==========================================================================
+   MES 实训平台 · Design Tokens (v1.0 / Phase 1)
+   --------------------------------------------------------------------------
+   寄存器 Register : product        平台 Platform : web
+   三轴刻度         : Variance 4 / Motion 3 / Density 6
+   分层             : A1-identity → A1-structure → A2 → B-slot → C-extension
+   规则             : 组件 CSS 一律 var(--token)，禁止裸 hex。
+                      裸色值只允许出现在本文件的 token 定义处。
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   字体装载（自托管，勿用 Google Fonts CDN —— 国内首屏不可控）
+   npm i @fontsource-variable/archivo @fontsource-variable/jetbrains-mono
+   npm i @fontsource/noto-sans-sc        // unicode-range 分片，按需下载
+   在 main.tsx 顶部 import '@fontsource-variable/archivo';
+   Noto Sans SC 只装 400/500/600 三档，禁止 100-900 全量。
+   -------------------------------------------------------------------------- */
+
+:root {
+  /* ======================================================================
+     A1-identity · 品牌身份（品牌升级才动）
+     ====================================================================== */
+
+  /* 品牌墨色：深钢蓝黑。不是 #000，带蓝相，来自工控机金属外壳的冷调 */
+  --brand-ink: #0f1b26;
+  /* 唯一强调色：工程青。HMI 仪表盘上的数据青，避开 AI 默认 indigo #6366f1 */
+  --accent: #0e7490;
+  --accent-on: #ffffff;
+
+  /* 字体族 —— Latin/数字走 Archivo，CJK 自然回落 Noto Sans SC */
+  --font-display: 'Archivo Variable', 'Archivo', 'Noto Sans SC', 'PingFang SC',
+    'Microsoft YaHei', system-ui, sans-serif;
+  --font-body: var(--font-display);
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', 'SFMono-Regular',
+    Consolas, 'Liberation Mono', Menlo, monospace;
+
+  /* ======================================================================
+     A1-structure · 结构比例（产品重构才动）
+     ====================================================================== */
+
+  /* 字号阶梯（固定 rem，步进 ≈1.2 —— product 寄存器不用 fluid clamp） */
+  --text-xs: 0.75rem;      /* 12px  徽章 / 全大写标签 */
+  --text-sm: 0.8125rem;    /* 13px  表格单元 / 辅助说明 */
+  --text-base: 0.9375rem;  /* 15px  UI 正文（工具型密度） */
+  --text-prose: 1.0625rem; /* 17px  理论章节长文阅读，仅 .prose 内使用 */
+  --text-lg: 1.125rem;     /* 18px  卡片标题 */
+  --text-xl: 1.25rem;      /* 20px  区块标题 */
+  --text-2xl: 1.5rem;      /* 24px  页面标题 */
+  --text-3xl: 1.875rem;    /* 30px  工作台主标题 */
+  --text-4xl: 2.375rem;    /* 38px  仅首页首屏，全站唯一一处 */
+
+  /* 字重三级。CJK 无 510/590 字面，映射见 --weight-*-cjk */
+  --weight-read: 400;
+  --weight-emph: 510;
+  --weight-announce: 590;
+  --weight-emph-cjk: 500;
+  --weight-announce-cjk: 600;
+
+  /* 行高 */
+  --leading-tight: 1.2;    /* ≥24px 标题 */
+  --leading-snug: 1.35;    /* 18-20px 小标题 */
+  --leading-body: 1.55;    /* UI 正文 */
+  --leading-prose: 1.75;   /* 理论长文 */
+
+  /* 字距 */
+  --tracking-caps: 0.08em;   /* 全大写标签，强制 ≥0.06em */
+  --tracking-body: 0;
+  --tracking-title: -0.011em;
+  --tracking-display: -0.021em;
+
+  /* 间距（4px 网格，禁止 5/7/13/15/22/30 等非标值） */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* 圆角 —— 工具型收紧，卡片上限 8px，绝不 ≥16px */
+  --radius-xs: 3px;   /* Badge / Tag */
+  --radius-sm: 6px;   /* 按钮 / 输入框 */
+  --radius-md: 8px;   /* 卡片 / 面板 */
+  --radius-lg: 12px;  /* 模态框 */
+  --radius-pill: 9999px;
+
+  /* 布局骨架 */
+  --sidebar-w: 240px;
+  --sidebar-w-collapsed: 56px;
+  --topbar-h: 52px;
+  --container-app: 1280px;   /* 应用页内容上限 */
+  --container-prose: 720px;  /* 理论正文行宽上限（45-75ch） */
+  --gutter-desktop: 24px;
+  --gutter-tablet: 16px;
+  --gutter-phone: 12px;
+  --section-y-desktop: 48px; /* 应用不是落地页，48 不是 80 */
+  --section-y-tablet: 32px;
+  --section-y-phone: 24px;
+
+  /* ======================================================================
+     A1 · 中性色阶（冷调，带微量青相 chroma，不是纯灰）
+     ====================================================================== */
+  --bg: #f7f9fb;          /* 页面底 */
+  --surface: #ffffff;     /* 卡片 / 面板 */
+  --surface-2: #f1f5f9;   /* 表头 / 内嵌区 / hover 底 */
+  --surface-3: #e7edf3;   /* 选中底 / 进度槽 */
+
+  --fg: #0f1b26;          /* 主文本 = --brand-ink */
+  --fg-2: #33475b;        /* 次级文本 / 正文段落 */
+  --muted: #5a6e80;       /* 说明文字（对 --bg 5.0:1） */
+  --meta: #6b8093;        /* 时间戳 / 计数，仅 12-13px 非关键信息 */
+
+  --border: #dde5ec;      /* 卡片 / 输入框边框 */
+  --border-soft: #edf1f5; /* 表格行分隔 */
+  --border-strong: #c3d0da;/* 输入框 hover / 分栏拖拽条 */
+
+  /* ======================================================================
+     A2 · 派生与语义（有默认值，可覆盖）
+     ====================================================================== */
+  --accent-hover: #0b6178;
+  --accent-active: #094f61;
+  --accent-soft: #e2f2f6;   /* 选中行底 / 轻量 Badge 底 */
+  --accent-border: #a9d5e0;
+
+  /* 语义色 —— 对齐 MES 设备语义：运行 / 待处理 / 故障 / 提示 */
+  --success: #15803d;       /* 设备运行 / 判题通过 */
+  --success-soft: #e6f4ea;
+  --success-border: #b0dcc0;
+  --warn: #b45309;          /* 停机预警 / 待下达 */
+  --warn-soft: #fdf1e3;
+  --warn-border: #e8c79a;
+  --danger: #b91c1c;        /* 故障 / SQL 报错 */
+  --danger-soft: #fdeaea;
+  --danger-border: #eeb4b4;
+  --info: var(--accent);
+  --info-soft: var(--accent-soft);
+
+  /* ======================================================================
+     A2 · 层级（Hairline First：默认无阴影，靠 1px 边框 + 底色差）
+     禁止 1px border 与 blur ≥16px 同时出现在同一元素（幽灵卡片）
+     ====================================================================== */
+  --elev-flat: none;
+  --elev-ring: 0 0 0 1px var(--border);
+  --elev-dropdown: 0 4px 12px -2px rgba(15, 27, 38, 0.1),
+    0 2px 4px -2px rgba(15, 27, 38, 0.06);
+  --elev-modal: 0 16px 40px -8px rgba(15, 27, 38, 0.18),
+    0 4px 12px -4px rgba(15, 27, 38, 0.08);
+
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-dropdown: 1000;
+  --z-modal: 1200;
+  --z-toast: 1300;
+
+  /* ======================================================================
+     A2 · 焦点与动效（Motion 3：功能性动效，无装饰、无入场编排）
+     ====================================================================== */
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --focus-ring-inset: inset 0 0 0 2px var(--accent);
+
+  --motion-instant: 80ms;   /* 按钮按下 */
+  --motion-fast: 150ms;     /* 收敛基准：hover / 选中 */
+  --motion-base: 220ms;     /* 下拉展开 / Toast */
+  --motion-slow: 320ms;     /* 抽屉 / 模态 */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);        /* ease-out-quint */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  /* 禁止 bounce / elastic 缓动 */
+
+  /* ======================================================================
+     B-slot · 组件插槽（消费上面的语义层，组件只读这一层）
+     ====================================================================== */
+  --btn-primary-bg: var(--accent);
+  --btn-primary-fg: var(--accent-on);
+  --btn-primary-bg-hover: var(--accent-hover);
+  --btn-primary-bg-active: var(--accent-active);
+
+  --btn-secondary-bg: var(--surface);
+  --btn-secondary-fg: var(--fg-2);
+  --btn-secondary-border: var(--border-strong);
+  --btn-secondary-bg-hover: var(--surface-2);
+
+  --btn-ghost-fg: var(--muted);
+  --btn-ghost-bg-hover: var(--surface-2);
+
+  --btn-danger-bg: var(--danger);
+  --btn-danger-fg: #ffffff;
+
+  --input-bg: var(--surface);
+  --input-border: var(--border-strong);
+  --input-border-hover: var(--meta);
+  --input-border-focus: var(--accent);
+  --input-border-error: var(--danger);
+  --input-fg: var(--fg);
+  --input-placeholder: var(--meta);
+  --input-bg-disabled: var(--surface-2);
+  --input-fg-disabled: var(--meta);
+
+  --card-bg: var(--surface);
+  --card-border: var(--border);
+  --card-border-hover: var(--border-strong);
+  --card-padding: var(--space-5);   /* Density 6 → 20px，不是 24 */
+  --card-radius: var(--radius-md);
+
+  --nav-item-fg: var(--muted);
+  --nav-item-fg-active: var(--fg);
+  --nav-item-bg-hover: var(--surface-2);
+  --nav-item-bg-active: var(--surface-3);
+  --nav-item-marker-active: var(--accent);  /* 2px 左指示条，仅导航允许 */
+
+  --table-header-bg: var(--surface-2);
+  --table-header-fg: var(--fg-2);
+  --table-row-border: var(--border-soft);
+  --table-row-bg-hover: var(--surface-2);
+  --table-row-bg-selected: var(--accent-soft);
+
+  /* 图标：lucide-react@1.28.0（版本锁死，见 ADR-002）
+     24×24 栅格 / stroke 2 / currentColor。全项目唯一图标库。
+     光学补偿：16px 图标与 13px 文字并排时用 --muted 而非 --fg 上色，
+     否则 stroke 2 在 16px 框里占 12.5%，视觉重量压过 400 字重的文字。 */
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+  --icon-stroke: 2;
+
+  /* ======================================================================
+     C-extension · MES 项目专属
+     ====================================================================== */
+
+  /* SQL 编辑器深色面板（浅色应用里的深色工作区，Supabase Studio 形态） */
+  --code-bg: #0f1b26;          /* 与 --brand-ink 同值，墨色即面板 */
+  --code-bg-gutter: #16232f;   /* 行号槽 */
+  --code-fg: #e3ecf2;
+  --code-border: #22384a;
+  --code-selection: #17475a;
+  --code-caret: #4cc4dd;
+  --syn-keyword: #7dd3fc;      /* SELECT / FROM / JOIN */
+  --syn-string: #86efac;
+  --syn-number: #fcd34d;
+  --syn-func: #c4b5fd;         /* 仅语法着色，非主视觉渐变 */
+  --syn-comment: #6b8093;
+  --syn-operator: #cbd5e1;
+
+  /* 设备 / 工单状态点（MES 语义，与通用语义色解耦以便单独调） */
+  --status-running: var(--success);
+  --status-idle: var(--meta);
+  --status-stopped: var(--warn);
+  --status-fault: var(--danger);
+
+  /* 学习进度 */
+  --progress-track: var(--surface-3);
+  --progress-fill: var(--accent);
+  --progress-fill-done: var(--success);
+
+  /* 章节正文 .prose（markdown-it 渲染的理论课文）
+     四类元素：标题 / 列表 / 代码块 / 表格。行内代码走浅色，
+     块级代码走深色面板（与 SQL 沙箱同一套 --code-* ，视觉上"代码=深色"是一条规则）。 */
+  --prose-measure: 68ch;          /* 行宽上限，落在 45-75ch 内 */
+  --prose-gap: var(--space-5);    /* 段落间距 20px */
+  --prose-h2-mt: var(--space-10); /* h2 上边距 40px，制造章节呼吸 */
+  --prose-h3-mt: var(--space-8);  /* h3 上边距 32px */
+  --prose-link: var(--accent);
+  --prose-link-underline: var(--accent-border);
+  --prose-quote-bar: var(--border-strong);
+  --prose-hr: var(--border);
+
+  /* 行内代码：浅底，不用深色（深色行内码在长文里像被挖了个洞） */
+  --prose-code-inline-bg: var(--surface-2);
+  --prose-code-inline-fg: #0b5566;   /* accent 加深，对 --surface-2 达 6.1:1 */
+  --prose-code-inline-border: var(--border);
+
+  /* 块级代码：复用沙箱深色面板 */
+  --prose-pre-bg: var(--code-bg);
+  --prose-pre-fg: var(--code-fg);
+  --prose-pre-border: var(--code-border);
+
+  /* 提示块 callout（markdown 里用 blockquote + 首行标记转换） */
+  --callout-note-bg: var(--accent-soft);
+  --callout-note-border: var(--accent-border);
+  --callout-warn-bg: var(--warn-soft);
+  --callout-warn-border: var(--warn-border);
+  --callout-danger-bg: var(--danger-soft);
+  --callout-danger-border: var(--danger-border);
+}
+
+/* --------------------------------------------------------------------------
+   全局基线
+   -------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
+  font-weight: var(--weight-read);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 数字统一等宽对齐（表格 / 计数 / 工单号） */
+.tabular,
+table td,
+table th {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 全大写标签必须带字距，否则挤成一坨 */
+.caps {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-emph);
+  color: var(--meta);
+}
+
+/* 焦点：只在键盘导航时出现，永不 outline:none 裸删 */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+/* 触摸目标兜底 44×44（视觉更小时用 padding 撑命中区） */
+button,
+[role='button'],
+a.nav-item {
+  min-height: 32px; /* 桌面密度 */
+}
+@media (pointer: coarse) {
+  button,
+  [role='button'],
+  a.nav-item {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

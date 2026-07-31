@@ -1,0 +1,184 @@
+{
+  "$meta": {
+    "project": "MES 实训平台",
+    "version": "1.0.0",
+    "phase": "Phase 1 设计调研",
+    "register": "product",
+    "platform": "web",
+    "scales": { "variance": 4, "motion": 3, "density": 6 },
+    "iconLibrary": {
+      "name": "lucide-react",
+      "version": "1.28.0",
+      "versionPinned": true,
+      "sizes": [16, 20, 24],
+      "strokeWidth": 2,
+      "color": "currentColor",
+      "adr": "docs/decisions/ADR-002-icon-library-lucide.md",
+      "note": "全项目唯一图标库，不引第二套。缺图标时在 web/src/components/icons/ 按 24×24 栅格 / stroke 2 自绘。"
+    },
+    "note": "前端一律 import 本文件或 design-tokens.css，禁止在组件内硬编码色值。"
+  },
+
+  "color": {
+    "bg":            { "value": "#F7F9FB", "type": "color", "layer": "A1" },
+    "surface":       { "value": "#FFFFFF", "type": "color", "layer": "A1" },
+    "surface2":      { "value": "#F1F5F9", "type": "color", "layer": "A1" },
+    "surface3":      { "value": "#E7EDF3", "type": "color", "layer": "A1" },
+
+    "fg":            { "value": "#0F1B26", "type": "color", "layer": "A1" },
+    "fg2":           { "value": "#33475B", "type": "color", "layer": "B" },
+    "muted":         { "value": "#5A6E80", "type": "color", "layer": "A1" },
+    "meta":          { "value": "#6B8093", "type": "color", "layer": "B" },
+
+    "border":        { "value": "#DDE5EC", "type": "color", "layer": "A1" },
+    "borderSoft":    { "value": "#EDF1F5", "type": "color", "layer": "B" },
+    "borderStrong":  { "value": "#C3D0DA", "type": "color", "layer": "B" },
+
+    "accent":        { "value": "#0E7490", "type": "color", "layer": "A1", "note": "唯一强调色，每屏可见使用 ≤2 处" },
+    "accentOn":      { "value": "#FFFFFF", "type": "color", "layer": "A2" },
+    "accentHover":   { "value": "#0B6178", "type": "color", "layer": "A2" },
+    "accentActive":  { "value": "#094F61", "type": "color", "layer": "A2" },
+    "accentSoft":    { "value": "#E2F2F6", "type": "color", "layer": "A2" },
+    "accentBorder":  { "value": "#A9D5E0", "type": "color", "layer": "A2" },
+
+    "success":       { "value": "#15803D", "type": "color", "layer": "A2" },
+    "successSoft":   { "value": "#E6F4EA", "type": "color", "layer": "A2" },
+    "successBorder": { "value": "#B0DCC0", "type": "color", "layer": "A2" },
+    "warn":          { "value": "#B45309", "type": "color", "layer": "A2" },
+    "warnSoft":      { "value": "#FDF1E3", "type": "color", "layer": "A2" },
+    "warnBorder":    { "value": "#E8C79A", "type": "color", "layer": "A2" },
+    "danger":        { "value": "#B91C1C", "type": "color", "layer": "A2" },
+    "dangerSoft":    { "value": "#FDEAEA", "type": "color", "layer": "A2" },
+    "dangerBorder":  { "value": "#EEB4B4", "type": "color", "layer": "A2" }
+  },
+
+  "code": {
+    "bg":        { "value": "#0F1B26", "type": "color", "layer": "C" },
+    "bgGutter":  { "value": "#16232F", "type": "color", "layer": "C" },
+    "fg":        { "value": "#E3ECF2", "type": "color", "layer": "C" },
+    "border":    { "value": "#22384A", "type": "color", "layer": "C" },
+    "selection": { "value": "#17475A", "type": "color", "layer": "C" },
+    "caret":     { "value": "#4CC4DD", "type": "color", "layer": "C" },
+    "synKeyword":  { "value": "#7DD3FC", "type": "color", "layer": "C" },
+    "synString":   { "value": "#86EFAC", "type": "color", "layer": "C" },
+    "synNumber":   { "value": "#FCD34D", "type": "color", "layer": "C" },
+    "synFunc":     { "value": "#C4B5FD", "type": "color", "layer": "C" },
+    "synComment":  { "value": "#6B8093", "type": "color", "layer": "C" },
+    "synOperator": { "value": "#CBD5E1", "type": "color", "layer": "C" }
+  },
+
+  "status": {
+    "running": { "value": "#15803D", "type": "color", "layer": "C", "label": "运行 / 通过" },
+    "idle":    { "value": "#6B8093", "type": "color", "layer": "C", "label": "空闲 / 草稿" },
+    "stopped": { "value": "#B45309", "type": "color", "layer": "C", "label": "停机 / 待处理" },
+    "fault":   { "value": "#B91C1C", "type": "color", "layer": "C", "label": "故障 / 失败" }
+  },
+
+  "font": {
+    "family": {
+      "display": { "value": "Archivo Variable, Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif", "type": "fontFamily" },
+      "body":    { "value": "Archivo Variable, Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif", "type": "fontFamily" },
+      "mono":    { "value": "JetBrains Mono Variable, JetBrains Mono, SFMono-Regular, Consolas, Menlo, monospace", "type": "fontFamily" }
+    },
+    "size": {
+      "xs":    { "value": "0.75rem",    "px": 12, "type": "dimension", "use": "徽章 / 全大写标签" },
+      "sm":    { "value": "0.8125rem",  "px": 13, "type": "dimension", "use": "表格单元 / 辅助说明" },
+      "base":  { "value": "0.9375rem",  "px": 15, "type": "dimension", "use": "UI 正文" },
+      "prose": { "value": "1.0625rem",  "px": 17, "type": "dimension", "use": "理论章节长文，仅 .prose 内" },
+      "lg":    { "value": "1.125rem",   "px": 18, "type": "dimension", "use": "卡片标题" },
+      "xl":    { "value": "1.25rem",    "px": 20, "type": "dimension", "use": "区块标题" },
+      "2xl":   { "value": "1.5rem",     "px": 24, "type": "dimension", "use": "页面标题" },
+      "3xl":   { "value": "1.875rem",   "px": 30, "type": "dimension", "use": "工作台主标题" },
+      "4xl":   { "value": "2.375rem",   "px": 38, "type": "dimension", "use": "仅首页首屏，全站唯一一处" }
+    },
+    "weight": {
+      "read":            { "value": 400, "type": "fontWeight" },
+      "emph":            { "value": 510, "type": "fontWeight", "cjkFallback": 500 },
+      "announce":        { "value": 590, "type": "fontWeight", "cjkFallback": 600 }
+    },
+    "leading": {
+      "tight": { "value": 1.2,  "type": "number" },
+      "snug":  { "value": 1.35, "type": "number" },
+      "body":  { "value": 1.55, "type": "number" },
+      "prose": { "value": 1.75, "type": "number" }
+    },
+    "tracking": {
+      "caps":    { "value": "0.08em",  "type": "dimension" },
+      "body":    { "value": "0",       "type": "dimension" },
+      "title":   { "value": "-0.011em","type": "dimension" },
+      "display": { "value": "-0.021em","type": "dimension" }
+    }
+  },
+
+  "space": {
+    "1":  { "value": "4px",  "type": "dimension" },
+    "2":  { "value": "8px",  "type": "dimension" },
+    "3":  { "value": "12px", "type": "dimension" },
+    "4":  { "value": "16px", "type": "dimension" },
+    "5":  { "value": "20px", "type": "dimension" },
+    "6":  { "value": "24px", "type": "dimension" },
+    "8":  { "value": "32px", "type": "dimension" },
+    "10": { "value": "40px", "type": "dimension" },
+    "12": { "value": "48px", "type": "dimension" },
+    "16": { "value": "64px", "type": "dimension" }
+  },
+
+  "radius": {
+    "xs":   { "value": "3px",    "type": "dimension", "use": "Badge / Tag" },
+    "sm":   { "value": "6px",    "type": "dimension", "use": "按钮 / 输入框" },
+    "md":   { "value": "8px",    "type": "dimension", "use": "卡片 / 面板（上限）" },
+    "lg":   { "value": "12px",   "type": "dimension", "use": "模态框" },
+    "pill": { "value": "9999px", "type": "dimension", "use": "状态胶囊 / 头像" }
+  },
+
+  "shadow": {
+    "flat":     { "value": "none", "type": "boxShadow", "note": "默认。卡片靠 1px border + 底色差，不靠阴影" },
+    "ring":     { "value": "0 0 0 1px #DDE5EC", "type": "boxShadow" },
+    "dropdown": { "value": "0 4px 12px -2px rgba(15,27,38,0.10), 0 2px 4px -2px rgba(15,27,38,0.06)", "type": "boxShadow" },
+    "modal":    { "value": "0 16px 40px -8px rgba(15,27,38,0.18), 0 4px 12px -4px rgba(15,27,38,0.08)", "type": "boxShadow" }
+  },
+
+  "focus": {
+    "ring":      { "value": "0 0 0 2px #F7F9FB, 0 0 0 4px #0E7490", "type": "boxShadow" },
+    "ringInset": { "value": "inset 0 0 0 2px #0E7490", "type": "boxShadow" }
+  },
+
+  "motion": {
+    "instant": { "value": "80ms",  "type": "duration", "use": "按钮按下" },
+    "fast":    { "value": "150ms", "type": "duration", "use": "收敛基准：hover / 选中" },
+    "base":    { "value": "220ms", "type": "duration", "use": "下拉 / Toast" },
+    "slow":    { "value": "320ms", "type": "duration", "use": "抽屉 / 模态" },
+    "easeOut":      { "value": "cubic-bezier(0.22, 1, 0.36, 1)", "type": "cubicBezier" },
+    "easeStandard": { "value": "cubic-bezier(0.2, 0, 0, 1)",     "type": "cubicBezier" },
+    "banned": ["bounce", "elastic", "cubic-bezier(0.68,-0.55,0.265,1.55)"]
+  },
+
+  "layout": {
+    "sidebarWidth":          { "value": "240px",  "type": "dimension" },
+    "sidebarWidthCollapsed": { "value": "56px",   "type": "dimension" },
+    "topbarHeight":          { "value": "52px",   "type": "dimension" },
+    "containerApp":          { "value": "1280px", "type": "dimension" },
+    "containerProse":        { "value": "720px",  "type": "dimension" },
+    "gutterDesktop":         { "value": "24px",   "type": "dimension" },
+    "gutterTablet":          { "value": "16px",   "type": "dimension" },
+    "gutterPhone":           { "value": "12px",   "type": "dimension" },
+    "sectionYDesktop":       { "value": "48px",   "type": "dimension" },
+    "sectionYTablet":        { "value": "32px",   "type": "dimension" },
+    "sectionYPhone":         { "value": "24px",   "type": "dimension" }
+  },
+
+  "breakpoint": {
+    "sm": { "value": "640px",  "type": "dimension" },
+    "md": { "value": "768px",  "type": "dimension" },
+    "lg": { "value": "1024px", "type": "dimension" },
+    "xl": { "value": "1280px", "type": "dimension" }
+  },
+
+  "zIndex": {
+    "base":     { "value": 0,    "type": "number" },
+    "sticky":   { "value": 100,  "type": "number" },
+    "dropdown": { "value": 1000, "type": "number" },
+    "modal":    { "value": 1200, "type": "number" },
+    "toast":    { "value": 1300, "type": "number" }
+  }
+}

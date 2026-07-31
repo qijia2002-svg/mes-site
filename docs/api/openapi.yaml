@@ -1,0 +1,891 @@
+openapi: 3.0.3
+info:
+  title: MES 实训平台 API
+  version: 1.0.0
+  description: |
+    契约来源：`worker/src/router.ts` 实测审计（19 条路由）。
+    前端据此生成 TS 类型，后端据此实现。任何变更必须先改本文件，再经 team-lead 同步前后端。
+
+    统一响应包络：所有响应（含错误）均为 `{ code, data, msg, traceId }`，HTTP 状态码与 code 同时使用。
+    `code: 0` 表示成功。
+servers:
+  - url: /
+    description: 与前端同源（Workers Static Assets + Worker 同一域）
+
+tags:
+  - name: system
+  - name: content
+  - name: auth
+  - name: progress
+  - name: quiz
+  - name: learning
+  - name: admin
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [system]
+      summary: 健康检查（不查库，验证完整中间件管线）
+      responses:
+        '200':
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/Health' }
+
+  /api/v1/topics:
+    get:
+      tags: [content]
+      summary: 已发布主题列表（走 L2 缓存，键含 content_version）
+      responses:
+        '200':
+          description: 主题数组（最多 100 条）
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Topic' }
+
+  /api/v1/topics/{id}/chapters:
+    get:
+      tags: [content]
+      summary: 指定主题下的已发布章节列表
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '200':
+          description: 章节数组
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/ChapterSummary' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+
+  /api/v1/chapters/{id}:
+    get:
+      tags: [content]
+      summary: 章节详情（含 markdown 正文）
+      description: 仅返回 status='published' 的章节；草稿一律按 404 处理，避免探测。
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '200':
+          description: 章节详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/ChapterDetail' }
+        '404': { $ref: '#/components/responses/DraftHidden' }
+
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      summary: 管理员登录（先限流后验密）
+      description: |
+        管线为 `[trace, security, loginRateLimit, validate]`——限流在验密之前，防口令爆破。
+        双桶限流：`login:ip:<ip>` 与 `login:user:<username>`，容量 5、每秒补 0.2。
+        成功时通过 `Set-Cookie: sid=<HMAC token>; HttpOnly; Secure; SameSite=Strict; Max-Age=28800` 下发会话。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: 登录成功
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: 'sid=<token>; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=28800'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          ok: { type: boolean, example: true }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/BadOrigin' }
+        '429': { $ref: '#/components/responses/LoginLocked' }
+
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      summary: 登出（清 Cookie）
+      responses:
+        '200':
+          description: 登出成功（Set-Cookie 的 Max-Age=0）
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Envelope' }
+        '403': { $ref: '#/components/responses/BadOrigin' }
+
+  /api/v1/progress:
+    get:
+      tags: [progress]
+      summary: 近 50 条学习事件 + 当日聚合
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 事件与当日统计
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/ProgressView' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+    post:
+      tags: [progress]
+      summary: 记录学习事件（幂等）
+      description: 以 `eventId` 为主键 `INSERT OR IGNORE`，重复提交不会重复计数；同时 UPSERT `stats_daily`。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecordProgressRequest' }
+      responses:
+        '200':
+          description: 记录成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/OkFlag' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+        '403': { $ref: '#/components/responses/BadOrigin' }
+
+  /api/v1/quiz/questions:
+    get:
+      tags: [quiz]
+      summary: 章节选择题列表（不含答案）
+      description: DTO 白名单强制剔除 `answer` 与 `explanation`，防缓存泄露。
+      parameters:
+        - name: chapterId
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 题目数组
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/QuizQuestion' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+
+  /api/v1/sql-exercises:
+    get:
+      tags: [quiz]
+      summary: 主题下的 SQL 实训题列表（不含 answer_sql）
+      parameters:
+        - name: topicId
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 实训题数组
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/SqlExercise' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+
+  /api/v1/sql-exercises/{id}:
+    get:
+      tags: [quiz]
+      summary: SQL 实训题详情（题面 + 数据集，不含 answer_sql）
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '200':
+          description: 实训题详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/SqlExercise' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/sql-exercises/{id}/submit:
+    post:
+      tags: [quiz]
+      summary: 提交 SQL 练习结果
+      description: |
+        **当前实现为桩**（P1-7）：仅回显 `received`，不落库、不写 progress_events、不写 wrong_questions。
+        MVP 需改为：接收前端 sql.js 跑出的结果集哈希 → 与预存的期望哈希比对 → 落 progress_events + wrong_questions。
+        期望结果集哈希在内容录入时预计算，答案本身永不下发。
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubmitSqlRequest' }
+      responses:
+        '200':
+          description: 提交结果
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/SubmitSqlResult' }
+        '403': { $ref: '#/components/responses/BadOrigin' }
+
+  /api/v1/learning-paths:
+    get:
+      tags: [learning]
+      summary: 已发布学习路径列表
+      responses:
+        '200':
+          description: 学习路径数组
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/LearningPath' }
+
+  /api/v1/learning-paths/{id}:
+    get:
+      tags: [learning]
+      summary: 学习路径详情
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '200':
+          description: 学习路径详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/LearningPath' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+        '404': { $ref: '#/components/responses/DraftHidden' }
+
+  /api/v1/certifications:
+    get:
+      tags: [learning]
+      summary: 已发布证书列表
+      responses:
+        '200':
+          description: 证书数组
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Certification' }
+
+  /api/v1/admin/topics:
+    get:
+      tags: [admin]
+      summary: 主题列表（含草稿）
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: 主题数组
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminTopic' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [admin]
+      summary: 创建主题
+      description: '⚠ 缺口 P1-8：写成功后必须递增 platform_config.content_version，否则前台最长 360s 不更新。'
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TopicUpsert' }
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/OkFlag' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/BadOrigin' }
+
+  /api/v1/admin/topics/{id}:
+    get:
+      tags: [admin]
+      summary: 主题详情（含草稿）
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: 主题详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/AdminTopic' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/DraftHidden' }
+    put:
+      tags: [admin]
+      summary: 全量更新主题
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TopicUpsert' }
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/OkFlag' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      tags: [admin]
+      summary: 删除主题
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/OkFlag' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/admin/chapters:
+    get:
+      tags: [admin]
+      summary: 章节列表（含草稿），按 topicId 过滤
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: topicId
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 章节数组
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/ChapterSummary' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [admin]
+      summary: 创建章节
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChapterUpsert' }
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/OkFlag' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/admin/chapters/{id}:
+    get:
+      tags: [admin]
+      summary: 章节详情（含草稿与 md 正文）
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: 章节详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/ChapterDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/DraftHidden' }
+    put:
+      tags: [admin]
+      summary: 全量更新章节
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChapterUpsert' }
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/OkFlag' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      tags: [admin]
+      summary: 删除章节
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/OkFlag' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/admin/import/start:
+    post:
+      tags: [admin]
+      summary: 开始 Excel 分片导入，返回 importId
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200':
+          description: 返回 importId
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          importId: { type: string, format: uuid }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/admin/import/chunk:
+    post:
+      tags: [admin]
+      summary: 上报一个分片（落 import_chunks 暂存表）
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [importId, chunkIndex]
+              properties:
+                importId: { type: string }
+                chunkIndex: { type: integer, minimum: 0 }
+                rows: { type: integer, minimum: 0 }
+      responses:
+        '200':
+          description: 分片已记录
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/OkFlag' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/admin/import/commit:
+    post:
+      tags: [admin]
+      summary: 提交导入
+      description: '⚠ 缺口 P2-12：当前仅 COUNT 分片数，不解析 Excel、不物化行。MVP 用 seed.sql 绕开。'
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [importId]
+              properties:
+                importId: { type: string }
+      responses:
+        '200':
+          description: 提交结果
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          ok: { type: boolean }
+                          chunks: { type: integer }
+                          rows: { type: integer }
+                          note: { type: string }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: sid
+      description: HMAC 签名的无状态会话，8 小时有效，可通过递增 platform_config.token_version 全局吊销。
+
+  parameters:
+    PathId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+
+  schemas:
+    Envelope:
+      type: object
+      required: [code, data, msg, traceId]
+      properties:
+        code:
+          type: integer
+          description: 0 为成功；非 0 见错误码表
+          example: 0
+        data:
+          nullable: true
+          description: 业务载荷；错误时恒为 null
+        msg: { type: string, example: ok }
+        traceId:
+          type: string
+          description: 链路追踪 id，同时回写到响应头 x-trace-id，用户报障凭此定位
+
+    OkFlag:
+      type: object
+      properties:
+        ok: { type: boolean, example: true }
+
+    Health:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+        degrade:
+          type: string
+          enum: [L0, L1, L2]
+          description: 降级档位，L0 为正常
+        d1Stmts:
+          type: integer
+          description: 本请求已消耗的 D1 语句数（上限 40，平台红线 50）
+        ts: { type: integer, format: int64 }
+
+    Topic:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        modules:
+          type: array
+          items: { type: string, enum: [theory, sql, quiz, practice] }
+
+    AdminTopic:
+      allOf:
+        - $ref: '#/components/schemas/Topic'
+        - type: object
+          properties:
+            sort: { type: integer }
+            status: { type: string, enum: [published, draft] }
+            updatedAt: { type: integer, format: int64 }
+
+    TopicUpsert:
+      type: object
+      required: [slug, title]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string, default: '' }
+        modules:
+          type: array
+          items: { type: string }
+        sort: { type: integer, default: 0 }
+        status: { type: string, enum: [published, draft], default: draft }
+
+    ChapterSummary:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        topicId: { type: integer, format: int64 }
+        title: { type: string }
+        sort: { type: integer }
+        status: { type: string, enum: [published, draft] }
+        updatedAt: { type: integer, format: int64 }
+
+    ChapterDetail:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        topicId: { type: integer, format: int64 }
+        title: { type: string }
+        schemaVersion: { type: integer }
+        md:
+          type: string
+          description: Markdown 正文。前端渲染后**必须** DOMPurify.sanitize，后台可编辑内容按不可信输入处理。
+        updatedAt: { type: integer, format: int64 }
+
+    ChapterUpsert:
+      type: object
+      required: [topicId, title]
+      properties:
+        topicId: { type: integer, format: int64 }
+        title: { type: string }
+        sort: { type: integer, default: 0 }
+        status: { type: string, enum: [published, draft], default: draft }
+        md: { type: string, default: '' }
+        schemaVersion: { type: integer, default: 1 }
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+
+    RecordProgressRequest:
+      type: object
+      required: [eventId, userId, type]
+      properties:
+        eventId:
+          type: string
+          description: 客户端生成的幂等键（建议 UUID），重复提交不重复计数
+        userId: { type: string }
+        type: { type: string, enum: [sql_done, quiz_done, practice_done] }
+        refId: { type: string, default: '' }
+        payload: { type: object, nullable: true }
+
+    ProgressView:
+      type: object
+      properties:
+        events:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            properties:
+              eventId: { type: string }
+              type: { type: string }
+              refId: { type: string }
+              payload: { nullable: true }
+              createdAt: { type: integer, format: int64 }
+        today:
+          type: object
+          properties:
+            sqlDone: { type: integer }
+            quizDone: { type: integer }
+            practiceDone: { type: integer }
+
+    QuizQuestion:
+      type: object
+      description: 绝不包含 answer / explanation 字段。
+      properties:
+        id: { type: integer, format: int64 }
+        type: { type: string, enum: [single, multi, judge] }
+        stem: { type: string }
+        options:
+          type: array
+          items: { type: string }
+
+    SqlExercise:
+      type: object
+      description: 绝不包含 answer_sql 字段。
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        prompt: { type: string }
+        datasetJson:
+          description: 样例库建表 + 插数定义，供浏览器端 sql.js 初始化
+
+    SubmitSqlRequest:
+      type: object
+      properties:
+        exerciseId: { type: integer, format: int64 }
+        userId: { type: string }
+        resultHash:
+          type: string
+          description: '【MVP 待实现】前端 sql.js 结果集规范化后的哈希，用于服务端判定正误'
+
+    SubmitSqlResult:
+      type: object
+      properties:
+        received: { type: boolean }
+        exerciseId: { type: integer, format: int64, nullable: true }
+        correct:
+          type: boolean
+          description: '【MVP 待实现】当前桩实现不返回此字段'
+        note: { type: string }
+
+    LearningPath:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        topicIds:
+          type: array
+          items: { type: integer, format: int64 }
+          description: 有序主题 id 数组
+        sort: { type: integer }
+        status: { type: string, enum: [published, draft] }
+
+    Certification:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        requireSql: { type: boolean }
+        requireQuiz: { type: boolean }
+        status: { type: string, enum: [published, draft] }
+
+    Error:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            code: { type: integer, example: 1001 }
+            data: { nullable: true, example: null }
+            msg:
+              type: string
+              description: 固定文案，绝不回传 D1 原始错误（会泄露表名列名）
+
+  responses:
+    ParamMissing:
+      description: '1001 缺少必要参数'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: '2001 未登录或登录已失效'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    BadOrigin:
+      description: '2004 非法来源（写操作 Origin 与 Host 不匹配）'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    LoginLocked:
+      description: '3002 账号已锁定，请稍后再试'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    DraftHidden:
+      description: '4001 内容不存在或尚未发布'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: '4002 题目不存在'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+# ── 错误码表（全量，来自 worker/src/core/errors.ts）─────────────────────
+# 1001 400 缺少必要参数            1002 413 请求体过大
+# 1003 400 参数未通过校验
+# 2001 401 未登录或登录已失效      2002 401 登录已过期
+# 2003 401 登录状态已失效          2004 403 非法来源
+# 3001 429 请求过于频繁            3002 429 账号已锁定
+# 4001 404 内容不存在或尚未发布    4002 404 题目不存在
+# 5001 503 D1 过载（触发降级）     5002 500 请求过于复杂（超 40 条 D1 语句）
+# 5003 503 DO 不可达               9000 500 服务器内部错误
