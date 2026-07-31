@@ -1,0 +1,16 @@
+{
+  "name": "mes-learning-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MES 实施运维实训平台 — Cloudflare Workers + D1 + DO 全栈（免费套餐约束下）",
+  "workspaces": [
+    "worker",
+    "web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace web",
+    "build": "npm run build --workspace web && npm run build --workspace worker",
+    "typecheck": "npm run typecheck --workspace worker && npm run typecheck --workspace web",
+    "deploy": "npm run build --workspace web && npm run deploy --workspace worker"
+  }
+}

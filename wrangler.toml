@@ -1,0 +1,35 @@
+name = "mes-learning-platform"
+main = "worker/src/index.ts"
+compatibility_date = "2025-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# 前端构建产物由 Workers Static Assets 提供（替代 Pages）
+# not_found_handling = "single-page-application" 让嵌套路由（/learn/sql/01）回退到 index.html
+assets = { directory = "./worker/public", binding = "ASSETS", not_found_handling = "single-page-application" }
+
+# D1 数据库绑定（免费版单库单线程）
+[[d1_databases]]
+binding = "DB"
+database_name = "mes-learning"
+# 本地开发用占位 UUID（仅 local 模式生效）；部署前请换成 `wrangler d1 create` 返回的真实 id
+database_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+# Durable Object 绑定（限流 + 登录阶梯锁定）
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+# 【补正】免费版 DO 必须声明为 SQLite-backed，否则 wrangler deploy 失败
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]
+
+# 非敏感配置可放 vars；SESSION_SECRET 用 secret（见下方注释）
+[vars]
+NODE_ENV = "production"
+# CONTENT_VERSION 由后台发布时写入 platform_config，运行时通过接口读取；
+# 这里只是部署期占位，真实值以 D1 中的 platform_config.content_version 为准。
+
+# 敏感配置（务必用 secret，不要写进仓库）：
+#   wrangler secret put SESSION_SECRET   # HMAC 会话签名密钥，建议 32+ 字节随机串
+#   wrangler secret put ADMIN_PASSWORD   # 后台登录口令（Phase 1 启用后台时使用）
