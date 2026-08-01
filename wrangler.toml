@@ -11,8 +11,8 @@ assets = { directory = "./worker/public", binding = "ASSETS", not_found_handling
 [[d1_databases]]
 binding = "DB"
 database_name = "mes-learning"
-# 本地开发用占位 UUID（仅 local 模式生效）；部署前请换成 `wrangler d1 create` 返回的真实 id
-database_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+# 真实 D1 数据库 ID（wrangler d1 create mes-learning 返回）
+database_id = "81994d7b-dfcb-476e-8ade-8e14b40030d7"
 
 # Durable Object 绑定（限流 + 登录阶梯锁定）
 [[durable_objects.bindings]]
