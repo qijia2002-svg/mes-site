@@ -8,6 +8,7 @@ import { NavLink, Link } from 'react-router-dom';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { Icon, type IconName } from './Icon';
 import { Breadcrumb } from './Breadcrumb';
+import { useAuth, useLogout } from './AuthGuard';
 import { api } from '../api/endpoints';
 
 interface NavEntry {
@@ -121,6 +122,30 @@ function HealthPill() {
   );
 }
 
+/** 侧栏底部：已登录显示用户名+退出，否则淡隐（RequireAuth 已兜底，这里只是信息展示） */
+function AuthFooterLink() {
+  const { data } = useAuth();
+  const { logout } = useLogout();
+  if (!data?.sub) return null;
+  return (
+    <>
+      <span className="nav-subitem" style={{ color: 'var(--meta-on-ink)', cursor: 'default' }}>
+        <Icon name="user" size={16} className="nav-subglyph" />
+        <span>{data.sub}</span>
+      </span>
+      <button
+        type="button"
+        className="nav-subitem"
+        style={{ background: 'transparent', border: 0, fontFamily: 'inherit', cursor: 'pointer' }}
+        onClick={() => { logout().catch(() => {}); }}
+      >
+        <Icon name="login" size={16} className="nav-subglyph" />
+        <span>退出登录</span>
+      </button>
+    </>
+  );
+}
+
 function NavList({ items }: { items: NavEntry[] }) {
   return (
     <ul className="nav-list">
@@ -230,16 +255,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="sidebar-foot">
           <SidebarProgress />
-          {/* 底部入口：个人中心 + 登录 */}
           <div className="sidebar-links">
             <NavLink to="/profile" className={({ isActive }) => (isActive ? 'nav-subitem is-active' : 'nav-subitem')}>
               <Icon name="user" size={16} className="nav-subglyph" />
               <span>个人中心</span>
             </NavLink>
-            <NavLink to="/login" className={({ isActive }) => (isActive ? 'nav-subitem is-active' : 'nav-subitem')}>
-              <Icon name="login" size={16} className="nav-subglyph" />
-              <span>登录</span>
-            </NavLink>
+            <AuthFooterLink />
           </div>
         </div>
       </aside>

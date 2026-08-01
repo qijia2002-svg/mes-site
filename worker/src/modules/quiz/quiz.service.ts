@@ -1,7 +1,7 @@
 import type { Ctx } from '../../core/context';
 import { Err } from '../../core/errors';
 import { quizRepo, type SqlExerciseRow } from '../../data/repositories/quiz.repo';
-import { recordProgressSvc, assertAnonId } from '../progress/progress.service';
+import { recordProgressSvc } from '../progress/progress.service';
 
 function parseJson(s: string): unknown {
   try {
@@ -101,23 +101,20 @@ export async function listSqlExercisesSvc(c: Ctx, topicId?: number) {
 
 export interface SubmitSqlInput {
   exerciseId: number;
-  anonId: string | null;
+  userId: string;
   passed: boolean;
   clientHash: string;
 }
 
 const SHA256_HEX = /^[0-9a-f]{64}$/;
 
-/** 归一化提交入参（前端发 snake_case，这里同时兼容 camelCase）。 */
-export function parseSubmitInput(exerciseId: number, b: Record<string, unknown>): SubmitSqlInput {
-  const rawAnon = b.anon_id ?? b.anonId;
-  const anonId = typeof rawAnon === 'string' && rawAnon !== '' ? assertAnonId(rawAnon) : null;
-
+/** 归一化提交入参（前端发 snake_case，这里同时兼容 camelCase）。userId 由路由层从会话中提取。 */
+export function parseSubmitInput(userId: string, exerciseId: number, b: Record<string, unknown>): SubmitSqlInput {
   const rawHash = b.client_hash ?? b.clientHash;
   const clientHash = typeof rawHash === 'string' ? rawHash.trim().toLowerCase() : '';
   if (clientHash !== '' && !SHA256_HEX.test(clientHash)) throw Err.schemaRejected('client_hash');
 
-  return { exerciseId, anonId, passed: b.passed === true, clientHash };
+  return { exerciseId, userId, passed: b.passed === true, clientHash };
 }
 
 /**
@@ -133,9 +130,9 @@ export async function submitSqlSvc(c: Ctx, input: SubmitSqlInput) {
   if (!exists) return null;
 
   let progressUpdated = false;
-  if (input.passed && input.anonId) {
+  if (input.passed) {
     const r = await recordProgressSvc(c, {
-      anonId: input.anonId,
+      userId: input.userId,
       itemType: 'exercise',
       itemId: String(input.exerciseId),
       status: 'passed',

@@ -24,7 +24,7 @@
 .dash-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 .dash-stat {
   display: flex;
@@ -51,8 +51,8 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  opacity: 0.7;
+  height: 3px;
+  opacity: 0.8;
 }
 .dash-stat[data-acc='blue']::before,
 .dash-stat[data-acc='cyan']::before,
@@ -89,12 +89,12 @@
 }
 .dash-stat-value {
   font-family: var(--font-mono);
-  font-size: 28px;
+  font-size: 36px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1;
   color: var(--fg-on-ink);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 .dash-stat-total {
   font-size: var(--text-base);

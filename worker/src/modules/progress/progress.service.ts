@@ -9,7 +9,7 @@ import {
 } from '../../data/repositories/progress.repo';
 
 export interface RecordProgressInput {
-  anonId: string;
+  userId: string;
   itemType: ItemType;
   itemId: string;
   status: ItemStatus;
@@ -18,12 +18,6 @@ export interface RecordProgressInput {
 
 /**
  * 前端语义 → 存储枚举的归一化表。
- *
- * 前端说的是"sql 练习 / 已读"（sql_exercise / read），库里存的是 exercise / done。
- * 不做这层映射的话，章节阅读和 SQL 通过两条上报路径会**全部被 400 挡掉**，
- * 而前端对进度上报失败是静默兜底的（catch 后不打断 UI）——今日统计会一直是 0
- * 且没有任何报错。归一化必须发生在 buildEventId 之前，否则 read/done 会算出
- * 两个不同的幂等键，同一次阅读被计两次。
  */
 const ITEM_TYPE_ALIAS: Readonly<Record<string, ItemType>> = {
   chapter: 'chapter',
@@ -38,21 +32,13 @@ const STATUS_ALIAS: Readonly<Record<string, ItemStatus>> = {
   passed: 'passed',
   failed: 'failed',
 };
-const ANON_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
-/** 匿名 id 白名单校验：只允许 URL-safe 字符，长度 8~64（F4 生成的是 uuid/nanoid）。 */
-export function assertAnonId(v: string | null | undefined): string {
-  if (!v || !ANON_ID_RE.test(v)) throw Err.schemaRejected('anon_id');
-  return v;
-}
-
-/** 归一化入参（同时兼容 snake_case 与 camelCase 两种 body 风格）。 */
-export function parseRecordInput(b: Record<string, unknown>): RecordProgressInput {
+/** 归一化入参（同时兼容 snake_case 与 camelCase 两种 body 风格）。userId 由路由层从会话中提取。 */
+export function parseRecordInput(userId: string, b: Record<string, unknown>): RecordProgressInput {
   const pick = (a: string, b2: string): string => {
     const v = (b as Record<string, unknown>)[a] ?? (b as Record<string, unknown>)[b2];
     return typeof v === 'string' ? v : '';
   };
-  const anonId = assertAnonId(pick('anon_id', 'anonId'));
   const itemTypeRaw = pick('item_type', 'itemType');
   const itemIdRaw = (b.item_id ?? b.itemId) as unknown;
   const itemId =
@@ -65,15 +51,14 @@ export function parseRecordInput(b: Record<string, unknown>): RecordProgressInpu
   if (!status) throw Err.schemaRejected('status');
   if (!itemId || itemId.length > 64) throw Err.schemaRejected('item_id');
 
-  return { anonId, itemType, itemId, status, payload: b.payload };
+  return { userId, itemType, itemId, status, payload: b.payload };
 }
 
 /**
- * 幂等键：同一匿名用户 + 同一条目 + 同一状态 + 同一自然日 = 同一事件。
- * 反复点"完成"不会把今日统计刷成 99（AC-06 要求今日数反映真实完成条目数）。
+ * 幂等键：同一用户 + 同一条目 + 同一状态 + 同一自然日 = 同一事件。
  */
 export function buildEventId(i: RecordProgressInput, ts = Date.now()): string {
-  return `${i.anonId}:${i.itemType}:${i.itemId}:${i.status}:${dayStr(ts)}`;
+  return `${i.userId}:${i.itemType}:${i.itemId}:${i.status}:${dayStr(ts)}`;
 }
 
 /** 记录一次学习事件；返回是否真正新增（重复上报 progressUpdated=false）。 */
@@ -82,7 +67,7 @@ export async function recordProgressSvc(c: Ctx, input: RecordProgressInput) {
   const inserted = await progressRepo.record(c.db, { ...input, eventId });
   if (inserted) {
     const col = statsColumn(input.itemType, input.status);
-    if (col) await progressRepo.bumpStats(c.db, input.anonId, col);
+    if (col) await progressRepo.bumpStats(c.db, input.userId, col);
   }
   return { ok: true, eventId, progressUpdated: inserted };
 }
@@ -107,9 +92,9 @@ function emptyToday(): TodayView {
   };
 }
 
-/** GET /api/v1/progress/today —— 首页"今日完成"卡片唯一数据源（F5）。 */
-export async function todayProgressSvc(c: Ctx, anonId: string): Promise<TodayView> {
-  const s = await progressRepo.todayStats(c.db, anonId);
+/** GET /api/v1/progress/today —— 首页"今日完成"卡片唯一数据源。 */
+export async function todayProgressSvc(c: Ctx, userId: string): Promise<TodayView> {
+  const s = await progressRepo.todayStats(c.db, userId);
   if (!s) return emptyToday();
   return {
     day: s.day,
@@ -130,13 +115,13 @@ function safeParse(s: string): unknown {
 }
 
 /** GET /api/v1/progress —— 汇总 + 近 50 条事件 + 已完成条目清单。 */
-export async function listProgressSvc(c: Ctx, anonId: string) {
+export async function listProgressSvc(c: Ctx, userId: string) {
   const [events, summary, today, chapters, exercises] = await Promise.all([
-    progressRepo.listByAnon(c.db, anonId),
-    progressRepo.summaryByAnon(c.db, anonId),
-    todayProgressSvc(c, anonId),
-    progressRepo.completedItems(c.db, anonId, 'chapter'),
-    progressRepo.completedItems(c.db, anonId, 'exercise'),
+    progressRepo.listByAnon(c.db, userId),
+    progressRepo.summaryByAnon(c.db, userId),
+    todayProgressSvc(c, userId),
+    progressRepo.completedItems(c.db, userId, 'chapter'),
+    progressRepo.completedItems(c.db, userId, 'exercise'),
   ]);
 
   const totals = { chapterDone: 0, exerciseDone: 0, exercisePassed: 0, quizDone: 0 };
@@ -150,10 +135,9 @@ export async function listProgressSvc(c: Ctx, anonId: string) {
   }
 
   return {
-    anonId,
+    userId,
     totals,
     today,
-    // 前端据此在列表页标记"已读章节 / 已通过练习"，无需逐条查
     completedChapterIds: chapters.map((r) => r.item_id),
     passedExerciseIds: exercises.filter((r) => r.status === 'passed').map((r) => r.item_id),
     events: events.map((e) => ({

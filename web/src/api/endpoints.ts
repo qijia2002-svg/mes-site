@@ -1,5 +1,4 @@
 import { apiGet, apiPost, apiPut, apiDelete } from './client';
-import { getAnonId } from '../lib/anonId';
 
 // ---- DTO（与 docs/api/openapi.yaml + Spec §5 对齐） ----
 
@@ -78,7 +77,6 @@ export type ProgressItemType = 'chapter' | 'sql_exercise';
 export type ProgressStatus = 'read' | 'passed' | 'failed';
 
 export interface RecordProgressBody {
-  anon_id: string;
   item_type: ProgressItemType;
   item_id: string;
   status: ProgressStatus;
@@ -111,7 +109,7 @@ export interface ProgressTotals {
 /** GET /api/v1/progress 全量汇总。服务端 listProgressSvc 实际返回以下字段，
  *  前端类型此前只声明了 items/today，导致 completedChapterIds 拿不到类型——补齐。 */
 export interface ProgressSummary {
-  anonId?: string;
+  userId?: string;
   totals?: ProgressTotals;
   today?: TodayProgress;
   /** 已完成（已读）章节的 item_id 清单，前端据此在仪表盘标记进度，无需逐章查。 */
@@ -133,8 +131,6 @@ export function readSchemaHint(e: SqlExercise): string {
 export function readAnswerHash(e: SqlExercise): string {
   return (e.answerHash ?? e.answer_hash ?? '').trim().toLowerCase();
 }
-
-const q = encodeURIComponent;
 
 export const api = {
   // 公共读
@@ -161,16 +157,13 @@ export const api = {
     apiGet<SqlExercise[]>(`/api/v1/sql-exercises?topicId=${topicId}`),
   sqlExercise: (id: number) => apiGet<SqlExercise>(`/api/v1/sql-exercises/${id}`),
   submitSql: (id: number, body: { passed: boolean; client_hash: string }) =>
-    apiPost<SubmitSqlResult>(`/api/v1/sql-exercises/${id}/submit`, {
-      anon_id: getAnonId(),
-      ...body,
-    }),
+    apiPost<SubmitSqlResult>(`/api/v1/sql-exercises/${id}/submit`, body),
 
-  // 进度（匿名身份，anon_id 同时走 query 与 x-anon-id 头）
-  progress: () => apiGet<ProgressSummary>(`/api/v1/progress?anon_id=${q(getAnonId())}`),
-  progressToday: () => apiGet<TodayProgress>(`/api/v1/progress/today?anon_id=${q(getAnonId())}`),
-  recordProgress: (item: Omit<RecordProgressBody, 'anon_id'>) =>
-    apiPost<{ ok?: boolean }>('/api/v1/progress', { anon_id: getAnonId(), ...item }),
+  // 进度（登录会话身份，后端从 sid cookie 读取用户标识）
+  progress: () => apiGet<ProgressSummary>('/api/v1/progress'),
+  progressToday: () => apiGet<TodayProgress>('/api/v1/progress/today'),
+  recordProgress: (item: RecordProgressBody) =>
+    apiPost<{ ok?: boolean }>('/api/v1/progress', item),
 
   // 后台（需管理员登录）
   adminTopics: () => apiGet<Topic[]>('/api/v1/admin/topics'),
@@ -183,7 +176,8 @@ export const api = {
   updateChapter: (id: number, body: unknown) => apiPut(`/api/v1/admin/chapters/${id}`, body),
 
   // 认证
+  whoami: () => apiGet<{ sub: string }>('/api/v1/auth/whoami'),
   login: (body: { username: string; password: string }) =>
     apiPost<{ ok: boolean }>('/api/v1/auth/login', body),
-  logout: () => apiPost<{ ok: boolean }>('/api/v1/auth/logout', {}),
+  logout: () => apiPost('/api/v1/auth/logout', {}),
 };

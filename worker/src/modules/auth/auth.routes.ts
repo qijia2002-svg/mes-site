@@ -1,5 +1,5 @@
 import type { Ctx } from '../../core/context';
-import { fail } from '../../core/response';
+import { ok, fail } from '../../core/response';
 import { Err } from '../../core/errors';
 import { loginSvc } from './auth.service';
 
@@ -41,4 +41,10 @@ export async function logoutHandler(c: Ctx): Promise<Response> {
       },
     },
   );
+}
+
+/** 身份查询：返回当前登录用户（前端 AuthGuard 依赖此端点判断登录态） */
+export async function whoamiHandler(c: Ctx): Promise<Response> {
+  if (!c.auth) return fail(c, Err.unauthorized());
+  return ok(c, { sub: c.auth.sub });
 }

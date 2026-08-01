@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { CrumbProvider } from './components/Breadcrumb';
+import { RequireAuth } from './components/AuthGuard';
 import HomePage from './pages/HomePage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
@@ -18,34 +19,35 @@ import NotFoundPage from './pages/NotFoundPage';
 export default function App() {
   return (
     <CrumbProvider>
-      <AppShell>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
+      <Routes>
+        {/* 登录页不需要壳，也不需要登录态 */}
+        <Route path="/login" element={<LoginPage />} />
 
-          {/* 学习中心：课程 → 章节列表 → 章节正文 */}
-          <Route path="/courses" element={<CoursesPage />} />
-          <Route path="/courses/:topicId" element={<CourseDetailPage />} />
-          <Route path="/chapters/:chapterId" element={<ChapterPage />} />
-
-          {/* 学习路径（导航合并到学习中心，路由保留） */}
-          <Route path="/learning-paths" element={<LearningPathsPage />} />
-
-          {/* 模拟台：SQL 工作台 */}
-          <Route path="/sql-space" element={<SqlSpacePage />} />
-          <Route path="/sql-space/:exerciseId" element={<ExercisePage />} />
-
-          {/* 工厂模拟：工艺路线搭建器（占位） */}
-          <Route path="/simulator" element={<SimulatorPage />} />
-
-          <Route path="/quiz" element={<QuizPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/admin" element={<AdminPage />} />
-
-          {/* 兜底 404 */}
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </AppShell>
+        {/* 所有其他页面：需要登录 + AppShell */}
+        <Route
+          path="*"
+          element={
+            <RequireAuth>
+              <AppShell>
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/courses" element={<CoursesPage />} />
+                  <Route path="/courses/:topicId" element={<CourseDetailPage />} />
+                  <Route path="/chapters/:chapterId" element={<ChapterPage />} />
+                  <Route path="/learning-paths" element={<LearningPathsPage />} />
+                  <Route path="/sql-space" element={<SqlSpacePage />} />
+                  <Route path="/sql-space/:exerciseId" element={<ExercisePage />} />
+                  <Route path="/simulator" element={<SimulatorPage />} />
+                  <Route path="/quiz" element={<QuizPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/admin" element={<AdminPage />} />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </AppShell>
+            </RequireAuth>
+          }
+        />
+      </Routes>
     </CrumbProvider>
   );
 }

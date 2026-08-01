@@ -41,6 +41,12 @@ export const guardAdmin: Middleware = async (c, next) => {
   return next(c);
 };
 
+/** 全站鉴权守卫：未登录直接 401（用于除 login/health 外的所有路由） */
+export const guardAll: Middleware = async (c, next) => {
+  if (!c.auth) throw Err.unauthorized();
+  return next(c);
+};
+
 /**
  * token_version 读取成本优化（§A8.2）：
  * 每个 /admin/* 都查一次 D1 会成倍消耗额度。改为 isolate 级 60s TTL 缓存。

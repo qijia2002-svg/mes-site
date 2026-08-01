@@ -3,13 +3,13 @@ import { compose } from './core/pipeline';
 import { errorBoundary } from './middleware/errorBoundary';
 import { trace } from './middleware/trace';
 import { security } from './middleware/security';
-import { auth, guardAdmin } from './middleware/auth';
+import { auth, guardAdmin, guardAll } from './middleware/auth';
 import { validate } from './middleware/validate';
 import { loginRateLimit } from './middleware/ratelimit';
 
 import { healthHandler } from './modules/health';
 import { listTopics, getTopic, listChapters, getChapter } from './modules/content/content.routes';
-import { loginHandler, logoutHandler } from './modules/auth/auth.routes';
+import { loginHandler, logoutHandler, whoamiHandler } from './modules/auth/auth.routes';
 import { recordProgress, listProgress, todayProgress } from './modules/progress/progress.routes';
 import {
   listTopics as adminListTopics,
@@ -44,10 +44,23 @@ export interface Route {
   middlewares?: Middleware[];
   handler: Handler;
   admin?: boolean;
+  /** 无需登录（health / login / whoami） */
+  noAuth?: boolean;
 }
 
 export const routes: Route[] = [
-  { method: 'GET', path: '/api/v1/health', handler: healthHandler },
+  { method: 'GET', path: '/api/v1/health', handler: healthHandler, noAuth: true },
+
+  // 认证：登录/登出/身份查询
+  {
+    method: 'POST',
+    path: '/api/v1/auth/login',
+    middlewares: [trace, security, loginRateLimit, validate],
+    handler: loginHandler,
+    noAuth: true,
+  },
+  { method: 'POST', path: '/api/v1/auth/logout', handler: logoutHandler },
+  { method: 'GET', path: '/api/v1/auth/whoami', handler: whoamiHandler },
 
   // 只读内容链路（走 L2 缓存）
   { method: 'GET', path: '/api/v1/topics', handler: listTopics },
@@ -55,15 +68,6 @@ export const routes: Route[] = [
   { method: 'GET', path: '/api/v1/topics/:id', handler: getTopic },
   { method: 'GET', path: '/api/v1/topics/:id/chapters', handler: listChapters },
   { method: 'GET', path: '/api/v1/chapters/:id', handler: getChapter },
-
-  // 认证：登录先限流后验密；登出需登录态
-  {
-    method: 'POST',
-    path: '/api/v1/auth/login',
-    middlewares: [trace, security, loginRateLimit, validate],
-    handler: loginHandler,
-  },
-  { method: 'POST', path: '/api/v1/auth/logout', handler: logoutHandler },
 
   // Phase 0.5 进度
   { method: 'POST', path: '/api/v1/progress', handler: recordProgress },
@@ -104,8 +108,9 @@ export const routes: Route[] = [
 
 /** 默认中间件管线（§A3.2 固定顺序；鉴权在限流前） */
 function defaultMiddlewares(route: Route): Middleware[] {
+  if (route.noAuth) return [trace, security, validate];
   if (route.admin) return [trace, security, auth, guardAdmin, validate];
-  return [trace, security, auth, validate];
+  return [trace, security, auth, guardAll, validate];
 }
 
 export function buildPipeline(route: Route): Handler {

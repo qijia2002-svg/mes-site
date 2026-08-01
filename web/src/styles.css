@@ -120,7 +120,7 @@ body,
   left: 0;
   top: 50%;
   translate: 0 -50%;
-  width: 2px;
+  width: 3px;
   height: 60%;
   border-radius: var(--radius-pill);
   background: var(--accent-on-ink);
@@ -156,7 +156,7 @@ body,
   padding: var(--space-2) var(--space-3);
   border: 0;
   border-radius: var(--radius-sm);
-  background: transparent;
+  background: color-mix(in srgb, var(--fg-on-ink) 4%, transparent);
   color: var(--meta-on-ink);
   font-family: inherit;
   font-size: var(--text-base);
@@ -366,6 +366,12 @@ body,
   display: flex;
   flex-direction: column;
   gap: var(--app-shell-gap);
+  /* 页面入场：轻微淡入+上移，150ms 不拖沓 */
+  animation: pageEnter 0.2s var(--ease-out) both;
+}
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .narrow {
   max-width: var(--container-prose);
@@ -524,6 +530,20 @@ body,
   border-radius: var(--card-radius);
   box-shadow: var(--elev-card);
 }
+.card-grid > li {
+  animation: cardEnter 0.3s var(--ease-out) both;
+}
+.card-grid > li:nth-child(1) { animation-delay: 0ms; }
+.card-grid > li:nth-child(2) { animation-delay: 40ms; }
+.card-grid > li:nth-child(3) { animation-delay: 80ms; }
+.card-grid > li:nth-child(4) { animation-delay: 120ms; }
+.card-grid > li:nth-child(5) { animation-delay: 160ms; }
+.card-grid > li:nth-child(6) { animation-delay: 200ms; }
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .card-link {
   text-decoration: none;
   color: inherit;
@@ -534,10 +554,10 @@ body,
     transform var(--motion-fast) var(--ease-standard);
 }
 .card-link:hover {
-  border-color: var(--card-border-hover);
+  border-color: var(--accent-border);
   background: var(--surface-2);
   box-shadow: var(--elev-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 .card h3 {
   margin: 0;

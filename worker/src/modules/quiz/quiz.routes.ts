@@ -50,8 +50,10 @@ export async function listSqlExercises(c: Ctx): Promise<Response> {
 export async function submitSql(c: Ctx): Promise<Response> {
   const id = Number(c.params.id);
   if (!Number.isInteger(id)) return fail(c, Err.paramMissing());
+  const userId = c.auth?.sub;
+  if (!userId) return fail(c, Err.unauthorized());
   const body = ((await c.req.json().catch(() => ({}))) ?? {}) as Record<string, unknown>;
-  const d = await svc.submitSqlSvc(c, svc.parseSubmitInput(id, body));
+  const d = await svc.submitSqlSvc(c, svc.parseSubmitInput(userId, id, body));
   if (!d) return fail(c, Err.notFound());
   return ok(c, d);
 }

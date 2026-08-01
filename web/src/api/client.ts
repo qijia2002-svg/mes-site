@@ -1,9 +1,8 @@
 /**
  * 统一 API 客户端。
  * 职责：统一响应包络解包、统一错误对象（含 traceId 供用户报障）、
- * 透传匿名身份头 x-anon-id、Cookie 会话（后台）。
+ * Cookie 会话（全站登录态）。
  */
-import { getAnonId } from '../lib/anonId';
 
 export interface ApiEnvelope<T> {
   code: number;
@@ -48,7 +47,7 @@ export class ApiError extends Error {
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 function buildHeaders(hasBody: boolean): HeadersInit {
-  const headers: Record<string, string> = { 'x-anon-id': getAnonId() };
+  const headers: Record<string, string> = {};
   if (hasBody) headers['content-type'] = 'application/json';
   return headers;
 }

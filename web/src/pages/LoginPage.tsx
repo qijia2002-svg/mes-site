@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { ErrorState } from '../components/StateBlock';
@@ -7,30 +7,35 @@ import { api } from '../api/endpoints';
 
 export default function LoginPage() {
   const nav = useNavigate();
+  const qc = useQueryClient();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const login = useMutation({
     mutationFn: () => api.login({ username, password }),
-    onSuccess: () => nav('/admin'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['whoami'] });
+      nav('/');
+    },
   });
 
   const canSubmit = username.trim() !== '' && password !== '' && !login.isPending;
 
   return (
-    <section>
+    <section style={{ maxWidth: '420px', margin: '10vh auto 0', padding: 'var(--gutter-desktop)' }}>
       <header className="page-head">
         <div>
-          <h1 className="page-title">管理员登录</h1>
+          <h1 className="page-title">MES 实训平台</h1>
           <p className="page-sub">
-            学员不需要登录——章节、题库、判题都是匿名可用的。这里只用于内容后台。
+            制造业数字化学习平台。登录后你的学习进度将永久保存，不再因清缓存而丢失。
           </p>
         </div>
       </header>
 
       <form
-        className="card form-card"
+        className="card"
+        style={{ marginTop: 'var(--space-5)' }}
         onSubmit={(e) => {
           e.preventDefault();
           if (canSubmit) login.mutate();
@@ -80,7 +85,7 @@ export default function LoginPage() {
       </form>
 
       {login.isError && (
-        <div className="stack-top">
+        <div style={{ marginTop: 'var(--space-3)' }}>
           <ErrorState error={login.error} title="登录失败" />
         </div>
       )}
