@@ -30,3 +30,5 @@ docs/_apitest.mjs
 docs/_risk-test.mjs
 docs/_val*.txt
 docs/verify-seed-sql.mjs
+_qa_*.mjs
+_*verify*.mjs
