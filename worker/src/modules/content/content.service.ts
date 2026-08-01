@@ -51,8 +51,42 @@ export async function listChaptersSvc(c: Ctx, topicId: number) {
       topicId: r.topic_id,
       title: r.title,
       sort: r.sort,
+      // 列表只返回 published，但字段仍显式下发：前端 Chapter DTO 声明了必填 status
+      status: r.status,
       updatedAt: r.updated_at,
     }));
+  });
+}
+
+/**
+ * 主题详情：路径段既可以是数字 id，也可以是 slug（/api/v1/topics/mes-basics）。
+ * 一并带回章节目录，详情页一次请求即可渲染，省一个往返。
+ */
+export async function getTopicSvc(c: Ctx, key: string) {
+  const cv = await getContentVersion(c);
+  return cachedJson(contentCacheKey(`topic/${key}`, cv), 300, async () => {
+    const numeric = /^\d+$/.test(key);
+    const t = numeric
+      ? await chapterRepo.getTopicById(c.db, Number(key))
+      : await chapterRepo.getTopicBySlug(c.db, key);
+    if (!t || t.status !== 'published') return null;
+
+    const chapters = await chapterRepo.listByTopic(c.db, t.id);
+    return {
+      id: t.id,
+      slug: t.slug,
+      title: t.title,
+      description: t.description,
+      modules: safeParseModules(t.modules),
+      chapters: chapters.map((r: ChapterRow) => ({
+        id: r.id,
+        topicId: r.topic_id,
+        title: r.title,
+        sort: r.sort,
+        status: r.status,
+        updatedAt: r.updated_at,
+      })),
+    };
   });
 }
 

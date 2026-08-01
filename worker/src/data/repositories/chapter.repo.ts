@@ -54,4 +54,19 @@ export const chapterRepo = {
        ORDER BY id LIMIT 100`,
       cursor,
     ),
+
+  getTopicById: (db: DbSession, id: number) =>
+    db.first<TopicRow>(
+      `SELECT id, slug, title, description, modules, sort, status
+       FROM topics WHERE id = ?1`,
+      id,
+    ),
+
+  /** 走 topics.slug UNIQUE 索引 */
+  getTopicBySlug: (db: DbSession, slug: string) =>
+    db.first<TopicRow>(
+      `SELECT id, slug, title, description, modules, sort, status
+       FROM topics WHERE slug = ?1`,
+      slug,
+    ),
 };

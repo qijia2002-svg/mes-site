@@ -19,15 +19,21 @@ export async function getSqlExercise(c: Ctx): Promise<Response> {
   return ok(c, d);
 }
 
-/** GET /api/v1/sql-exercises?topicId= — SQL 实训题列表 */
+/** GET /api/v1/sql-exercises[?topicId=] — SQL 实训题列表（省略 topicId 返回全部） */
 export async function listSqlExercises(c: Ctx): Promise<Response> {
-  const topicId = Number(c.url.searchParams.get('topicId'));
-  if (!Number.isInteger(topicId)) return fail(c, Err.paramMissing());
+  const raw = c.url.searchParams.get('topicId');
+  if (raw === null || raw === '') return ok(c, await svc.listSqlExercisesSvc(c));
+  const topicId = Number(raw);
+  if (!Number.isInteger(topicId)) return fail(c, Err.schemaRejected('topicId'));
   return ok(c, await svc.listSqlExercisesSvc(c, topicId));
 }
 
-/** POST /api/v1/sql-exercises/:id/submit — 提交（判题在客户端） */
+/** POST /api/v1/sql-exercises/:id/submit — 提交判题结果（判定在客户端，服务端只落进度） */
 export async function submitSql(c: Ctx): Promise<Response> {
-  const b = ((await c.req.json().catch(() => ({}))) as { exerciseId?: number; userId?: string });
-  return ok(c, await svc.submitSqlSvc(c, b));
+  const id = Number(c.params.id);
+  if (!Number.isInteger(id)) return fail(c, Err.paramMissing());
+  const body = ((await c.req.json().catch(() => ({}))) ?? {}) as Record<string, unknown>;
+  const d = await svc.submitSqlSvc(c, svc.parseSubmitInput(id, body));
+  if (!d) return fail(c, Err.notFound());
+  return ok(c, d);
 }

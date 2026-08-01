@@ -8,9 +8,9 @@ import { validate } from './middleware/validate';
 import { loginRateLimit } from './middleware/ratelimit';
 
 import { healthHandler } from './modules/health';
-import { listTopics, listChapters, getChapter } from './modules/content/content.routes';
+import { listTopics, getTopic, listChapters, getChapter } from './modules/content/content.routes';
 import { loginHandler, logoutHandler } from './modules/auth/auth.routes';
-import { recordProgress, listProgress } from './modules/progress/progress.routes';
+import { recordProgress, listProgress, todayProgress } from './modules/progress/progress.routes';
 import {
   listTopics as adminListTopics,
   getTopic as adminGetTopic,
@@ -49,6 +49,8 @@ export const routes: Route[] = [
 
   // 只读内容链路（走 L2 缓存）
   { method: 'GET', path: '/api/v1/topics', handler: listTopics },
+  // :id 兼容数字 id 与 slug
+  { method: 'GET', path: '/api/v1/topics/:id', handler: getTopic },
   { method: 'GET', path: '/api/v1/topics/:id/chapters', handler: listChapters },
   { method: 'GET', path: '/api/v1/chapters/:id', handler: getChapter },
 
@@ -64,6 +66,7 @@ export const routes: Route[] = [
   // Phase 0.5 进度
   { method: 'POST', path: '/api/v1/progress', handler: recordProgress },
   { method: 'GET', path: '/api/v1/progress', handler: listProgress },
+  { method: 'GET', path: '/api/v1/progress/today', handler: todayProgress },
 
   // Phase 1 后台（admin 管线：auth + guardAdmin）
   { method: 'GET', path: '/api/v1/admin/topics', admin: true, handler: adminListTopics },

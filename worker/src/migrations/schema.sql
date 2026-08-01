@@ -62,7 +62,9 @@ CREATE TABLE IF NOT EXISTS sql_exercises (
   title       TEXT NOT NULL,
   prompt      TEXT NOT NULL,
   dataset_json TEXT NOT NULL DEFAULT '{}',     -- 样例库建表+数据（JSON）
-  answer_sql  TEXT NOT NULL DEFAULT '',         -- 服务端保留，用于比对/校验
+  answer_sql  TEXT NOT NULL DEFAULT '',         -- 服务端保留，API 永不下发（R6）
+  answer_hash TEXT,                             -- 规范化结果集 SHA-256（小写 hex），供客户端比对判题
+  schema_hint TEXT NOT NULL DEFAULT '',         -- 样例库表结构提示（下发，帮助学员写 SQL）
   sort        INTEGER NOT NULL DEFAULT 0,
   created_at  INTEGER NOT NULL
 );
@@ -91,26 +93,33 @@ CREATE TABLE IF NOT EXISTS block_solutions (
 );
 CREATE INDEX IF NOT EXISTS idx_block_scenario ON block_solutions(scenario_id);
 
--- 进度事件（幂等：event_id UNIQUE + INSERT OR IGNORE）
+-- 进度事件（匿名身份 anon_id；幂等：event_id 主键 + INSERT OR IGNORE）
+-- event_id 由服务端按 anon_id/item_type/item_id/status/自然日 组合生成，
+-- 同一天对同一条目重复上报同一状态不会重复计数（AC-06）。
 CREATE TABLE IF NOT EXISTS progress_events (
   event_id    TEXT PRIMARY KEY,
-  user_id     TEXT NOT NULL,
-  type        TEXT NOT NULL,  -- sql_done | quiz_done | practice_done
-  ref_id      TEXT NOT NULL DEFAULT '',
+  anon_id     TEXT NOT NULL,
+  item_type   TEXT NOT NULL,               -- chapter | exercise | quiz
+  item_id     TEXT NOT NULL DEFAULT '',
+  status      TEXT NOT NULL DEFAULT 'done',-- done | passed | failed
   payload     TEXT NOT NULL DEFAULT '{}',
   created_at  INTEGER NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_progress_user ON progress_events(user_id, created_at);
+-- 时间线查询（近 50 条事件）
+CREATE INDEX IF NOT EXISTS idx_progress_anon_time ON progress_events(anon_id, created_at);
+-- Spec §6：(anon_id, item_type, item_id) 可查（判断某条目是否已完成 / 汇总）
+CREATE INDEX IF NOT EXISTS idx_progress_anon_item ON progress_events(anon_id, item_type, item_id);
 
--- 每日聚合（写时 UPSERT，仪表盘零 GROUP BY）
+-- 每日聚合（写时 UPSERT，今日统计零 GROUP BY）
 CREATE TABLE IF NOT EXISTS stats_daily (
-  user_id     TEXT NOT NULL,
-  day         TEXT NOT NULL,  -- YYYY-MM-DD
-  sql_done    INTEGER NOT NULL DEFAULT 0,
-  quiz_done   INTEGER NOT NULL DEFAULT 0,
-  practice_done INTEGER NOT NULL DEFAULT 0,
-  updated_at  INTEGER NOT NULL,
-  PRIMARY KEY (user_id, day)
+  anon_id         TEXT NOT NULL,
+  day             TEXT NOT NULL,  -- YYYY-MM-DD（UTC）
+  chapter_done    INTEGER NOT NULL DEFAULT 0,
+  exercise_done   INTEGER NOT NULL DEFAULT 0,
+  exercise_passed INTEGER NOT NULL DEFAULT 0,
+  quiz_done       INTEGER NOT NULL DEFAULT 0,
+  updated_at      INTEGER NOT NULL,
+  PRIMARY KEY (anon_id, day)
 );
 
 -- Excel 分片导入（staging → commit 两阶段，跨请求整体一致）

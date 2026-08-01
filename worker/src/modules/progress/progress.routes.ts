@@ -4,23 +4,32 @@ import { Err } from '../../core/errors';
 import {
   recordProgressSvc,
   listProgressSvc,
-  type RecordProgressInput,
+  todayProgressSvc,
+  parseRecordInput,
+  assertAnonId,
 } from './progress.service';
 
-/** POST /api/v1/progress — 记录学习事件（幂等） */
-export async function recordProgress(c: Ctx): Promise<Response> {
-  const ct = c.req.headers.get('content-type') ?? '';
-  if (!ct.includes('application/json')) return fail(c, Err.schemaRejected());
-  const b = (await c.req.json()) as RecordProgressInput;
-  if (!b.eventId || !b.userId || !b.type) return fail(c, Err.paramMissing());
-  const data = await recordProgressSvc(c, b);
-  return ok(c, data);
+/** 从 query 取 anon_id（兼容旧参数名 userId，前端迁移期不断链）。 */
+function anonIdFromQuery(c: Ctx): string {
+  const raw = c.url.searchParams.get('anon_id') ?? c.url.searchParams.get('userId');
+  return assertAnonId(raw);
 }
 
-/** GET /api/v1/progress?userId=... — 近期事件 + 当日聚合 */
+/** POST /api/v1/progress —— 记录学习事件（幂等，F5） */
+export async function recordProgress(c: Ctx): Promise<Response> {
+  const ct = c.req.headers.get('content-type') ?? '';
+  if (!ct.includes('application/json')) return fail(c, Err.schemaRejected('content-type'));
+  const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!body || typeof body !== 'object') return fail(c, Err.paramMissing());
+  return ok(c, await recordProgressSvc(c, parseRecordInput(body)));
+}
+
+/** GET /api/v1/progress?anon_id= —— 汇总 + 近 50 条事件 */
 export async function listProgress(c: Ctx): Promise<Response> {
-  const userId = c.url.searchParams.get('userId');
-  if (!userId) return fail(c, Err.paramMissing());
-  const data = await listProgressSvc(c, userId);
-  return ok(c, data);
+  return ok(c, await listProgressSvc(c, anonIdFromQuery(c)));
+}
+
+/** GET /api/v1/progress/today?anon_id= —— 今日完成数（首页工作台） */
+export async function todayProgress(c: Ctx): Promise<Response> {
+  return ok(c, await todayProgressSvc(c, anonIdFromQuery(c)));
 }
