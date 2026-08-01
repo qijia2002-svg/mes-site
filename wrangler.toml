@@ -1,4 +1,4 @@
-name = "mes-learning-platform"
+name = "mes-site"
 main = "worker/src/index.ts"
 compatibility_date = "2025-10-01"
 compatibility_flags = ["nodejs_compat"]
@@ -33,3 +33,6 @@ NODE_ENV = "production"
 # 敏感配置（务必用 secret，不要写进仓库）：
 #   wrangler secret put SESSION_SECRET   # HMAC 会话签名密钥，建议 32+ 字节随机串
 #   wrangler secret put ADMIN_PASSWORD   # 后台登录口令（Phase 1 启用后台时使用）
+
+# 自定义域名 shuojia.qzz.io：qzz.io zone 不在本 Cloudflare 账户，无法用 routes 自动接管。
+# 请在 qzz.io 的 DNS 提供商处添加 CNAME：shuojia.qzz.io -> mes-site.qijia2002.workers.dev
