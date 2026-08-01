@@ -49,11 +49,13 @@ export class RateLimiter {
     return new Response('Not Found', { status: 404 });
   }
 
-  private async load(key: string): Promise<Bucket> {
+  // capacity 默认 0：loginFailure 路径不消费令牌、无需满桶；consume/login 显式传入。
+  private async load(key: string, capacity = 0): Promise<Bucket> {
     let b = this.buckets.get(key);
     if (!b) {
       const stored = await this.state.storage?.get<Bucket>(key);
-      b = stored ?? { t: 0, ts: Date.now() };
+      // 冷桶初始化为满桶（t = capacity），否则首次请求令牌为 0 必被拒（如后台首次登录 429）
+      b = stored ?? { t: capacity, ts: Date.now() };
       this.buckets.set(key, b);
     }
     return b;
@@ -73,7 +75,7 @@ export class RateLimiter {
   private async consume(req: Request): Promise<Response> {
     const { key, capacity, refillPerSec, cost = 1 } = (await req.json()) as ConsumeReq;
     const now = Date.now();
-    const b = await this.load(key);
+    const b = await this.load(key, capacity);
     this.refill(b, capacity, refillPerSec, now);
 
     const allowed = b.t >= cost;
@@ -90,7 +92,7 @@ export class RateLimiter {
   private async login(req: Request): Promise<Response> {
     const { key, capacity, refillPerSec } = (await req.json()) as ConsumeReq;
     const now = Date.now();
-    const b = await this.load(key);
+    const b = await this.load(key, capacity);
     this.refill(b, capacity, refillPerSec, now);
 
     if (b.lockedUntil && now < b.lockedUntil) {
