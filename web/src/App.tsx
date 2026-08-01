@@ -1,67 +1,44 @@
-import { NavLink, Routes, Route } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { api, type Health } from './api/endpoints';
+import { Routes, Route } from 'react-router-dom';
+import { AppShell } from './components/AppShell';
+import { CrumbProvider } from './components/Breadcrumb';
 import HomePage from './pages/HomePage';
-import SqlSpacePage from './pages/SqlSpacePage';
 import CoursesPage from './pages/CoursesPage';
+import CourseDetailPage from './pages/CourseDetailPage';
+import ChapterPage from './pages/ChapterPage';
 import LearningPathsPage from './pages/LearningPathsPage';
+import SqlSpacePage from './pages/SqlSpacePage';
+import ExercisePage from './pages/ExercisePage';
 import QuizPage from './pages/QuizPage';
 import AdminPage from './pages/AdminPage';
 import LoginPage from './pages/LoginPage';
-
-const navItems = [
-  { to: '/', label: '首页' },
-  { to: '/sql-space', label: 'SQL 沙箱' },
-  { to: '/courses', label: '课程' },
-  { to: '/learning-paths', label: '学习路径' },
-  { to: '/quiz', label: '题库' },
-  { to: '/admin', label: '后台' },
-  { to: '/login', label: '登录' },
-];
+import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
-  const health = useQuery({ queryKey: ['health'], queryFn: api.health });
-
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">MES 实训平台</div>
-        <nav className="nav">
-          {navItems.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              end={n.to === '/'}
-              className={({ isActive }) => (isActive ? 'active' : '')}
-            >
-              {n.label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className={`health-pill ${health.data?.status === 'ok' ? 'ok' : ''}`}>
-          {health.isLoading
-            ? '连接中…'
-            : health.data
-              ? `API 正常 · 降级 ${health.data.degrade}`
-              : 'API 不可用'}
-        </div>
-      </header>
-
-      <main className="content">
+    <CrumbProvider>
+      <AppShell>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/sql-space" element={<SqlSpacePage />} />
-          <Route path="/courses" element={<CoursesPage />} />
-          <Route path="/learning-paths" element={<LearningPathsPage />} />
-          <Route path="/quiz" element={<QuizPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/login" element={<LoginPage />} />
-        </Routes>
-      </main>
 
-      <footer className="footer">
-        Phase 0+ · Cloudflare Workers + D1 + DO · 浏览器端 sql.js 沙箱
-      </footer>
-    </div>
+          {/* 课程 → 章节列表 → 章节正文（F2 主链路） */}
+          <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/courses/:topicId" element={<CourseDetailPage />} />
+          <Route path="/chapters/:chapterId" element={<ChapterPage />} />
+
+          <Route path="/learning-paths" element={<LearningPathsPage />} />
+
+          {/* SQL 工作台：自由练习 + 单题判题（F3） */}
+          <Route path="/sql-space" element={<SqlSpacePage />} />
+          <Route path="/sql-space/:exerciseId" element={<ExercisePage />} />
+
+          <Route path="/quiz" element={<QuizPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+
+          {/* 兜底 404：SPA 深链拼错时不能白屏 */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </AppShell>
+    </CrumbProvider>
   );
 }

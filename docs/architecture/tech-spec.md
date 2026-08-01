@@ -113,7 +113,7 @@ seed 数据**只有 `platform_config` 两行**（content_version=1 / token_versi
 运营改完内容刷新看不到，会判定"后台坏了"。
 修复：admin 所有写操作成功后 `UPDATE platform_config SET value = CAST(value AS INTEGER)+1 WHERE key='content_version'`。
 
-**P1-9 · sql.js 依赖 cdnjs 境外 CDN**
+**P1-9 · sql.js 依赖 cdnjs 境外 CDN**（经 PM 风险复核，**提升为 P0 级发布阻塞**，见 ADR-005）
 `SqlSandbox.tsx:13-14` 硬编码 `cdnjs.cloudflare.com/.../sql-wasm.js|.wasm`。
 SQL 沙箱是本项目最大卖点，却把它压在一个国内访问不稳定的境外 CDN 上；
 且 `SqlSpacePage` 文案宣称"可离线"，与 CDN 依赖直接矛盾。
@@ -149,6 +149,9 @@ wrangler 自身提示指向 **Microsoft Visual C++ 2015-2022 x64 Redistributable
 | Worker CPU | 10 ms/请求（免费） | 只读接口走 `caches.default`，命中近零 CPU |
 | DO | 必须 SQLite-backed | `wrangler.toml` 已声明 `new_sqlite_classes` |
 | Workers 请求 | 100k/天 | 静态资源不计入 Worker 调用 |
+| **Static Assets 文件数** | **20,000 文件/Worker 版本（免费）** | 实测来源：Cloudflare Platform Limits 页 |
+| **Static Assets 单文件** | **25 MiB（免费，与付费同）** | 字体/sql-wasm 单文件均远小于此 |
+| 资产请求计费 | 免费且无限量 | 首屏静态资源（含 6MB 字体包）零成本 |
 
 ### 4.2 编码约束（不可违反）
 
@@ -207,6 +210,31 @@ MIT 协议；无字体文件、无 sprite，纯 React 组件；React 19 peer 官
 
 **明确不引入**：任何 UI 组件库（现有 350 行手写 CSS 够用）、任何状态管理库（react-query 已覆盖）、
 任何 ORM（repository 层手写 SQL 更可控，且 D1 语句数需要精确计量）。
+
+### 5.3 字体自托管：三套 Variable 包（详见 ADR-004）
+
+DESIGN.md §3 原写静态版 `@fontsource/noto-sans-sc`（71.5 MB / 1905 文件），对 Cloudflare 免费档虽不破硬上限，但部署与首屏不可行。**改为三套 variable 包**：
+
+| 包 | 版本 | 体积 / 文件数 |
+|----|------|---------------|
+| `@fontsource-variable/archivo` | ^5.3.0 | 1.08 MB / 34（含 wght+wdth 轴） |
+| `@fontsource-variable/jetbrains-mono` | ^5.3.0 | 203 KB / 24 |
+| `@fontsource-variable/noto-sans-sc` | ^5.3.0 | 4.7 MB / 112 |
+
+全站字体资产合计 **~6 MB / ~170 文件**，远低于 20,000 文件 / 25 MiB 单文件上限。`web/package.json` 当前**三包均缺失**（设计侧已确认是 Phase 2 前置），需在 `main.tsx` 首行 import。
+
+> 注：sql.js 在 `web/package.json` 现锁 `1.13.0`，本 Spec §5.2 写作 `1.10.3`——以 package.json 实际锁定为准，ADR-003 的"自托管 vendor"结论不受影响，无行动项，仅消除文档不一致。
+
+### 5.4 SQL 判题哈希规范化规范（详见 ADR-005）
+
+P1-6 方案 B 的判题契约，规范由架构定、前后端共用：
+
+1. `dataset_json` 形状：`{"buildSql": "<DDL+DML 单字符串>"}`；浏览器/后端建库用 **`db.exec(buildSql)`**（统一 exec：`db.run(sql,params)` 带参时不支持多语句，exec 返回结果集更明确；`db.run` 不带参可跑多语句，故不要据此改 SqlSandbox）。
+2. **行序敏感、列序保留**——规范化只做类型归约，不排序。ORDER BY 是受测能力点。
+3. 浮点：两侧均 JS 原生 `number` 序列化；author 在 `answer_sql` 对小数 `ROUND(x,2)` 收敛（`ROUND(102.0,2)` 与 `102` 序列化一致）。
+4. 哈希：`SHA256( JSON.stringify({ c: columns, v: values }) )`，小写 hex；`columns`/`values` 取自 `db.exec` 返回原样。
+5. **引擎一致性**：`answer_hash` 必须由 **sql.js 1.13.0** 在 worker 端预计算（与前端自托管版本对齐），禁止用 node:sqlite 或抄 PM 临时 hash。
+6. sql.js 安装点：`web/` 已有 `sql.js@1.13.0`；`worker/`（backend）缺，哈希预计算需加 devDependency。
 
 ---
 

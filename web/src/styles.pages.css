@@ -1,0 +1,209 @@
+/* ==========================================================================
+   页面层样式（从 styles.css 拆出，保持单文件可读）。
+   同样铁律：颜色 / 间距 / 圆角 / 动效一律 var(--token)，本文件零裸 hex。
+   这里只放"页面骨架 + 页面独有块"，通用组件（按钮 / 卡片 / 表格 / 提示条）
+   仍住在 styles.css，避免两处都能改同一个东西。
+   ========================================================================== */
+
+/* ---------- 区块（section = 一个标题 + 一块内容） ---------- */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.section-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-title);
+  font-weight: var(--weight-announce-cjk);
+}
+/* 区块头右侧的次要信息 / 次要动作，统一右推 */
+.section-head > .row-meta,
+.section-head > .text-link {
+  margin-left: auto;
+}
+
+/* ---------- 行内次要文案 ---------- */
+.row-meta {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--meta);
+  white-space: nowrap;
+  flex: none;
+}
+
+/* ---------- 文字链接（区别于 .btn：无边框、无背景） ---------- */
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--accent);
+  text-decoration: none;
+  border-radius: var(--radius-xs);
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+.text-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* ---------- 今日进度统计 ---------- */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+}
+.stat-note {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--meta);
+}
+
+/* ---------- 卡片标题（.card 内的 h2/h3 统一口径） ---------- */
+.card-title {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
+  font-weight: var(--weight-emph-cjk);
+  color: var(--fg);
+}
+/* .card 直接挂在 <a> 上时也要有可点反馈，不能只有 .card-link 才动 */
+a.card {
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard);
+}
+a.card:hover {
+  border-color: var(--card-border-hover);
+  background: var(--surface-2);
+}
+
+/* ---------- 章节页：正文 + 右侧目录 ---------- */
+.chapter-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: var(--space-8);
+  align-items: start;
+}
+.chapter-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.chapter-aside {
+  position: sticky;
+  /* 顶栏是 sticky 的，目录要贴在它下面而不是被盖住 */
+  top: calc(var(--topbar-h) + var(--space-4));
+  border-left: 2px solid var(--border);
+  padding-left: var(--space-3);
+  font-size: var(--text-sm);
+}
+.toc-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: var(--meta);
+}
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.toc-list a {
+  color: var(--muted);
+  text-decoration: none;
+  border-radius: var(--radius-xs);
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+.toc-list a:hover {
+  color: var(--accent);
+}
+
+/* ---------- 表单行 / 表单卡片 ---------- */
+.form-row {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.form-card {
+  max-width: 420px;
+  gap: var(--space-4);
+}
+/* 与上一块拉开距离的收尾说明 */
+.stack-top {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-soft);
+}
+
+/* ---------- 表格里的数字列：等宽 + 定宽数字，防止跳动 ---------- */
+.tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 404 ---------- */
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-16) 0;
+}
+.not-found-code {
+  font-family: var(--font-mono);
+  font-size: var(--text-4xl);
+  line-height: 1;
+  color: var(--accent);
+  letter-spacing: var(--tracking-display);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1024px) {
+  .chapter-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+  /* 窄屏目录移到正文上方，且不再 sticky（sticky 在单列下会挡正文） */
+  .chapter-aside {
+    position: static;
+    order: -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .not-found {
+    padding: var(--space-10) 0;
+  }
+  .form-card {
+    max-width: none;
+  }
+}

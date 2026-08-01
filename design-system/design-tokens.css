@@ -11,9 +11,11 @@
 /* --------------------------------------------------------------------------
    字体装载（自托管，勿用 Google Fonts CDN —— 国内首屏不可控）
    npm i @fontsource-variable/archivo @fontsource-variable/jetbrains-mono
-   npm i @fontsource/noto-sans-sc        // unicode-range 分片，按需下载
-   在 main.tsx 顶部 import '@fontsource-variable/archivo';
-   Noto Sans SC 只装 400/500/600 三档，禁止 100-900 全量。
+   npm i @fontsource-variable/noto-sans-sc   // ADR-004：必须是 variable 包
+   在 main.tsx 顶部 import 三个包的裸入口即可，勿逐字重 import。
+   三套字体一律 variable：静态 @fontsource/noto-sans-sc 会产出 1905 个 woff2
+   （3 档字重 × 635 unicode 分片 / 71.5 MB），直接顶爆 Cloudflare 2 万文件上限；
+   variable 版一个轴覆盖 100-900，只剩 101 个分片，浏览器按 unicode-range 按需拉。
    -------------------------------------------------------------------------- */
 
 :root {
@@ -27,9 +29,11 @@
   --accent: #0e7490;
   --accent-on: #ffffff;
 
-  /* 字体族 —— Latin/数字走 Archivo，CJK 自然回落 Noto Sans SC */
-  --font-display: 'Archivo Variable', 'Archivo', 'Noto Sans SC', 'PingFang SC',
-    'Microsoft YaHei', system-ui, sans-serif;
+  /* 字体族 —— Latin/数字走 Archivo，CJK 自然回落 Noto Sans SC。
+     variable 包注册的 family 名带 " Variable" 后缀，必须排在静态名之前，
+     否则装了 variable 包也匹配不上，直接掉到系统字体。 */
+  --font-display: 'Archivo Variable', 'Archivo', 'Noto Sans SC Variable',
+    'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   --font-body: var(--font-display);
   --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', 'SFMono-Regular',
     Consolas, 'Liberation Mono', Menlo, monospace;

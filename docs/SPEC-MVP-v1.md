@@ -1,7 +1,7 @@
 # Spec - MES 实训平台 MVP v1
 
 > 生成日期：2026-07-31
-> 基于：PRD-MVP-v1.md + 架构 tech-spec.md/deploy-runbook.md + DESIGN.md + ADR-001~003
+> 基于：PRD-MVP-v1.md + 架构 tech-spec.md/deploy-runbook.md + DESIGN.md + ADR-001~005
 > 状态：已确认（用户 2026-07-31 确认方案：种子内容由助手起草，目标可上线 MVP）
 > 唯一交互点已通过，自动进入 Phase 2/3/4。
 
@@ -75,14 +75,15 @@
 - 语义：`--ok #15803D` `--warn #B45309` `--danger #B91C1C`（对齐设备状态）。
 - 字体：Archivo（UI/铭牌）+ Noto Sans SC（中文）+ JetBrains Mono（代码）；UI 15px / 长文 17px；自托管。
 - 间距 4px 网格；圆角 3/6/8/12（无 ≥16）；Hairline 默认无阴影；动效 150ms。
-- 图标：**lucide-react 1.28.0**，16/20/24 三档，`strokeWidth 1.75`，`currentColor`，统一封装 `web/src/components/Icon.tsx`。
+- 图标：**lucide-react 1.28.0**，16/20/24 三档，`strokeWidth 2`（ADR-002 锁定），`currentColor`，统一封装 `web/src/components/Icon.tsx`。
 
 ## 9. 验收标准（EARS，锁定 — QA 测试唯一依据）
 | 编号 | 功能 | EARS 验收标准 | 优先级 |
 |------|------|--------------|--------|
 | AC-01 | 种子内容 | While 站点部署完成，系统**必须**使 `GET /api/v1/topics` 返回非空数组（≥3 主题） | P0 |
-| AC-02 | 章节阅读 | When 用户打开 `/chapters/:id`，系统**必须**渲染非空 markdown 正文 | P0 |
-| AC-03 | SQL 判题 | When 用户在沙箱执行与答案结果集等价的 SQL，系统**必须**判定通过（比对 answer_hash） | P0 |
+| AC-02 | 章节阅读 | When 用户打开 `/chapters/:id`，系统**必须**渲染非空 markdown 正文，且正文**必须不**包含 `Lorem ipsum` / `Welcome to` / `TODO` / `示例内容` 等占位串（对齐团队 P0 绝对规则） | P0 |
+| AC-03 | SQL 判题通过 | When 用户执行的 SQL **在列序、行序与值上均与标准答案一致**，系统**必须**判定通过（比对 answer_hash） | P0 |
+| AC-03b | SQL 判题行序敏感 | When 用户 SQL 结果集**数据正确但行序与标准不符**（如漏写/错写 ORDER BY），系统**必须**判定不通过（行序敏感，ADR-005 D2） | P0 |
 | AC-04 | SQL 判题 R6 | If 客户端请求 `/sql-exercises/:id`，系统**必须**只返回 answer_hash、**禁止**返回 answer_sql | P0 |
 | AC-05 | 匿名身份 | When 用户首次访问，系统**必须**在 localStorage 写入 anon_id 并透传至进度接口 | P0 |
 | AC-06 | 进度 | When 用户完成练习/阅读，系统**必须**写入 progress_events 且 `/progress/today` 反映该事件 | P0 |
@@ -90,6 +91,7 @@
 | AC-08 | 图标 | While 全站渲染，系统**必须**仅使用 lucide-react 图标，零 emoji 功能图标 | P0 |
 | AC-09 | 颜色 | While 全站渲染，系统**必须**仅引用 Design Token，零硬编码 hex | P0 |
 | AC-10 | 可用性 | While 全站渲染，系统**必须**提供 `:focus-visible` 与 `prefers-reduced-motion` 兜底 | P0 |
+| AC-11 | SQL 沙箱同源自托管 | While 站点运行于生产环境，系统**必须**从同源 `/vendor/` 加载 sql.js 与 wasm，**禁止**向 cdnjs 等第三方 CDN 发起任何运行时请求（以浏览器网络面板无境外 CDN 请求为准；对应 ADR-005 D7 / ADR-003 发布阻塞） | P0 |
 
 ## 10. 边界与约束
 - 不支持 IE；响应式断点 640/1024。
@@ -131,3 +133,4 @@ curl -I https://mes-learning-platform.workers.dev/learning-paths  # => 200（深
 | 日期 | 变更内容 | 原因 | 影响范围 |
 |------|----------|------|----------|
 | 2026-07-31 | 初版 Spec | Phase 1 三方调研收敛 | 全 MVP |
+| 2026-08-01 | §9 验收表三处修订：①AC-03 与 ADR-005 D2 对齐（行序敏感，新增 AC-03b 把"预期教学行为"变可测断言）；②AC-02 增补占位串禁令（对齐团队 P0 绝对规则）；③新增 AC-11（cdnjs 自托管 P0 验收闸门，对应 ADR-005 D7 / ADR-003）。另 §8 图标 `strokeWidth 1.75→2` 对齐 ADR-002；头部 ADR 引用扩至 001~005 | PM 验收复核：AC-03 与 D2 硬矛盾 + P0 阻塞无 AC + 团队 P0 占位规则 + 锁库 stroke 值 | §9 / §8 / 头部 |

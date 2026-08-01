@@ -88,7 +88,7 @@
 ```
 Latin/数字走 Archivo，CJK 自然回落 Noto Sans SC。**Mono 不计入配对数**，用于 SQL 编辑器、结果表数字列、工单号/设备号。全站 **2 族**，不超。
 
-**装载方式（关键工程约束）**：自托管 `@fontsource-variable/archivo` + `@fontsource-variable/jetbrains-mono` + `@fontsource/noto-sans-sc`，**禁止 Google Fonts CDN**（国内首屏不可控）。Noto Sans SC 只装 400/500/600 三档并依赖其 unicode-range 分片，否则 1MB+。全部 `font-display: swap`。
+**装载方式（关键工程约束）**：自托管 `@fontsource-variable/archivo` + `@fontsource-variable/jetbrains-mono` + `@fontsource-variable/noto-sans-sc`（三套均为 **variable** 版，详见 ADR-004），**禁止 Google Fonts CDN**（国内首屏不可控）。Noto Sans SC 用 variable 的连续 `wght` 轴直接取 400/500/600（也可精确取 510/590），依赖其自带 unicode-range 分片，全量约 4.7 MB / 112 文件，比静态版 71.5 MB 小 15×。Archivo variable 含 `wdth` 轴，表头用 `font-variation-settings:'wdth' 90` 压窄列。全部 `font-display: swap`。
 
 ### 字号阶梯（固定 rem，步进 ≈1.2）
 | Token | px | 用途 |
@@ -115,7 +115,7 @@ Latin/数字走 Archivo，CJK 自然回落 Noto Sans SC。**Mono 不计入配对
 
 ## 4. Components（组件规范）
 
-统一图标库：**lucide-react**，尺寸 16 / 20 / 24，`strokeWidth={1.75}`，颜色一律 `currentColor`。全站零 emoji。
+统一图标库：**lucide-react 1.28.0**（pinned 锁死，无 `^`），尺寸 16 / 20 / 24，`strokeWidth={2}`，颜色一律 `currentColor`。全站零 emoji。详见 `design-system/icon-map.md`。
 
 ### 按钮（高 32px 桌面 / 44px 触屏，圆角 `--radius-sm` 6px）
 | 变体 | default | hover | active | focus-visible | disabled | loading |
@@ -186,7 +186,7 @@ z-index：base 0 / sticky 100 / dropdown 1000 / modal 1200 / toast 1300。
 
 **Do —— 必须遵守**
 1. 所有色值走 `var(--token)`，新颜色先进 `design-tokens.css` 再用。
-2. 图标一律 lucide-react，16/20/24 三档，`strokeWidth 1.75`，`currentColor`。
+2. 图标一律 lucide-react 1.28.0，16/20/24 三档，`strokeWidth={2}`，`currentColor`。详见 `design-system/icon-map.md`。
 3. 每屏 `--accent` 可见使用 ≤2 处；标题用 `--fg`。
 4. 每个数据组件交付 5 态：Loading / Empty / Error / Populated / Edge。
 5. Empty 态四件套：会有什么 · 为何重要 · 如何开始 · 一个具体 CTA。
@@ -243,8 +243,11 @@ z-index：base 0 / sticky 100 / dropdown 1000 / modal 1200 / toast 1300。
 ### 交付物与引用方式
 ```
 design-system/
-├── design-tokens.css     # 前端在 main.tsx 首行 import，先于 styles.css
-└── design-tokens.json    # 需要 JS 取值时 import tokens from '...'
+├── design-tokens.css      # 前端在 main.tsx 首行 import，先于 styles.css
+├── design-tokens.json     # 需要 JS 取值时 import tokens from '...'
+├── icon-map.md            # lucide-react@1.28.0 全站图标命名映射（含 MES 领域概念）
+└── pages/
+    └── chapter-detail.md  # 章节详情页（缺页 P0）规范：三栏布局 + markdown 四元素排版
 ```
 项目**未上 Tailwind**（当前是原生 CSS）。建议 Phase 2 保持原生 CSS + token，不引 Tailwind——避免为一个 MVP 增加构建面。若架构师决定引入，`design-tokens.json` 可直接映射到 `theme.extend`。
 
@@ -252,7 +255,7 @@ design-system/
 1. **App Shell**（Sidebar + Topbar + 面包屑 + 404）—— 一改全站变样，最高杠杆。
 2. **SQL 练习工作台** `/sql-space` —— 三栏 + CodeMirror 6 替换裸 textarea（语法高亮/行号）+ 结果分页 + 历史。产品核心差异点。
 3. **首页工作台** `/` —— 不做营销 Hero，做「继续学习 + 进度 + 快速入口」。
-4. **课程列表 + 课程详情** `/courses` `/courses/:id` —— 详情页当前完全不存在，是最大功能缺口（`chapters` / `chapter` 接口已就绪但零对接）。
+4. **课程列表 + 章节详情** `/courses` `/courses/:topicId/chapters/:chapterId` —— **章节详情页（渲染 `/api/v1/chapters/:id` 的 Markdown 正文）当前整体缺失，是最大功能缺口**（接口已就绪、markdown-it + dompurify 已装零 import）。课程列表页 `~30%` 实壳。规范见 `design-system/pages/chapter-detail.md`。
 5. **学习路径** `/learning-paths` —— 阶梯式路径可视化（教育行业关键效果）。
 次要：题库并入课程详情；登录 / 后台只做到"不违反红线"即可。
 
@@ -273,3 +276,5 @@ design-system/
 | 日期 | 变更 | 原因 | 影响范围 |
 |---|---|---|---|
 | 2026-07-31 | v1.0 初版：锁定 product 寄存器、工程青 `#0E7490` 单强调色、Archivo + Noto Sans SC + JetBrains Mono、lucide-react 图标 | Phase 1 设计调研结论 | 全站 |
+| 2026-07-31 | 按架构师锁库结论：lucide-react 升级为 **1.28.0 pinned、strokeWidth 2**；新增 `icon-map.md` 全站图标映射；新增 `pages/chapter-detail.md`（缺页 P0 规范） | 架构师选型 ADR-002；章节详情页整体缺失 | 全站 / 章节详情页 |
+| 2026-08-01 | 字体自托管由静态 `@fontsource/noto-sans-sc` 改为 **variable 版三件套**（ADR-004） | 静态 CJK 71.5 MB/1905 文件部署与首屏不可行；variable 4.7 MB/112 文件，含连续 wght 轴 | 全站字体栈 |

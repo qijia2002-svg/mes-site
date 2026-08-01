@@ -1,12 +1,15 @@
 import { apiGet, apiPost, apiPut, apiDelete } from './client';
+import { getAnonId } from '../lib/anonId';
 
-// ---- DTO（与后端白名单对齐） ----
+// ---- DTO（与 docs/api/openapi.yaml + Spec §5 对齐） ----
+
 export interface Health {
   status: string;
   degrade: string;
   d1Stmts: number;
   ts: number;
 }
+
 export interface Topic {
   id: number;
   slug: string;
@@ -15,6 +18,7 @@ export interface Topic {
   modules: string[];
   status?: string;
 }
+
 export interface Chapter {
   id: number;
   topicId: number;
@@ -23,6 +27,17 @@ export interface Chapter {
   status: string;
   updatedAt: number;
 }
+
+/** 章节详情：md 为不可信输入，渲染前必须过 renderChapterMarkdown。 */
+export interface ChapterDetail {
+  id: number;
+  topicId: number;
+  title: string;
+  md: string;
+  schemaVersion?: number;
+  updatedAt?: number;
+}
+
 export interface LearningPath {
   id: number;
   slug: string;
@@ -32,21 +47,24 @@ export interface LearningPath {
   sort: number;
   status: string;
 }
-export interface Cert {
-  id: number;
-  slug: string;
-  title: string;
-  description: string;
-  requireSql: boolean;
-  requireQuiz: boolean;
-  status: string;
-}
+
+/**
+ * SQL 实训题（Spec §5 DTO 白名单 / AC-04）。
+ * 只含 answer_hash，**绝不含 answer_sql**——答案永不出网。
+ */
 export interface SqlExercise {
   id: number;
+  topicId?: number;
   title: string;
   prompt: string;
-  datasetJson: unknown;
+  /** 表结构提示文本，后端保证为字符串（无提示给空串） */
+  schemaHint?: string;
+  schema_hint?: string;
+  /** 期望结果集的归一化 SHA-256，判题在客户端比对 */
+  answerHash?: string;
+  answer_hash?: string;
 }
+
 export interface QuizQuestion {
   id: number;
   type: string;
@@ -54,33 +72,76 @@ export interface QuizQuestion {
   options: string[];
 }
 
-/** 统一 API 方法集合（框架阶段：覆盖全部已定义端点）。 */
+// ---- 进度（F4/F5） ----
+
+export type ProgressItemType = 'chapter' | 'sql_exercise';
+export type ProgressStatus = 'read' | 'passed' | 'failed';
+
+export interface RecordProgressBody {
+  anon_id: string;
+  item_type: ProgressItemType;
+  item_id: string;
+  status: ProgressStatus;
+}
+
+/** 今日完成统计。后端字段名若有出入，这里全为可选，UI 侧按 0 兜底。 */
+export interface TodayProgress {
+  chapterRead?: number;
+  sqlPassed?: number;
+  total?: number;
+}
+
+export interface ProgressSummary {
+  items?: Array<{ itemType?: string; itemId?: string; status?: string; createdAt?: number }>;
+  today?: TodayProgress;
+}
+
+export interface SubmitSqlResult {
+  ok?: boolean;
+  progress_updated?: boolean;
+  progressUpdated?: boolean;
+}
+
+/** 兼容后端 snake_case / camelCase 两种命名，避免单点字段名不一致导致整页失效。 */
+export function readSchemaHint(e: SqlExercise): string {
+  return e.schemaHint ?? e.schema_hint ?? '';
+}
+export function readAnswerHash(e: SqlExercise): string {
+  return (e.answerHash ?? e.answer_hash ?? '').trim().toLowerCase();
+}
+
+const q = encodeURIComponent;
+
 export const api = {
   // 公共读
   health: () => apiGet<Health>('/api/v1/health'),
   topics: () => apiGet<Topic[]>('/api/v1/topics'),
   chapters: (topicId: number) => apiGet<Chapter[]>(`/api/v1/topics/${topicId}/chapters`),
-  chapter: (id: number) => apiGet<Chapter>(`/api/v1/chapters/${id}`),
+  chapter: (id: number) => apiGet<ChapterDetail>(`/api/v1/chapters/${id}`),
 
-  // 进度（Phase 0.5）
-  progress: (userId: string) =>
-    apiGet<unknown>(`/api/v1/progress?userId=${encodeURIComponent(userId)}`),
-  postProgress: (body: unknown) => apiPost('/api/v1/progress', body),
-
-  // 学习路径 / 证书（Phase 3）
+  // 学习路径
   learningPaths: () => apiGet<LearningPath[]>('/api/v1/learning-paths'),
-  certifications: () => apiGet<Cert[]>('/api/v1/certifications'),
+  learningPath: (id: number) => apiGet<LearningPath>(`/api/v1/learning-paths/${id}`),
 
-  // 题库 / SQL 实训（Phase 2）
+  // 题库 / SQL 实训
   quizQuestions: (chapterId: number) =>
     apiGet<QuizQuestion[]>(`/api/v1/quiz/questions?chapterId=${chapterId}`),
   sqlExercises: (topicId: number) =>
     apiGet<SqlExercise[]>(`/api/v1/sql-exercises?topicId=${topicId}`),
   sqlExercise: (id: number) => apiGet<SqlExercise>(`/api/v1/sql-exercises/${id}`),
-  submitSql: (id: number, body: unknown) =>
-    apiPost(`/api/v1/sql-exercises/${id}/submit`, body),
+  submitSql: (id: number, body: { passed: boolean; client_hash: string }) =>
+    apiPost<SubmitSqlResult>(`/api/v1/sql-exercises/${id}/submit`, {
+      anon_id: getAnonId(),
+      ...body,
+    }),
 
-  // 后台（Phase 1，需管理员登录）
+  // 进度（匿名身份，anon_id 同时走 query 与 x-anon-id 头）
+  progress: () => apiGet<ProgressSummary>(`/api/v1/progress?anon_id=${q(getAnonId())}`),
+  progressToday: () => apiGet<TodayProgress>(`/api/v1/progress/today?anon_id=${q(getAnonId())}`),
+  recordProgress: (item: Omit<RecordProgressBody, 'anon_id'>) =>
+    apiPost<{ ok?: boolean }>('/api/v1/progress', { anon_id: getAnonId(), ...item }),
+
+  // 后台（需管理员登录）
   adminTopics: () => apiGet<Topic[]>('/api/v1/admin/topics'),
   createTopic: (body: unknown) => apiPost('/api/v1/admin/topics', body),
   updateTopic: (id: number, body: unknown) => apiPut(`/api/v1/admin/topics/${id}`, body),
@@ -92,6 +153,6 @@ export const api = {
 
   // 认证
   login: (body: { username: string; password: string }) =>
-    apiPost('/api/v1/auth/login', body),
-  logout: () => apiPost('/api/v1/auth/logout', {}),
+    apiPost<{ ok: boolean }>('/api/v1/auth/login', body),
+  logout: () => apiPost<{ ok: boolean }>('/api/v1/auth/logout', {}),
 };

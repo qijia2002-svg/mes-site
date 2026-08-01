@@ -2,11 +2,12 @@
 node_modules/
 
 # Cloudflare 本地状态 / 构建产物
+# worker/public 由 vite build 生成（outDir = ../worker/public），属构建产物，不入库
 .wrangler/
-worker/public/assets/
-worker/public/index.html
+worker/public/
 dist/
 dist-worker/
+dist-worker4/
 
 # 密钥 / 环境变量（绝不入库）
 .dev.vars
@@ -20,3 +21,12 @@ dist-worker/
 # 系统
 .DS_Store
 Thumbs.db
+
+# 临时校验脚本 / 缓存（不入库）
+.npm-cache/
+.trash-old-deps/
+_leadverify.mjs
+docs/_apitest.mjs
+docs/_risk-test.mjs
+docs/_val*.txt
+docs/verify-seed-sql.mjs
