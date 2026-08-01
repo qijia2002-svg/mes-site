@@ -2,7 +2,7 @@
  * 课程详情：章节列表 + 模块考试 + SQL 实训题。
  * 读理论 → 卡片学习 → 章节测试 → 模块汇总考试 → SQL 实操，全链路闭环。
  */
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
@@ -22,11 +22,23 @@ export default function CourseDetailPage() {
     queryFn: () => api.chapters(id),
     enabled: valid,
   });
+  const progress = useQuery({ queryKey: ['progress'], queryFn: api.progress, enabled: valid });
   const exercises = useQuery({
     queryKey: ['sql-exercises', id],
     queryFn: () => api.sqlExercises(id),
     enabled: valid,
   });
+
+  const completedSet = useMemo(
+    () => new Set((progress.data?.completedChapterIds ?? []).map(String)),
+    [progress.data],
+  );
+  const doneCount = useMemo(
+    () => (chapters.data ?? []).filter((c) => completedSet.has(String(c.id))).length,
+    [chapters.data, completedSet],
+  );
+  const totalCount = chapters.data?.length ?? 0;
+  const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   // 模块汇总考试
   const [showExam, setShowExam] = useState(false);
@@ -65,7 +77,10 @@ export default function CourseDetailPage() {
         <div className="section-head">
           <h2 className="section-title">章节</h2>
           {chapters.data && chapters.data.length > 0 && (
-            <span className="row-meta">{chapters.data.length} 章</span>
+            <span className="row-meta">
+              已学 {doneCount} / {totalCount} 章
+              {progressPct > 0 && ` · ${progressPct}%`}
+            </span>
           )}
         </div>
         {chapters.isLoading && <LoadingState label="正在加载章节…" />}
@@ -77,17 +92,24 @@ export default function CourseDetailPage() {
         )}
         {chapters.data && chapters.data.length > 0 && (
           <ul className="row-list">
-            {chapters.data.map((c, i) => (
-              <li key={c.id}>
-                <Link className="row-link" to={`/chapters/${c.id}`}>
-                  <span className="row-index">{String(i + 1).padStart(2, '0')}</span>
-                  <Icon name="chapter" size={16} className="row-glyph" />
-                  <span className="row-title">{c.title}</span>
-                  {c.status !== 'published' && <span className="row-meta">{c.status}</span>}
-                  <Icon name="chevron-right" size={16} className="row-glyph" />
-                </Link>
-              </li>
-            ))}
+            {chapters.data.map((c, i) => {
+              const isDone = completedSet.has(String(c.id));
+              return (
+                <li key={c.id}>
+                  <Link className="row-link" to={`/chapters/${c.id}`}>
+                    <span className="row-index">{String(i + 1).padStart(2, '0')}</span>
+                    <Icon name={isDone ? 'success' : 'chapter'} size={16} className="row-glyph" />
+                    <span className="row-title" style={isDone ? { color: 'var(--success)' } : undefined}>{c.title}</span>
+                    {c.status !== 'published' && <span className="row-meta">{c.status}</span>}
+                    {isDone ? (
+                      <span className="pill pill-ok" style={{ marginLeft: 'auto', flex: 'none' }}>已读</span>
+                    ) : (
+                      <Icon name="chevron-right" size={16} className="row-arrow" />
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
