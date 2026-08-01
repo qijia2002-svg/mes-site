@@ -1,0 +1,39 @@
+# OPEN DECISIONS — 悬而未决登记册
+
+> 规则：只追加、就地关闭。OPEN → RESOLVED 时补 Resolution 字段，不删行。
+> 每个 Phase 开始时，本文件全量复现到工作上下文最前面，逐条判断能否关闭。
+> 已关闭且有长期约束力的项，升格为 `ADR-XXX.md`。
+
+**当前状态：4 未决 / 4 已决**
+
+---
+
+## 未决项
+
+| # | Date | Source | Open Item | Related Constraints | Current Leaning | Blocked By | Resolves When | Slug | Status |
+|---|------|--------|-----------|---------------------|-----------------|------------|---------------|------|--------|
+| OD-001 | 2026-08-02 | Phase 1 · PRD Q4 / ADR-007 | 学员画布方案是否需要 D1 云端同步 | ADR-007 定 v1 只走 localStorage；PM 建议 localStorage + D1 异步同步防丢 | v1 不做，仅 localStorage | 需真实用户反馈「换设备丢方案」是否成立 | 有 ≥3 名用户反馈跨设备丢失，或引入账号体系时 | design-decision-to-evaluate | OPEN |
+| OD-003 | 2026-08-02 | Phase 1 · 架构 §13-4 | 首期示例数据的**具体数值**（各工序标准工时 / 3 类物料编码与单位用量 / 初始库存） | 结构已在 Spec §10.1 锁定（五工序 + 3 物料 + 1000 件），但数值未定；F6 是第一个交付项 | 由 PM 在 A 线开工前补出 | 等 PM 交付 | `docs/sim-seed-generic-discrete.json` 落盘 | waiting-on-external-condition | OPEN |
+| OD-012 | 2026-08-02 | Spec §8.5 advisory | 搭建器「已完成 / 异常」两态描边亮度差仅 1.08:1，对红绿色盲不可分 | 非 v3 引入的既有问题；仅靠颜色区分状态违反无障碍 | 实现期补图标通道（形状 + 颜色双编码） | 无 | A 线 F5 验收时 | existing-design-boundary | OPEN |
+| OD-013 | 2026-08-02 | 用户回执 §三-3 | 遗留临时脚本 `docs/_val*.txt`、`_apitest.mjs`、`_risk-test.mjs`、`design-system/pages/_fix.mjs`、`_wf.txt` | 开发阶段保留不影响主线 | 上线前统一清理 | 无 | Phase 4 交付前 | waiting-on-external-condition | OPEN |
+| OD-005 | 2026-08-02 | Phase 1 · 设计 advisory | `Icon.tsx` 需新增 11 个语义名：pause / stop / step / undo / redo / zoom-in / zoom-out / fit-view / grip / folder / empty-search | ADR-002 锁死 lucide 单一图标库；搭建器控制条与导入页均依赖这批语义 | 一次性补齐并更新 IconName 联合类型 | 无 | Phase 3 前端开工前 | existing-design-boundary | OPEN |
+
+---
+
+## 已决项
+
+| # | Date | Open Item | Resolution | Resolved At | 升格 ADR |
+|---|------|-----------|------------|-------------|----------|
+| OD-001 | 2026-08-02 | 学员画布是否需要 D1 云端同步 | **v1 不做，仅 localStorage**。用户回执确认：「v1优先保证核心仿真功能可用，不要一开始背负多端同步、冲突合并、登录鉴权大量工作量」。补偿措施已升格为硬约束——所有仿真数据可导出/导入 JSON，未来做云端同步只新增上传下载接口，不重构沙盒数据结构（Spec §4.2） | 2026-08-02 用户回执 | 承接 ADR-007 |
+| OD-002 | 2026-08-02 | 仿真 tick 与动效毫秒的映射比 | **1 tick ≙ 1 标准工时单位；1x 速度下 1 tick = 1500ms（900ms 位移 + 600ms 驻留）；提供 2x / 4x 倍速**。已写入 Spec §10.2 | 2026-08-02 Spec v1 定稿 | — |
+| OD-004 | 2026-08-02 | `DESIGN.md` §2 对比度表写着旧强调色 `#0E7490` | **随视觉升级 v3 一并重写**。v3 把 accent 定为 `#0a61b8`（色相 210°，与 brand-ink 206° 同源），DESIGN.md §2 对比度表按 v3 全表重算，不再单独修 v2 旧值 | 2026-08-02 Spec v1 §8 | — |
+| OD-006 | 2026-08-02 | `chapters` / `topics` 缺 `source_path` 与幂等唯一索引 | **合并进单一迁移文件 `002-simulator.sql` 一次执行**。该文件同时承载三个来源：架构师 5 张 `sim_` 表、PM 的 `kind`/`archived_at`/`practice_link` 增列、本项 `source_path` + 部分唯一索引。不阻塞 A 线，B2 排在第 3 周，DDL 先落 | 2026-08-02 Spec v1 §6 | — |
+
+---
+
+## 变更记录
+
+| 日期 | 变更 |
+|------|------|
+| 2026-08-02 | 创建登记册，录入 Phase 1 三文档交叉检查产生的 6 条未决项 |
+| 2026-08-02 | 用户确认 Spec 阶段 + 补充约束 → 关闭 OD-001 / OD-002 / OD-004 / OD-006；OD-003 收窄范围（结构已锁，仅缺数值）；新增 OD-012 色盲双编码、OD-013 临时脚本清理 |

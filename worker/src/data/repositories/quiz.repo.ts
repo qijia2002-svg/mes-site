@@ -62,4 +62,22 @@ export const quizRepo = {
        FROM sql_exercises WHERE id > ?1 ORDER BY id LIMIT 100`,
       cursor,
     ),
+
+  /** 答案校验专用：查 answer + explanation（R6 例外：仅在服务端校验逻辑内使用，不通过 API 下发） */
+  getAnswer: (db: DbSession, id: number) =>
+    db.first<{ id: number; type: string; answer: string; explanation: string }>(
+      `SELECT id, type, answer, explanation FROM questions WHERE id = ?1`,
+      id,
+    ),
+
+  /** 模块汇总：按 topic 查所有章节的题目（不含 answer） */
+  listQuestionsByTopic: (db: DbSession, topicId: number) =>
+    db.all<QuestionRow>(
+      `SELECT q.id, q.chapter_id, q.type, q.stem, q.options
+       FROM questions q
+       JOIN chapters c ON q.chapter_id = c.id
+       WHERE c.topic_id = ?1
+       ORDER BY q.chapter_id, q.sort, q.id`,
+      topicId,
+    ),
 };

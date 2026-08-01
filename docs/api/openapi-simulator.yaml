@@ -1,0 +1,956 @@
+openapi: 3.0.3
+info:
+  title: MES 实训平台 API — 工艺路线搭建器 + Obsidian 导入（增量）
+  version: 1.1.0
+  description: |
+    本文件是 `docs/api/openapi.yaml` 的**增量 sidecar**，覆盖 P0 工艺路线搭建器与 P1 Obsidian 导入
+    共 14 个新增端点。评审通过后并入主契约文件。
+
+    契约依据：`docs/architecture/tech-spec-simulator-v1.md` §6。
+    前端据此生成 TS 类型，后端据此实现。任何变更必须先改本文件，再经 team-lead 同步前后端。
+
+    ## 与现有体系的对齐
+    - **响应包络**：所有响应（含错误）均为 `{ code, data, msg, traceId }`，`code: 0` 表示成功。
+      复用主契约的 `Envelope` / `ErrorEnvelope` schema（本文件重新声明以便独立校验）。
+    - **中间件管线**：公开端点走 `[trace, security, auth, validate]`；
+      admin 端点走 `[trace, security, auth, guardAdmin, validate]`（见 `worker/src/router.ts`）。
+    - **L2 缓存**：只读端点走 `cachedJson(contentCacheKey(path, contentVersion), 300, …)`，
+      发布时 bump `platform_config.content_version` 即整体换键失效，零 purge 调用。
+    - **答案防泄露（R6）**：`sim_process_routes.graph_json`（参考答案）与
+      `fault_scenarios.solution_json.expect`（判定条件）**永不下发**，
+      DTO 显式字段白名单构造，禁止 `SELECT *` 后直接序列化。
+
+    ## 硬约束
+    - 单请求 SQL 语句 ≤ 40（`worker/src/data/db.ts` `MAX_STMT_PER_REQUEST`），超限抛 5002。
+    - 写请求 body ≤ 256 KB（`worker/src/middleware/validate.ts`），超限抛 1002。
+    - Workers 免费版 10 ms CPU / 次调用 → **仿真推进不在服务端进行**（见 ADR-008）。
+
+servers:
+  - url: /
+    description: 与前端同源（Workers Static Assets + Worker 同一域）
+
+tags:
+  - name: simulator
+    description: 仿真场景素材（公开只读，走 L2 缓存）
+  - name: simulator-run
+    description: 仿真运行结果上报（匿名身份，走 DO 限流）
+  - name: admin-simulator
+    description: 仿真场景后台管理（需管理员登录）
+  - name: admin-import
+    description: Obsidian 三阶段导入（需管理员登录）
+
+paths:
+
+  # ===========================================================================
+  # 公开只读 — 场景素材
+  # ===========================================================================
+
+  /api/v1/sim/scenarios:
+    get:
+      tags: [simulator]
+      operationId: listSimScenarios
+      summary: 已发布仿真场景列表
+      description: |
+        走 L2 缓存，键 `cv{contentVersion}:sim/scenarios`，TTL 300s。
+        SQL 语句数：1。命中缓存后 0。
+      responses:
+        '200':
+          description: 场景摘要数组（最多 50 条）
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/SimScenarioSummary' }
+
+  /api/v1/sim/scenarios/{slug}:
+    get:
+      tags: [simulator]
+      operationId: getSimScenario
+      summary: 场景整包（一次拿全：工序库 + BOM + 工单 + 参考路线元信息）
+      description: |
+        一次请求返回画布启动所需的全部素材，避免 5 次往返吃 Workers 请求额度。
+        SQL 语句数：5（scenario / operations / bom / workOrders / routeMeta），远低于 40 条护栏。
+        走 L2 缓存，键 `cv{contentVersion}:sim/scenario/{slug}`，TTL 300s。
+
+        **R6 防泄露**：`referenceRoutes` 只含 `{code,name,nodeCount}`，
+        不含 `graph_json`（参考答案）。
+      parameters:
+        - $ref: '#/components/parameters/ScenarioSlug'
+      responses:
+        '200':
+          description: 场景整包
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/SimScenarioBundle' }
+        '404': { $ref: '#/components/responses/ScenarioNotFound' }
+
+  /api/v1/sim/scenarios/{slug}/faults:
+    get:
+      tags: [simulator]
+      operationId: listSimFaults
+      summary: 场景的异常注入脚本（只下发 inject，不下发 expect）
+      description: |
+        数据源为现有 `fault_scenarios` 表，`variant='sim'`，**零 DDL 变更**。
+        `solution_json` 中的 `expect`（判定条件 / 答案）在服务端剥离，永不出网 —— 
+        与 `sql_exercises.answer_sql` 的处置方式一致。
+        走 L2 缓存，键 `cv{contentVersion}:sim/faults/{slug}`，TTL 300s。
+      parameters:
+        - $ref: '#/components/parameters/ScenarioSlug'
+      responses:
+        '200':
+          description: 异常脚本数组
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/SimFaultScript' }
+        '404': { $ref: '#/components/responses/ScenarioNotFound' }
+
+  # ===========================================================================
+  # 匿名写 — 运行结果上报
+  # ===========================================================================
+
+  /api/v1/sim/runs:
+    post:
+      tags: [simulator-run]
+      operationId: recordSimRun
+      summary: 上报一次仿真运行结果
+      description: |
+        **仿真全程在前端进行**（ADR-008），本端点只接收结果摘要。
+        服务端只做合理性校验（scenario 存在 / ticks > 0 / elapsedMs 下界），**不做重放**，
+        与 ADR-005（SQL 判题客户端 hash 比对）保持同构的"诚实客户端"模型。
+
+        写入：`progress_events` 1 行（`item_type='sim_run'`，`event_id` 由
+        `anon_id/sim_run/scenarioSlug/自然日` 组合，`INSERT OR IGNORE` 天然幂等）
+        + `stats_daily` UPSERT 1 行 = **2 行写/次**。
+
+        限流：DO 令牌桶，key `sim:run:{anonId}`，capacity 20 / refill 0.1 per sec
+        （突发 20 次容纳"反复试错"，稳态约 6 次/分钟挡脚本刷量）。
+      parameters:
+        - $ref: '#/components/parameters/AnonIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SimRunReport' }
+      responses:
+        '200':
+          description: 已记录
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/SimRunAck' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+        '404': { $ref: '#/components/responses/ScenarioNotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+    get:
+      tags: [simulator-run]
+      operationId: listSimRuns
+      summary: 当前匿名身份的仿真运行历史（近 20 条）
+      description: 读 `progress_events` where `item_type='sim_run'`。`no-store`，不进 L2 缓存。
+      parameters:
+        - $ref: '#/components/parameters/AnonIdHeader'
+        - name: anon_id
+          in: query
+          required: true
+          schema: { type: string, maxLength: 64 }
+          description: 与 `x-anon-id` 头同值，便于日志排查
+      responses:
+        '200':
+          description: 运行历史
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/SimRunHistoryItem' }
+        '400': { $ref: '#/components/responses/ParamMissing' }
+
+  # ===========================================================================
+  # 后台 — 场景管理
+  # ===========================================================================
+
+  /api/v1/admin/sim/scenarios:
+    get:
+      tags: [admin-simulator]
+      operationId: adminListSimScenarios
+      summary: 场景列表（含 draft）
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: 场景数组
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/SimScenarioAdmin' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [admin-simulator]
+      operationId: adminCreateSimScenario
+      summary: 新建场景（含工序库 / BOM / 工单 / 参考路线整包写入）
+      description: |
+        整包写入的语句数上限：1(scenario) + N(ops) + M(bom) + K(wo) + R(routes)。
+        **服务端必须校验 N+M+K+R ≤ 35**，超出返回 1003，避免撞 40 条 DbSession 护栏。
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SimScenarioUpsert' }
+      responses:
+        '200': { $ref: '#/components/responses/OkFlag' }
+        '400': { $ref: '#/components/responses/SchemaRejected' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+
+  /api/v1/admin/sim/scenarios/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    get:
+      tags: [admin-simulator]
+      operationId: adminGetSimScenario
+      summary: 场景详情（含参考答案 graph_json，仅管理员可见）
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: 场景整包（管理员视图）
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/SimScenarioUpsert' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/ScenarioNotFound' }
+    put:
+      tags: [admin-simulator]
+      operationId: adminUpdateSimScenario
+      summary: 更新场景
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SimScenarioUpsert' }
+      responses:
+        '200': { $ref: '#/components/responses/OkFlag' }
+        '400': { $ref: '#/components/responses/SchemaRejected' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      tags: [admin-simulator]
+      operationId: adminDeleteSimScenario
+      summary: 删除场景（级联删除工序 / BOM / 工单 / 路线）
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200': { $ref: '#/components/responses/OkFlag' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/admin/sim/scenarios/{id}/publish:
+    post:
+      tags: [admin-simulator]
+      operationId: adminPublishSimScenario
+      summary: 发布场景并递增 content_version（L2 缓存整体换键失效）
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: 已发布
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [ok, contentVersion]
+                        properties:
+                          ok: { type: boolean }
+                          contentVersion: { type: integer, description: 递增后的新版本号 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ===========================================================================
+  # 后台 — Obsidian 三阶段导入
+  # ===========================================================================
+
+  /api/v1/admin/import/obsidian/preview:
+    post:
+      tags: [admin-import]
+      operationId: obsidianPreview
+      summary: 阶段一 · dry-run 差异预览（不写任何库）
+      description: |
+        **只传元数据，不传正文**（`bodyBytes` / `bodyHash` 代替正文），确保 body ≤ 256 KB。
+        服务端比对 `topics.slug` / `chapters.(topic_id, source_path)` 现状，
+        返回逐文件的 create / update / skip / error 判定。
+
+        解析在前端完成（ADR-011）：Workers 10ms CPU 跑不动 200 篇 YAML，
+        且 dry-run 预览天然属于前端职责。
+
+        限流：capacity 10 / refill 0.05 per sec。
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ObsidianPreviewRequest' }
+      responses:
+        '200':
+          description: 差异报告
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/ObsidianPreviewResult' }
+        '400': { $ref: '#/components/responses/ImportParseFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/admin/import/obsidian/commit:
+    post:
+      tags: [admin-import]
+      operationId: obsidianCommitChunk
+      summary: 阶段二 · 分片写入（幂等 upsert，不 bump content_version）
+      description: |
+        **每片硬上限 15 篇 且 ≤ 200 KB。**
+        理由：`DbSession.MAX_STMT_PER_REQUEST = 40`，每篇最多 2 条语句
+        （upsert 主表 + upsert tag 关联），15 × 2 = 30，留 10 条余量给
+        `import_chunks` 记录与前置查询。**20 篇会正好顶到 40 触发 5002。**
+
+        幂等键：topic 用 `source_path`（回退 `slug`）；chapter 用 `(topic_id, source_path)`。
+        依赖 `uq_topics_source` / `uq_chapters_source` 部分唯一索引（见 schema 增量 PART C）。
+
+        **本阶段不 bump `content_version`** —— 否则导入过程中 L2 缓存反复失效，
+        读者会看到"一半新一半旧"的内容。
+
+        限流：capacity 60 / refill 0.5 per sec（分片调用天然高频）。
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ObsidianCommitRequest' }
+      responses:
+        '200':
+          description: 该分片已提交
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/ObsidianCommitAck' }
+        '400': { $ref: '#/components/responses/ImportBatchInvalid' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/admin/import/obsidian/finalize:
+    post:
+      tags: [admin-import]
+      operationId: obsidianFinalize
+      summary: 阶段三 · 校验分片齐全并一次性递增 content_version
+      description: |
+        校验 `import_chunks` 中该 `importId` 的分片数 == `expectedChunks`，
+        齐全则 bump `platform_config.content_version`，**一次性让 L2 缓存换键失效**，
+        导入过程对读者完全透明。
+
+        限流：capacity 3 / refill 0.02 per sec。
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [importId, expectedChunks]
+              properties:
+                importId: { type: string, format: uuid }
+                expectedChunks: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: 导入完成汇总
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/ObsidianFinalizeResult' }
+        '400': { $ref: '#/components/responses/ImportBatchInvalid' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+# =============================================================================
+components:
+
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: sid
+      description: HMAC 签名会话 Cookie，由 `POST /api/v1/auth/login` 下发
+
+  parameters:
+    PathId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+    ScenarioSlug:
+      name: slug
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[a-z0-9][a-z0-9-]{0,63}$' }
+      description: 场景 slug，如 `discrete-basic`
+    AnonIdHeader:
+      name: x-anon-id
+      in: header
+      required: true
+      schema: { type: string, maxLength: 64 }
+      description: 匿名身份标识，由前端 `lib/anonId.ts` 生成并持久化
+
+  responses:
+    OkFlag:
+      description: 操作成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties: { ok: { type: boolean } }
+    ParamMissing:
+      description: 缺少必要参数（code 1001）
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    SchemaRejected:
+      description: 参数未通过校验（code 1003）
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    TooLarge:
+      description: 请求体过大，> 256 KB（code 1002）
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthorized:
+      description: 未登录或登录已失效（code 2001 / 2002 / 2003）
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    RateLimited:
+      description: 请求过于频繁（code 3001）
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    ScenarioNotFound:
+      description: 场景不存在或尚未发布（code 4003 · 新增）
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    RouteInvalid:
+      description: 工艺路线校验未通过 —— 成环 / 断链 / 空路线 / 孤立节点（code 4004 · 新增）
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    ImportParseFailed:
+      description: 导入文件解析失败（code 4005 · 新增）
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    ImportBatchInvalid:
+      description: 导入批次不存在或已过期（code 4006 · 新增）
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  schemas:
+
+    # ---- 通用包络 ----
+    Envelope:
+      type: object
+      required: [code, data, msg, traceId]
+      properties:
+        code: { type: integer, enum: [0], description: 0 表示成功 }
+        data: {}
+        msg: { type: string, example: ok }
+        traceId: { type: string, description: 链路追踪 id，用户报障凭此定位 }
+    ErrorEnvelope:
+      type: object
+      required: [code, data, msg, traceId]
+      properties:
+        code:
+          type: integer
+          description: |
+            错误码分区（`worker/src/core/errors.ts`）：
+            1xxx 入参 · 2xxx 认证 · 3xxx 限流 · 4xxx 业务 · 5xxx 依赖 · 9xxx 未分类。
+            本次新增：4003 场景不存在 · 4004 路线校验失败 · 4005 解析失败 · 4006 批次无效。
+          example: 4003
+        data: { nullable: true, enum: [null] }
+        msg: { type: string, description: 固定公开文案，绝不含 D1 原始错误 }
+        traceId: { type: string }
+
+    # ---- 仿真：场景 ----
+    SimScenarioSummary:
+      type: object
+      required: [id, slug, title, industry]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        industry: { type: string, enum: [discrete, process] }
+        topicId: { type: integer, nullable: true }
+        operationCount: { type: integer }
+        workOrderCount: { type: integer }
+        faultCount: { type: integer }
+
+    SimScenarioBundle:
+      type: object
+      required: [id, slug, title, config, operations, bomItems, workOrders]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        industry: { type: string, enum: [discrete, process] }
+        config: { $ref: '#/components/schemas/SimConfig' }
+        operations:
+          type: array
+          items: { $ref: '#/components/schemas/SimOperation' }
+        bomItems:
+          type: array
+          items: { $ref: '#/components/schemas/SimBomItem' }
+        workOrders:
+          type: array
+          items: { $ref: '#/components/schemas/SimWorkOrder' }
+        referenceRoutes:
+          type: array
+          description: |
+            **只含元信息，不含 graph_json。**
+            参考答案不出网（R6），与 `sql_exercises.answer_sql` 处置一致。
+          items:
+            type: object
+            required: [code, name, nodeCount]
+            properties:
+              code: { type: string }
+              name: { type: string }
+              nodeCount: { type: integer }
+
+    SimConfig:
+      type: object
+      description: 来自 `sim_scenarios.config_json`
+      properties:
+        canvas:
+          type: object
+          properties:
+            w: { type: integer, default: 1600 }
+            h: { type: integer, default: 900 }
+            grid: { type: integer, default: 8, description: 吸附网格，对齐 --space-2 }
+        speeds:
+          type: array
+          items: { type: integer, enum: [1, 2, 4] }
+        tickMinutes: { type: integer, default: 1, description: 1 tick 代表几个仿真分钟 }
+        maxTicks: { type: integer, default: 600, description: 单次运行 tick 上限，防死循环 }
+        scoring:
+          type: object
+          properties:
+            onTimeWeight: { type: integer }
+            scrapWeight: { type: integer }
+            blockWeight: { type: integer }
+
+    SimOperation:
+      type: object
+      required: [code, name, kind, stdMinutes, capacity, yieldRate, onFail]
+      properties:
+        code: { type: string, example: OP-20 }
+        name: { type: string, example: 冲压 }
+        kind:
+          type: string
+          enum: [process, qc, material, warehouse]
+          description: |
+            决定 canvas 形状：process=圆角矩形 · qc=菱形 · material=平行四边形 · warehouse=桶形。
+            canvas 内不绘制图标（P0 图标铁律），语义由形状 + 文字标签承载。
+        stdMinutes: { type: integer, description: 标准工时（仿真分钟） }
+        capacity: { type: integer, minimum: 1, description: 并行工位数 }
+        yieldRate:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: 良率，万分比（10000 = 100%）。整数定点，禁浮点。
+        onFail: { type: string, enum: [rework, scrap, hold] }
+        inputs:
+          type: array
+          items:
+            type: object
+            required: [materialCode, qtyPer]
+            properties:
+              materialCode: { type: string }
+              qtyPer: { type: integer, description: 单位用量 ×1000 定点 }
+        sort: { type: integer }
+
+    SimBomItem:
+      type: object
+      required: [parentCode, materialCode, qtyPer]
+      properties:
+        parentCode: { type: string }
+        materialCode: { type: string }
+        materialName: { type: string }
+        qtyPer: { type: integer, description: 单位用量 ×1000 }
+        lossRate: { type: integer, description: 损耗率，万分比 }
+        initStock: { type: integer, description: 初始库存 ×1000。设 0 即触发缺料标红演示 }
+
+    SimWorkOrder:
+      type: object
+      required: [woNo, productCode, qtyPlan]
+      properties:
+        woNo: { type: string, example: WO-2026-0001 }
+        productCode: { type: string }
+        qtyPlan: { type: integer, minimum: 1 }
+        releaseTick: { type: integer, description: 第几 tick 下达 }
+        priority: { type: integer, description: 越大越优先，同 tick 时决定排队顺序 }
+
+    # ---- 仿真：异常注入 ----
+    SimFaultScript:
+      type: object
+      required: [id, title, prompt, inject]
+      description: |
+        映射自现有 `fault_scenarios` 表（`variant='sim'`），**零 DDL 变更**。
+        `solution_json.expect` 在服务端剥离，不出现在本 schema 中。
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        prompt: { type: string, description: 题面，如"这条路线跑起来会卡在哪？为什么？" }
+        inject:
+          type: array
+          items: { $ref: '#/components/schemas/SimFaultInject' }
+
+    SimFaultInject:
+      type: object
+      required: [at, fault]
+      properties:
+        at:
+          oneOf:
+            - type: object
+              required: [type, value]
+              properties:
+                type: { type: string, enum: [tick] }
+                value: { type: integer }
+            - type: object
+              required: [type, opCode]
+              properties:
+                type: { type: string, enum: [operation_enter] }
+                opCode: { type: string }
+                nth: { type: integer, default: 1, description: 第 n 个进入该工序的工单 }
+            - type: object
+              required: [type, state]
+              properties:
+                type: { type: string, enum: [wo_state] }
+                state: { type: string }
+                woNo: { type: string }
+        fault:
+          oneOf:
+            - type: object
+              required: [kind, materialCode]
+              properties:
+                kind: { type: string, enum: [material_shortage] }
+                materialCode: { type: string }
+                setStock: { type: integer, description: 强制设定库存 ×1000 }
+            - type: object
+              required: [kind]
+              properties:
+                kind: { type: string, enum: [qc_fail] }
+                rate: { type: integer, description: 不合格率，万分比 }
+                reason: { type: string, example: 尺寸超差 }
+            - type: object
+              required: [kind, opCode]
+              properties:
+                kind: { type: string, enum: [equipment_down] }
+                opCode: { type: string }
+                repairTicks: { type: integer }
+
+    # ---- 仿真：运行结果 ----
+    SimRunReport:
+      type: object
+      required: [anon_id, scenarioSlug, ticks, elapsedMs, outcome]
+      properties:
+        anon_id: { type: string, maxLength: 64 }
+        scenarioSlug: { type: string }
+        faultId: { type: integer, nullable: true, description: 若为带故障的挑战，填 fault_scenarios.id }
+        ticks: { type: integer, minimum: 1, description: 本次运行推进的 tick 数 }
+        elapsedMs: { type: integer, minimum: 0, description: 墙钟耗时，用于合理性下界校验 }
+        outcome:
+          type: string
+          enum: [passed, failed, aborted]
+          description: 由前端判定（ADR-008 诚实客户端模型），服务端不重放
+        kpi:
+          type: object
+          description: 结果摘要，落 progress_events.payload
+          properties:
+            completed: { type: integer }
+            scrapped: { type: integer }
+            blockedTicks: { type: integer }
+            alarmCodes:
+              type: array
+              items: { type: string, example: E-MAT-SHORT }
+        routeDigest:
+          type: string
+          description: 学员所搭路线的规范化 SHA-256（小写 hex），用于识别"同一解法"，不用于判分
+
+    SimRunAck:
+      type: object
+      properties:
+        ok: { type: boolean }
+        progressUpdated: { type: boolean, description: false 表示当日同状态已记录过（幂等命中） }
+
+    SimRunHistoryItem:
+      type: object
+      properties:
+        eventId: { type: string }
+        scenarioSlug: { type: string }
+        outcome: { type: string, enum: [passed, failed, aborted] }
+        kpi: { type: object }
+        createdAt: { type: integer, description: Unix 秒 }
+
+    # ---- 后台：场景 upsert ----
+    SimScenarioAdmin:
+      allOf:
+        - $ref: '#/components/schemas/SimScenarioSummary'
+        - type: object
+          properties:
+            status: { type: string, enum: [published, draft] }
+            sort: { type: integer }
+            updatedAt: { type: integer }
+
+    SimScenarioUpsert:
+      type: object
+      required: [slug, title]
+      description: |
+        整包写入。**服务端必须校验 operations + bomItems + workOrders + referenceRoutes
+        的总条数 ≤ 35**，超出返回 1003 —— 避免撞 `DbSession` 的 40 条语句护栏。
+      properties:
+        slug: { type: string, pattern: '^[a-z0-9][a-z0-9-]{0,63}$' }
+        title: { type: string, maxLength: 120 }
+        description: { type: string, maxLength: 500 }
+        industry: { type: string, enum: [discrete, process], default: discrete }
+        topicId: { type: integer, nullable: true }
+        status: { type: string, enum: [published, draft], default: draft }
+        sort: { type: integer, default: 0 }
+        config: { $ref: '#/components/schemas/SimConfig' }
+        operations:
+          type: array
+          maxItems: 30
+          items: { $ref: '#/components/schemas/SimOperation' }
+        bomItems:
+          type: array
+          maxItems: 30
+          items: { $ref: '#/components/schemas/SimBomItem' }
+        workOrders:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/SimWorkOrder' }
+        referenceRoutes:
+          type: array
+          maxItems: 5
+          description: 管理员视图含完整 graph_json；公开接口只下发元信息
+          items:
+            type: object
+            required: [code, name, graph]
+            properties:
+              code: { type: string }
+              name: { type: string }
+              productCode: { type: string }
+              graph:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        opCode: { type: string }
+                        x: { type: integer }
+                        y: { type: integer }
+                  edges:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        from: { type: string }
+                        to: { type: string }
+
+    # ---- Obsidian 导入 ----
+    ObsidianPreviewRequest:
+      type: object
+      required: [files]
+      properties:
+        files:
+          type: array
+          maxItems: 500
+          description: 只传元数据，**不含正文**，确保 body ≤ 256 KB
+          items:
+            type: object
+            required: [path, frontmatter, bodyBytes, bodyHash]
+            properties:
+              path:
+                type: string
+                description: vault 内相对路径，来自 `File.webkitRelativePath`
+                example: MES基础/01-工单管理.md
+              frontmatter: { $ref: '#/components/schemas/ObsidianFrontmatter' }
+              bodyBytes: { type: integer, description: 正文字节数，用于分片规划 }
+              bodyHash: { type: string, description: 正文 SHA-256，用于跳过未变更文件 }
+              lastModified: { type: integer, description: File.lastModified，Unix 毫秒 }
+
+    ObsidianFrontmatter:
+      type: object
+      description: |
+        前端受限解析器（ADR-011）产出。不支持的 YAML 构造（嵌套 map / 多行标量 / 锚点）
+        由前端抛错并计入报告，**绝不静默猜测**。
+      properties:
+        mesType: { type: string, enum: [topic, chapter], description: 缺省按目录深度推断 }
+        title: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        modules:
+          type: array
+          items: { type: string, enum: [theory, sql, quiz, sim] }
+          description: 白名单过滤，非白名单值丢弃并计入报告
+        topic: { type: string, description: chapter 归属的 topic slug，two-pass 解析成 id }
+        order: { type: integer }
+        status: { type: string, enum: [published, draft], default: draft }
+        tags:
+          type: array
+          items: { type: string }
+        updated: { type: integer }
+
+    ObsidianPreviewResult:
+      type: object
+      required: [importId, summary, items]
+      properties:
+        importId: { type: string, format: uuid, description: 30 分钟内有效 }
+        chunkPlan:
+          type: object
+          description: 服务端建议的分片方案（每片 ≤ 15 篇且 ≤ 200 KB）
+          properties:
+            chunkCount: { type: integer }
+            maxItemsPerChunk: { type: integer, enum: [15] }
+        summary:
+          type: object
+          properties:
+            create: { type: integer }
+            update: { type: integer }
+            skip: { type: integer, description: bodyHash 未变更 }
+            error: { type: integer }
+            skippedAttachments: { type: integer, description: '![[image.png]] 等二进制资源，v1 不支持' }
+        items:
+          type: array
+          items:
+            type: object
+            required: [path, action]
+            properties:
+              path: { type: string }
+              action: { type: string, enum: [create, update, skip, error] }
+              kind: { type: string, enum: [topic, chapter] }
+              targetId: { type: integer, nullable: true, description: update 时的现有记录 id }
+              reason: { type: string, description: skip / error 的具体原因，逐条可读 }
+
+    ObsidianCommitRequest:
+      type: object
+      required: [importId, chunkIndex, items]
+      properties:
+        importId: { type: string, format: uuid }
+        chunkIndex: { type: integer, minimum: 0 }
+        items:
+          type: array
+          maxItems: 15
+          description: |
+            **硬上限 15**。DbSession 护栏 40 条语句 ÷ 每篇 2 条 = 20，
+            留 10 条余量给 import_chunks 记录与前置查询。20 篇会正好触发 5002。
+          items:
+            type: object
+            required: [path, kind, title, md]
+            properties:
+              path: { type: string, description: 写入 source_path，作为幂等键 }
+              kind: { type: string, enum: [topic, chapter] }
+              title: { type: string }
+              slug: { type: string, description: kind=topic 时必填 }
+              topicSlug: { type: string, description: kind=chapter 时必填，服务端解析成 topic_id }
+              description: { type: string }
+              modules:
+                type: array
+                items: { type: string }
+              sort: { type: integer }
+              status: { type: string, enum: [published, draft], default: draft }
+              tags:
+                type: array
+                items: { type: string }
+              md:
+                type: string
+                description: |
+                  已剥离 frontmatter、已做 Obsidian 语法转换的正文：
+                  `[[wiki]]` → `[别名](#/wiki/<slug>)`（渲染期解析，避免重命名烂链）；
+                  `%%comment%%` 已剥离；`![[附件]]` 已替换为 warn 系提示占位。
+                  服务端按不可信输入处理，渲染侧 markdown-it{html:false} + DOMPurify 双保险。
+              updatedAt: { type: integer }
+
+    ObsidianCommitAck:
+      type: object
+      properties:
+        ok: { type: boolean }
+        chunkIndex: { type: integer }
+        rows: { type: integer, description: 本片实际写入行数 }
+
+    ObsidianFinalizeResult:
+      type: object
+      properties:
+        ok: { type: boolean }
+        chunks: { type: integer }
+        topics: { type: integer, description: 新建 + 更新的 topic 数 }
+        chapters: { type: integer }
+        contentVersion: { type: integer, description: 递增后的新版本号，L2 缓存已整体换键 }
+</content>

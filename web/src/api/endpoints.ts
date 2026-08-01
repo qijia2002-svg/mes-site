@@ -91,9 +91,33 @@ export interface TodayProgress {
   total?: number;
 }
 
+/** 单条进度事件（来自 listProgressSvc 的 events 字段）。 */
+export interface ProgressEvent {
+  eventId: string;
+  itemType?: string;
+  itemId?: string;
+  status?: string;
+  payload?: unknown;
+  createdAt?: number;
+}
+
+export interface ProgressTotals {
+  chapterDone: number;
+  exerciseDone: number;
+  exercisePassed: number;
+  quizDone: number;
+}
+
+/** GET /api/v1/progress 全量汇总。服务端 listProgressSvc 实际返回以下字段，
+ *  前端类型此前只声明了 items/today，导致 completedChapterIds 拿不到类型——补齐。 */
 export interface ProgressSummary {
-  items?: Array<{ itemType?: string; itemId?: string; status?: string; createdAt?: number }>;
+  anonId?: string;
+  totals?: ProgressTotals;
   today?: TodayProgress;
+  /** 已完成（已读）章节的 item_id 清单，前端据此在仪表盘标记进度，无需逐章查。 */
+  completedChapterIds?: string[];
+  passedExerciseIds?: string[];
+  events?: ProgressEvent[];
 }
 
 export interface SubmitSqlResult {
@@ -126,6 +150,13 @@ export const api = {
   // 题库 / SQL 实训
   quizQuestions: (chapterId: number) =>
     apiGet<QuizQuestion[]>(`/api/v1/quiz/questions?chapterId=${chapterId}`),
+  topicQuestions: (topicId: number) =>
+    apiGet<QuizQuestion[]>(`/api/v1/quiz/topic-questions?topicId=${topicId}`),
+  gradeQuestion: (questionId: number, answer: string) =>
+    apiPost<{ correct: boolean; correctAnswer: string; explanation: string }>(
+      '/api/v1/quiz/grade',
+      { question_id: questionId, answer },
+    ),
   sqlExercises: (topicId: number) =>
     apiGet<SqlExercise[]>(`/api/v1/sql-exercises?topicId=${topicId}`),
   sqlExercise: (id: number) => apiGet<SqlExercise>(`/api/v1/sql-exercises/${id}`),

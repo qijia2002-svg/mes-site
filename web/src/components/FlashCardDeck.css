@@ -1,0 +1,350 @@
+/* 卡片式学习组件。仅用 design-tokens.css 的 var(--token)，零裸 hex。 */
+
+.flash-deck {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ---------- 顶部进度条 ---------- */
+.flash-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.flash-progress-track {
+  flex: 1;
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.flash-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+  transition: width var(--motion-base) var(--ease-standard);
+}
+.flash-progress-text {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--meta);
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 统计标记 ---------- */
+.flash-stats {
+  display: flex;
+  gap: var(--space-4);
+}
+.flash-stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--meta);
+}
+.flash-stat-mastered {
+  color: var(--success);
+}
+.flash-stat-review {
+  color: var(--warn);
+}
+
+/* ---------- 卡片主体 ---------- */
+.flash-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  padding: var(--space-6);
+  min-height: 280px;
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+.flash-card:hover {
+  border-color: var(--card-border-hover);
+  box-shadow: var(--elev-card-hover);
+}
+.flash-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-soft);
+}
+.flash-card-index {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--meta);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  flex: none;
+}
+.flash-card-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-announce-cjk);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-title);
+  color: var(--fg);
+}
+.flash-card-body {
+  font-size: var(--text-prose);
+  line-height: var(--leading-prose);
+}
+.flash-card-body.prose {
+  max-width: none;
+}
+
+/* ---------- 底部操作栏 ---------- */
+.flash-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.flash-mark-group {
+  display: flex;
+  gap: var(--space-2);
+}
+.flash-mark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+.flash-mark:hover {
+  border-color: var(--border-strong);
+  color: var(--fg-2);
+}
+.flash-mark.is-mastered {
+  border-color: var(--success);
+  color: var(--success);
+  background: var(--success-soft);
+}
+.flash-mark.is-review {
+  border-color: var(--warn);
+  color: var(--warn);
+  background: var(--warn-soft);
+}
+
+/* ---------- 完成提示 ---------- */
+.flash-complete {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  background: var(--success-soft);
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius-md);
+  color: var(--success);
+  font-size: var(--text-base);
+  font-weight: var(--weight-emph-cjk);
+}
+.flash-complete-stats {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-read);
+}
+/* 堆叠居中变体（QuizDeck 完成页 / 移动端） */
+.flash-complete-stacked {
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  padding: var(--space-6);
+}
+.flash-complete-title {
+  font-size: var(--text-lg);
+}
+.flash-complete-score {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+}
+
+/* ---------- 空状态 ---------- */
+.flash-empty {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--meta);
+  font-size: var(--text-sm);
+}
+
+/* ---------- 键盘提示 ---------- */
+.flash-hint {
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--meta);
+  letter-spacing: var(--tracking-caps);
+}
+
+/* ---------- 卡片/文档模式切换 ---------- */
+.mode-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-3);
+  border-radius: var(--radius-sm);
+}
+.mode-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--meta);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+.mode-toggle-btn.is-active {
+  background: var(--surface);
+  color: var(--fg);
+  font-weight: var(--weight-emph-cjk);
+  box-shadow: 0 1px 2px rgba(15, 27, 38, 0.06);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 768px) {
+  .flash-card {
+    padding: var(--space-4);
+    min-height: 200px;
+  }
+  .flash-controls {
+    flex-wrap: wrap;
+  }
+  .flash-hint {
+    display: none;
+  }
+}
+
+/* ---------- QuizDeck 卡片式考试 ---------- */
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.quiz-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--fg-2);
+  font-family: inherit;
+  font-size: var(--text-base);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+.quiz-option:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.quiz-option:disabled {
+  cursor: default;
+}
+.quiz-option.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--fg);
+}
+.quiz-option.is-correct {
+  border-color: var(--success);
+  background: var(--success-soft);
+  color: var(--success);
+}
+.quiz-option.is-wrong {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.quiz-option-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-3);
+  color: var(--meta);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-announce);
+  flex: none;
+}
+.quiz-option.is-correct .quiz-option-key {
+  background: var(--success);
+  color: var(--surface);
+}
+.quiz-option.is-wrong .quiz-option-key {
+  background: var(--danger);
+  color: var(--surface);
+}
+.quiz-option-text {
+  flex: 1;
+  min-width: 0;
+}
+.quiz-option-icon {
+  flex: none;
+}
+
+/* 解析区域 */
+.quiz-result {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid;
+}
+.quiz-result.is-correct {
+  background: var(--success-soft);
+  border-color: var(--success-border);
+}
+.quiz-result.is-wrong {
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+}
+.quiz-result-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+  font-weight: var(--weight-emph-cjk);
+  margin-bottom: var(--space-2);
+}
+.quiz-result.is-correct .quiz-result-head {
+  color: var(--success);
+}
+.quiz-result.is-wrong .quiz-result-head {
+  color: var(--danger);
+}
+.quiz-result-answer {
+  margin: var(--space-1) 0;
+  font-size: var(--text-sm);
+  color: var(--fg-2);
+}
+.quiz-result-explanation {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--muted);
+}

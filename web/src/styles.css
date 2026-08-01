@@ -10,6 +10,7 @@
   /* 派生量：从 token 混出来，不引入新色值 */
   --app-scrim: color-mix(in srgb, var(--brand-ink) 45%, transparent);
   --app-shell-gap: var(--space-6);
+  --tabbar-h: 56px;
 }
 
 html,
@@ -44,7 +45,10 @@ body,
   top: var(--space-2);
 }
 
-/* ---------- Sidebar ---------- */
+/* ---------- Sidebar（v3.1 深色化）----------
+   深色侧栏是驾驶舱风格的核心视觉特征。用 V3 的 --surface-ink（= --brand-ink #0f1b26），
+   与首页深色锚点区、SQL 沙箱深色面板同源——深色不再是孤岛，而是贯穿全站的「框架」语义。
+   侧栏内所有元素用 --fg-on-ink / --meta-on-ink / --border-on-ink 等 on-ink token。 */
 .sidebar {
   position: sticky;
   top: 0;
@@ -53,8 +57,8 @@ body,
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-2);
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+  background: var(--surface-ink);
+  border-right: 1px solid var(--border-on-ink);
   overflow: hidden;
 }
 .sidebar-brand {
@@ -64,17 +68,18 @@ body,
   padding: var(--space-2) var(--space-2) var(--space-4);
   font-weight: var(--weight-announce-cjk);
   letter-spacing: var(--tracking-title);
-  color: var(--fg);
+  color: var(--fg-on-ink);
   white-space: nowrap;
+  border-bottom: 1px solid var(--border-on-ink);
 }
 .brand-glyph {
-  color: var(--accent);
+  color: var(--accent-on-ink);
   flex: none;
 }
 .sidebar-foot {
   margin-top: auto;
-  border-top: 1px solid var(--border-soft);
-  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-on-ink);
+  padding-top: var(--space-3);
 }
 
 .nav-list {
@@ -85,6 +90,7 @@ body,
   flex-direction: column;
   gap: 2px;
 }
+/* 深底导航项：默认 --meta-on-ink，hover 用浅色叠层，active 用 accent 半透明底 */
 .nav-item {
   position: relative;
   display: flex;
@@ -92,7 +98,7 @@ body,
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
-  color: var(--nav-item-fg);
+  color: var(--meta-on-ink);
   text-decoration: none;
   white-space: nowrap;
   transition:
@@ -100,12 +106,12 @@ body,
     color var(--motion-fast) var(--ease-standard);
 }
 .nav-item:hover {
-  background: var(--nav-item-bg-hover);
-  color: var(--fg);
+  background: color-mix(in srgb, var(--fg-on-ink) 8%, transparent);
+  color: var(--fg-2-on-ink);
 }
 .nav-item.is-active {
-  background: var(--nav-item-bg-active);
-  color: var(--nav-item-fg-active);
+  background: color-mix(in srgb, var(--accent-on-ink) 15%, transparent);
+  color: var(--fg-on-ink);
   font-weight: var(--weight-emph-cjk);
 }
 .nav-item.is-active::before {
@@ -117,17 +123,165 @@ body,
   width: 2px;
   height: 60%;
   border-radius: var(--radius-pill);
-  background: var(--nav-item-marker-active);
+  background: var(--accent-on-ink);
 }
 .nav-glyph {
   flex: none;
 }
 .is-collapsed .nav-label,
-.is-collapsed .brand-text {
+.is-collapsed .brand-text,
+.is-collapsed .sidebar-progress,
+.is-collapsed .nav-group-arrow {
   display: none;
 }
 .is-collapsed .nav-item {
   justify-content: center;
+}
+.is-collapsed .nav-group-head {
+  justify-content: center;
+}
+
+/* ---------- 可展开的分组导航 ---------- */
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.nav-group-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--meta-on-ink);
+  font-family: inherit;
+  font-size: var(--text-base);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+.nav-group-head:hover {
+  background: color-mix(in srgb, var(--fg-on-ink) 8%, transparent);
+  color: var(--fg-2-on-ink);
+}
+.nav-group-arrow {
+  margin-left: auto;
+  color: var(--meta-on-ink);
+  flex: none;
+}
+.nav-sublist {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  /* 左侧引导线，区分层级 */
+  border-left: 1px solid var(--border-on-ink);
+  margin-left: var(--space-3);
+}
+.nav-subitem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-xs);
+  color: var(--meta-on-ink);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+.nav-subitem:hover {
+  background: color-mix(in srgb, var(--fg-on-ink) 6%, transparent);
+  color: var(--fg-2-on-ink);
+}
+.nav-subitem.is-active {
+  color: var(--accent-on-ink);
+  font-weight: var(--weight-emph-cjk);
+}
+.nav-subglyph {
+  flex: none;
+  opacity: 0.7;
+}
+
+/* ---------- 侧栏底部进度条 ---------- */
+.sidebar-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-2) 0;
+}
+.sidebar-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.sidebar-progress-label {
+  font-size: var(--text-xs);
+  color: var(--meta-on-ink);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+.sidebar-progress-pct {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-announce);
+  color: var(--fg-on-ink);
+}
+.sidebar-progress-track {
+  height: 4px;
+  background: var(--border-on-ink);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.sidebar-progress-fill {
+  height: 100%;
+  background: var(--accent-on-ink);
+  border-radius: var(--radius-pill);
+  transition: width var(--motion-slow) var(--ease-standard);
+}
+.sidebar-progress-meta {
+  font-size: var(--text-xs);
+  color: var(--meta-on-ink);
+  font-family: var(--font-mono);
+}
+.sidebar-progress-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-on-ink) 20%, transparent);
+  color: var(--fg-on-ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-emph-cjk);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+.sidebar-progress-cta:hover {
+  background: color-mix(in srgb, var(--accent-on-ink) 30%, transparent);
+}
+
+/* 侧栏底部链接（个人中心 + 登录） */
+.sidebar-links {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-top: var(--space-2);
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--border-on-ink);
 }
 
 .drawer-scrim {
@@ -152,8 +306,12 @@ body,
   align-items: center;
   gap: var(--space-3);
   padding: 0 var(--gutter-desktop);
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: var(--glass-bg);
+  border-bottom: 1px solid var(--glass-border);
+  /* v3：saturate 160% → 120%。新 --bg 压深后滚动内容与顶栏终于有亮度差，
+     blur 这次真的有东西可模糊，不再需要靠高饱和硬撑质感。 */
+  backdrop-filter: blur(var(--glass-blur)) saturate(120%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(120%);
 }
 .topbar-right {
   margin-left: auto;
@@ -225,6 +383,12 @@ body,
   min-width: 0;
   flex: 1 1 320px;
 }
+.page-head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+}
 .page-head h1,
 .page-title {
   margin: 0 0 var(--space-2);
@@ -256,6 +420,7 @@ body,
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: var(--card-radius);
+  box-shadow: var(--elev-card);
   padding: var(--card-padding);
   display: flex;
   flex-direction: column;
@@ -309,16 +474,21 @@ body,
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-3);
 }
+/* v3：--surface-2 现在真的亮于 --bg，统计块从"凹陷"变正常凸起；
+   分层交给 1px hairline（边框亮度必须低于填充，否则是发光不是勾勒）。 */
 .stat-card {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4);
   background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
 .stat-glyph {
-  color: var(--accent);
+  /* v3：accent → muted。图标不编码状态，不占 accent 配额；
+     且 stroke 2 在 16px 框里占 12.5%，用 muted 才是正确的光学补偿。 */
+  color: var(--muted);
   flex: none;
 }
 .stat-label {
@@ -352,22 +522,31 @@ body,
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: var(--card-radius);
+  box-shadow: var(--elev-card);
 }
 .card-link {
   text-decoration: none;
   color: inherit;
   transition:
     border-color var(--motion-fast) var(--ease-standard),
-    background-color var(--motion-fast) var(--ease-standard);
+    background-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
 }
 .card-link:hover {
   border-color: var(--card-border-hover);
   background: var(--surface-2);
+  box-shadow: var(--elev-card-hover);
+  transform: translateY(-1px);
 }
 .card h3 {
   margin: 0;
-  font-size: var(--text-base);
-  font-weight: var(--weight-emph-cjk);
+  /* v3：15px → 18px。与 13px 描述形成 1.38 比值，卡内层级才立得住。
+     ≥18px 用 600 字重（<18px 不用 500，CJK 上 500 与 400 几乎不可辨）。 */
+  font-size: var(--card-title-size);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-title);
+  font-weight: var(--weight-announce-cjk);
 }
 .card-desc {
   margin: 0;
@@ -388,14 +567,23 @@ body,
   gap: var(--space-1);
   flex-wrap: wrap;
 }
+/* 标签压到卡底对齐，卡片网格才有横向节奏（.card-desc 长度不一会让内容随机分布）。
+   必须限定在 .card 内：CourseDetailPage 的页头也用 .tag-row，
+   那里 margin-top:auto 会把标签推离标题。 */
+.card > .tag-row {
+  margin-top: auto;
+  padding-top: var(--space-1);
+}
+/* v3：标签是全站最大的 accent 污染源（首页 18 处 accent 三件套）。
+   颜色只编码状态，不编码类别（Grafana 纪律）——模块名是类别，走中性组。 */
 .tag {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
   font-size: var(--text-xs);
-  color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-border);
+  color: var(--tag-fg);
+  background: var(--tag-bg);
+  border: 1px solid var(--tag-border);
   padding: 2px var(--space-2);
   border-radius: var(--radius-xs);
 }
@@ -943,7 +1131,9 @@ body,
   max-width: var(--prose-measure);
   font-size: var(--text-prose);
   line-height: var(--leading-prose);
-  color: var(--fg-2);
+  /* v3：--fg-2 → --fg。17px 理论长文用次级色读起来发灰没精神，
+     次级色留给辅助说明，正文就该用主文本色。 */
+  color: var(--fg);
 }
 .prose > * + * {
   margin-top: var(--prose-gap);
@@ -1080,36 +1270,17 @@ body,
     display: none;
   }
   .sidebar {
-    position: fixed;
-    z-index: var(--z-modal);
-    inset: 0 auto 0 0;
-    width: var(--sidebar-w);
-    translate: -100% 0;
-    transition: translate var(--motion-base) var(--ease-out);
+    display: none;
   }
-  .is-drawer-open .sidebar {
-    translate: 0 0;
-  }
-  .is-collapsed .nav-label,
-  .is-collapsed .brand-text {
-    display: inline;
-  }
-  .is-collapsed .nav-item {
-    justify-content: flex-start;
-  }
-  .is-drawer-open .drawer-scrim {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: var(--z-dropdown);
-    background: var(--app-scrim);
-    cursor: pointer;
+  .content {
+    padding-bottom: calc(var(--tabbar-h) + var(--space-4));
   }
 }
 
 @media (max-width: 640px) {
   .content {
-    padding: var(--section-y-phone) var(--gutter-phone) var(--space-10);
+    padding: var(--section-y-phone) var(--gutter-phone)
+      calc(var(--tabbar-h) + var(--space-4));
   }
   .topbar {
     padding: 0 var(--gutter-phone);
@@ -1125,4 +1296,49 @@ body,
     min-width: 0;
     width: 100%;
   }
+}
+
+/* ---------- 移动端底部 Tab（框架范式，≤768px 显示） ---------- */
+.mobile-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  display: none;
+  align-items: stretch;
+  height: var(--tabbar-h);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(120%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(120%);
+  border-top: 1px solid var(--glass-border);
+}
+/* 显示开关必须锁在媒体查询里：.only-mobile.mobile-tabbar 特异性 (0,2,0)
+   会压过全局 .only-mobile{display:none} (0,1,0)，不加 @media 桌面端也会浮出底栏。 */
+@media (max-width: 768px) {
+  .only-mobile.mobile-tabbar {
+    display: flex;
+  }
+}
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: var(--text-xs);
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+.tab-item.is-active {
+  color: var(--accent);
+}
+.tab-glyph {
+  flex: none;
+}
+.tab-label {
+  line-height: 1.1;
 }

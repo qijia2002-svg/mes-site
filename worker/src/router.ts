@@ -28,6 +28,8 @@ import {
 } from './modules/admin/admin.routes';
 import {
   listQuestions,
+  listTopicQuestions,
+  gradeAnswer,
   getSqlExercise,
   listSqlExercises,
   submitSql,
@@ -88,6 +90,8 @@ export const routes: Route[] = [
 
   // Phase 2 题库 / SQL 实训（题面与答案分离，防缓存泄露 R6）
   { method: 'GET', path: '/api/v1/quiz/questions', handler: listQuestions },
+  { method: 'GET', path: '/api/v1/quiz/topic-questions', handler: listTopicQuestions },
+  { method: 'POST', path: '/api/v1/quiz/grade', handler: gradeAnswer },
   { method: 'GET', path: '/api/v1/sql-exercises', handler: listSqlExercises },
   { method: 'GET', path: '/api/v1/sql-exercises/:id', handler: getSqlExercise },
   { method: 'POST', path: '/api/v1/sql-exercises/:id/submit', handler: submitSql },

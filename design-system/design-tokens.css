@@ -1,11 +1,20 @@
 /* ==========================================================================
-   MES 实训平台 · Design Tokens (v1.0 / Phase 1)
+   MES 实训平台 · Design Tokens (v3.0 / 视觉升级)
    --------------------------------------------------------------------------
    寄存器 Register : product        平台 Platform : web
-   三轴刻度         : Variance 4 / Motion 3 / Density 6
+   三轴刻度         : Variance 4 / Motion 3 / Density 6（v3 不变）
    分层             : A1-identity → A1-structure → A2 → B-slot → C-extension
    规则             : 组件 CSS 一律 var(--token)，禁止裸 hex。
                       裸色值只允许出现在本文件的 token 定义处。
+   --------------------------------------------------------------------------
+   v3 变更总纲（依据 design-system/VISUAL-UPGRADE-v3.md）
+   1. 修正倒置的明度阶梯：surface-3 < bg < surface-2 < surface（v2 里 surface-2
+      比 bg 还暗，内嵌区往下凹、卡片往上凸，深度信号自相矛盾 → 画面发白发平）
+   2. 页面底压深 7%（#f7f9fb → #edf1f5），bg→surface 对比 1.055 → 1.135
+   3. accent 色相 221° → 210°，与 --brand-ink 206° 同源（不再是"两种蓝"）
+   4. Hairline First 真正执行：--elev-card 归零，阴影只留给 hover / 浮层
+   5. 主按钮转墨色（--btn-primary-bg → --ink-solid），制造深色视觉锚点
+   6. 新增中性标签组，把 .tag 从 accent 三件套解放（首屏蓝色元素 37 → 19 处）
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -23,10 +32,14 @@
      A1-identity · 品牌身份（品牌升级才动）
      ====================================================================== */
 
-  /* 品牌墨色：深钢蓝黑。不是 #000，带蓝相，来自工控机金属外壳的冷调 */
+  /* 品牌墨色：深钢蓝黑。不是 #000，带蓝相，来自工控机金属外壳的冷调
+     v3：不改色值，但要大幅扩大它的使用面积（主按钮 / 首页锚点区） */
   --brand-ink: #0f1b26;
-  /* 唯一强调色：工程青。HMI 仪表盘上的数据青，避开 AI 默认 indigo #6366f1 */
-  --accent: #0e7490;
+  /* 唯一强调色：仪表蓝。v3 从 #2563eb(221°) 沉到 #0a61b8(210°)，
+     与 --brand-ink 206° 同源；对白底 6.15:1（v2 是 5.17:1）。
+     v3 起 accent 只编码「状态与链接」：选中 / 焦点 / 运行中 / 进度 / 超链接，
+     不再给标签、装饰图标、非关键数字上色（每屏可见 accent ≤3 处）。 */
+  --accent: #0a61b8;
   --accent-on: #ffffff;
 
   /* 字体族 —— Latin/数字走 Archivo，CJK 自然回落 Noto Sans SC。
@@ -50,8 +63,9 @@
   --text-lg: 1.125rem;     /* 18px  卡片标题 */
   --text-xl: 1.25rem;      /* 20px  区块标题 */
   --text-2xl: 1.5rem;      /* 24px  页面标题 */
-  --text-3xl: 1.875rem;    /* 30px  工作台主标题 */
-  --text-4xl: 2.375rem;    /* 38px  仅首页首屏，全站唯一一处 */
+  --text-3xl: 1.875rem;    /* 30px  工作台主标题（阶梯顶端） */
+  /* v3 删除 --text-4xl(38px)：全站零引用的死 token；且不补用——
+     靠放大标题制造首屏重心是落地页套路（P0-5），重心改由深色锚点区承担 */
 
   /* 字重三级。CJK 无 510/590 字面，映射见 --weight-*-cjk */
   --weight-read: 400;
@@ -84,11 +98,11 @@
   --space-12: 48px;
   --space-16: 64px;
 
-  /* 圆角 —— 工具型收紧，卡片上限 8px，绝不 ≥16px */
+  /* 圆角 —— 工具型收紧，卡片上限 12px（v2 上调），模态 16px，绝不 ≥24px */
   --radius-xs: 3px;   /* Badge / Tag */
   --radius-sm: 6px;   /* 按钮 / 输入框 */
-  --radius-md: 8px;   /* 卡片 / 面板 */
-  --radius-lg: 12px;  /* 模态框 */
+  --radius-md: 12px;   /* 卡片 / 面板（v2 上调，仍 <16px 纪律）*/
+  --radius-lg: 16px;  /* 模态框 */
   --radius-pill: 9999px;
 
   /* 布局骨架 */
@@ -106,28 +120,54 @@
 
   /* ======================================================================
      A1 · 中性色阶（冷调，带微量青相 chroma，不是纯灰）
+     ----------------------------------------------------------------------
+     v3 明度阶梯（WCAG 相对亮度，单调递增，台阶肉眼等距）：
+       surface-3  #e3e9f0  L 80.90%  ┐ 1.077  ← 全系唯一允许下沉的面
+       bg         #edf1f5  L 87.51%  ┤ 1.066  ← 页面底（基准）
+       surface-2  #f6f8fa  L 93.63%  ┤ 1.065  ← 内嵌区 / 表头
+       surface    #ffffff  L 100.0%  ┘        ← 卡片（顶端）
+     铁律：改这四个值时必须重算，任何一级倒置都会让画面重新变"平"。
      ====================================================================== */
-  --bg: #f7f9fb;          /* 页面底 */
+  --bg: #edf1f5;          /* 页面底（v3 压深 7%，白卡片才浮得起来） */
   --surface: #ffffff;     /* 卡片 / 面板 */
-  --surface-2: #f1f5f9;   /* 表头 / 内嵌区 / hover 底 */
-  --surface-3: #e7edf3;   /* 选中底 / 进度槽 */
+  --surface-2: #f6f8fa;   /* 表头 / 内嵌区 / hover 底（v3 修正倒置，现在亮于 bg） */
+  --surface-3: #e3e9f0;   /* 选中底 / 进度槽 / 按下态（唯一下沉面） */
 
-  --fg: #0f1b26;          /* 主文本 = --brand-ink */
-  --fg-2: #33475b;        /* 次级文本 / 正文段落 */
-  --muted: #5a6e80;       /* 说明文字（对 --bg 5.0:1） */
-  --meta: #6b8093;        /* 时间戳 / 计数，仅 12-13px 非关键信息 */
+  --fg: #0f1b26;          /* 主文本 = --brand-ink（对新 bg 15.35:1） */
+  --fg-2: #33475b;        /* 次级文本 / 正文段落（8.44:1） */
+  --muted: #4e6376;       /* 说明文字（对新 bg 5.49:1） */
+  --meta: #5c6f85;        /* 时间戳 / 计数（4.55:1）。v2 的 #6b8093 只有 4.09:1，本就不合规 */
 
-  --border: #dde5ec;      /* 卡片 / 输入框边框 */
-  --border-soft: #edf1f5; /* 表格行分隔 */
-  --border-strong: #c3d0da;/* 输入框 hover / 分栏拖拽条 */
+  --border: #d3dce5;      /* 卡片 / 输入框边框。取消卡片阴影后 hairline 是唯一分层手段，必须加强 */
+  --border-soft: #e4eaf0; /* 表格行分隔（v2 值与新 bg 撞色，必须让开） */
+  --border-strong: #b3c2ce;/* 输入框 hover / 分栏拖拽条 */
 
   /* ======================================================================
      A2 · 派生与语义（有默认值，可覆盖）
      ====================================================================== */
-  --accent-hover: #0b6178;
-  --accent-active: #094f61;
-  --accent-soft: #e2f2f6;   /* 选中行底 / 轻量 Badge 底 */
-  --accent-border: #a9d5e0;
+  --accent-hover: #08508f;  /* 白字 8.22:1 */
+  --accent-active: #063f73; /* 白字 10.68:1 */
+  --accent-soft: #e8f0fa;   /* 选中行底 / 轻量 Badge 底（v3 去掉偏紫倾向，对齐 210°） */
+  --accent-border: #b8d2ec;
+
+  /* 墨色实底组 —— 主按钮与深色锚点的驱动源。
+     为什么不直接用 --brand-ink：它是 A1-identity 身份色，同时被 --fg 和
+     --code-bg 引用；按钮需要独立的 hover/active 派生，直接复用会把
+     "文字色"和"按钮底色"耦合死，以后单独调按钮深浅就必须动身份色。 */
+  --ink-solid: var(--brand-ink);   /* #0f1b26  白字 17.43:1 */
+  --ink-solid-hover: #1d2c3a;      /* 白字 14.25:1 */
+  --ink-solid-active: #080f16;     /* 白字 19.26:1 */
+
+  /* 深色锚点区组 —— 浅色页面里的深色区块（首页 dash-hero 等）。
+     为什么不复用 --code-*：那是 C-extension 层、SQL 沙箱专属，语义是"这是代码"；
+     锚点区语义是"这是本页重心"。色值同源可以，语义必须分开，
+     否则以后调 SQL 面板会误伤首页。 */
+  --surface-ink: var(--brand-ink); /* 深色区块底 */
+  --fg-on-ink: #f2f6f9;            /* 16.04:1  主文字 */
+  --fg-2-on-ink: #b6c6d4;          /*  9.97:1  次级文字 */
+  --meta-on-ink: #8199ac;          /*  5.88:1  元信息 */
+  --border-on-ink: #24374a;        /*  1.43    深色区内部分隔线 */
+  --accent-on-ink: #63b3ed;        /*  7.64:1  深底上的强调（浅色 accent） */
 
   /* 语义色 —— 对齐 MES 设备语义：运行 / 待处理 / 故障 / 提示 */
   --success: #15803d;       /* 设备运行 / 判题通过 */
@@ -144,7 +184,8 @@
 
   /* ======================================================================
      A2 · 层级（Hairline First：默认无阴影，靠 1px 边框 + 底色差）
-     禁止 1px border 与 blur ≥16px 同时出现在同一元素（幽灵卡片）
+     Hairline First 仍作基线；顶栏/底栏作为导航条允许 1px 细线 + blur 玻璃
+     （非内容卡片，豁免幽灵卡片规则）
      ====================================================================== */
   --elev-flat: none;
   --elev-ring: 0 0 0 1px var(--border);
@@ -152,6 +193,22 @@
     0 2px 4px -2px rgba(15, 27, 38, 0.06);
   --elev-modal: 0 16px 40px -8px rgba(15, 27, 38, 0.18),
     0 4px 12px -4px rgba(15, 27, 38, 0.08);
+
+  /* v3 · 常态零阴影，把分层责任交还给已加强的 hairline + 已修复的明度阶梯。
+     L0 平面(卡片/面板/统计块) → L1 响应(hover) → L2 浮层 → L3 模态，
+     L0 与 L1 的差异必须是"从无到有"，不是"从轻到重"。
+
+     ⚠️ 必须写 `0 0 0 0 transparent` 而不是 `none`：
+     .dash-path.is-active 里存在复合列表
+       box-shadow: 0 0 0 1px var(--accent-soft), var(--elev-card);
+     `none` 在多值列表中是非法语法，浏览器会静默丢弃整条声明，
+     导致"当前学习路径"卡片的高亮外环凭空消失且不报错。 */
+  --elev-card: 0 0 0 0 transparent;
+  --elev-card-hover: 0 4px 12px -2px rgba(15, 27, 38, 0.1),
+    0 1px 3px rgba(15, 27, 38, 0.06);
+  --glass-blur: 8px;
+  --glass-bg: color-mix(in srgb, var(--surface) 92%, transparent);
+  --glass-border: color-mix(in srgb, var(--border) 70%, transparent);
 
   --z-base: 0;
   --z-sticky: 100;
@@ -176,10 +233,13 @@
   /* ======================================================================
      B-slot · 组件插槽（消费上面的语义层，组件只读这一层）
      ====================================================================== */
-  --btn-primary-bg: var(--accent);
-  --btn-primary-fg: var(--accent-on);
-  --btn-primary-bg-hover: var(--accent-hover);
-  --btn-primary-bg-active: var(--accent-active);
+  /* 主按钮 v3 转墨色（Vercel / Linear 做法）：
+     ① 立刻在近白页面上制造深色锚点；② 一次性释放最大的 accent 配额；
+     ③ 只改 B-slot，全站 .btn-primary 同时生效，零组件改动。 */
+  --btn-primary-bg: var(--ink-solid);
+  --btn-primary-fg: #ffffff;
+  --btn-primary-bg-hover: var(--ink-solid-hover);
+  --btn-primary-bg-active: var(--ink-solid-active);
 
   --btn-secondary-bg: var(--surface);
   --btn-secondary-fg: var(--fg-2);
@@ -207,11 +267,22 @@
   --card-border-hover: var(--border-strong);
   --card-padding: var(--space-5);   /* Density 6 → 20px，不是 24 */
   --card-radius: var(--radius-md);
+  /* 卡片标题 18px：v2 用 --text-base(15px) 与 13px 描述只差 2px，
+     且与页面正文同号——标题不像标题。18/13 = 1.38 才形成层级。 */
+  --card-title-size: var(--text-lg);
+
+  /* 中性标签组 —— .tag 是全站最大的 accent 污染源（首页 18 处）。
+     为什么不直接把 .tag 的 var(--accent) 改成 var(--muted)：
+     B-slot 的职责是"组件只读这一层"，tag 作为高频组件应有独立插槽，
+     以后要做"高亮 tag"变体才有地方挂。 */
+  --tag-bg: var(--surface-2);
+  --tag-fg: var(--muted);       /* 对 tag-bg 5.85:1 */
+  --tag-border: var(--border);
 
   --nav-item-fg: var(--muted);
   --nav-item-fg-active: var(--fg);
   --nav-item-bg-hover: var(--surface-2);
-  --nav-item-bg-active: var(--surface-3);
+  --nav-item-bg-active: var(--accent-soft);
   --nav-item-marker-active: var(--accent);  /* 2px 左指示条，仅导航允许 */
 
   --table-header-bg: var(--surface-2);
@@ -243,7 +314,7 @@
   --syn-keyword: #7dd3fc;      /* SELECT / FROM / JOIN */
   --syn-string: #86efac;
   --syn-number: #fcd34d;
-  --syn-func: #c4b5fd;         /* 仅语法着色，非主视觉渐变 */
+  --syn-func: #93c5fd;         /* v3 由 #c4b5fd 紫改浅蓝：消除全站唯一紫色，免除 P0-2 解释成本 */
   --syn-comment: #6b8093;
   --syn-operator: #cbd5e1;
 
@@ -270,10 +341,13 @@
   --prose-quote-bar: var(--border-strong);
   --prose-hr: var(--border);
 
-  /* 行内代码：浅底，不用深色（深色行内码在长文里像被挖了个洞） */
+  /* 行内代码：浅底，不用深色（深色行内码在长文里像被挖了个洞）。
+     v3 去蓝去边框：理论章节里行内码密度极高（表名/字段名/SQL 关键字），
+     一段话里五六个蓝色小方块会把阅读节奏切碎。改为"底色微差的等宽文字"，
+     "代码=深色"这条规则交由块级 <pre> 独家承担。 */
   --prose-code-inline-bg: var(--surface-2);
-  --prose-code-inline-fg: #0b5566;   /* accent 加深，对 --surface-2 达 6.1:1 */
-  --prose-code-inline-border: var(--border);
+  --prose-code-inline-fg: var(--fg);
+  --prose-code-inline-border: transparent;
 
   /* 块级代码：复用沙箱深色面板 */
   --prose-pre-bg: var(--code-bg);

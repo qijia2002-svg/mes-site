@@ -1,12 +1,14 @@
 /**
- * 课程详情：章节列表 + 该课程下的 SQL 实训题。
- * 这是"读理论 → 动手练"闭环的中转站，两块内容必须同屏，否则学员练不到。
+ * 课程详情：章节列表 + 模块考试 + SQL 实训题。
+ * 读理论 → 卡片学习 → 章节测试 → 模块汇总考试 → SQL 实操，全链路闭环。
  */
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { useCrumbTail } from '../components/Breadcrumb';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
+import { QuizDeck } from '../components/QuizDeck';
 import { api } from '../api/endpoints';
 
 export default function CourseDetailPage() {
@@ -24,6 +26,14 @@ export default function CourseDetailPage() {
     queryKey: ['sql-exercises', id],
     queryFn: () => api.sqlExercises(id),
     enabled: valid,
+  });
+
+  // 模块汇总考试
+  const [showExam, setShowExam] = useState(false);
+  const topicQuiz = useQuery({
+    queryKey: ['topic-quiz', id],
+    queryFn: () => api.topicQuestions(id),
+    enabled: valid && showExam,
   });
 
   const topic = topics.data?.find((t) => t.id === id);
@@ -79,6 +89,36 @@ export default function CourseDetailPage() {
               </li>
             ))}
           </ul>
+        )}
+      </div>
+
+      {/* 模块汇总考试 */}
+      <div className="section">
+        <div className="section-head">
+          <h2 className="section-title">模块考试</h2>
+        </div>
+        {!showExam ? (
+          <p className="stat-note">
+            学完全部章节后，来这里做汇总测试，检验整个模块的掌握情况。
+            <br />
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ marginTop: 'var(--space-3)' }}
+              onClick={() => setShowExam(true)}
+            >
+              <Icon name="quiz" size={16} />
+              开始模块考试
+            </button>
+          </p>
+        ) : topicQuiz.isLoading ? (
+          <LoadingState label="正在加载考题…" />
+        ) : topicQuiz.isError ? (
+          <ErrorState error={topicQuiz.error} onRetry={() => void topicQuiz.refetch()} />
+        ) : topicQuiz.data && topicQuiz.data.length > 0 ? (
+          <QuizDeck questions={topicQuiz.data} title={topic?.title ?? '模块'} />
+        ) : (
+          <EmptyState title="这个模块还没有考题" hint="考题由后台导入后会出现在这里。" icon="quiz" />
         )}
       </div>
 

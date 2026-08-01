@@ -1,5 +1,6 @@
 /**
  * 章节阅读页（F2 / AC-02）。
+ * v2：加卡片/文档模式切换。卡片模式把长文按 ## 拆成知识卡片。
  * 正文来自后台可编辑的 markdown = 不可信输入，一律经 renderChapterMarkdown
  * （markdown-it html:false + DOMPurify 白名单）后再注入。
  */
@@ -9,8 +10,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { useCrumbTail } from '../components/Breadcrumb';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
+import { FlashCardDeck } from '../components/FlashCardDeck';
+import { QuizDeck } from '../components/QuizDeck';
 import { renderChapterMarkdown } from '../lib/markdown';
 import { api } from '../api/endpoints';
+
+type ReadMode = 'doc' | 'card';
 
 /** 停留满这个时长才算"读过"，避免误点一下就记完成。 */
 const READ_DWELL_MS = 6000;
@@ -28,12 +33,22 @@ export default function ChapterPage() {
 
   useCrumbTail(chapter.data?.title);
 
+  // 拉章节测试题（如果有）
+  const quizQ = useQuery({
+    queryKey: ['quiz', id],
+    queryFn: () => api.quizQuestions(id),
+    enabled: valid && !!chapter.data,
+  });
+
+  const [showQuiz, setShowQuiz] = useState(false);
+
   const rendered = useMemo(
     () => renderChapterMarkdown(chapter.data?.md ?? ''),
     [chapter.data?.md],
   );
 
   const [readState, setReadState] = useState<'idle' | 'done' | 'failed'>('idle');
+  const [mode, setMode] = useState<ReadMode>('card');
   // StrictMode 双挂载 + 重渲染都可能重复上报，用 ref 锁死"每章一次"。
   const reportedRef = useRef<number | null>(null);
 
@@ -92,16 +107,66 @@ export default function ChapterPage() {
               : ''}
           </p>
         </div>
-        <ReadBadge state={readState} />
+        <div className="page-head-actions">
+          {/* 卡片/文档模式切换 */}
+          <div className="mode-toggle" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              className={`mode-toggle-btn ${mode === 'card' ? 'is-active' : ''}`}
+              onClick={() => setMode('card')}
+              aria-selected={mode === 'card'}
+            >
+              <Icon name="chapter" size={16} />
+              卡片
+            </button>
+            <button
+              type="button"
+              role="tab"
+              className={`mode-toggle-btn ${mode === 'doc' ? 'is-active' : ''}`}
+              onClick={() => setMode('doc')}
+              aria-selected={mode === 'doc'}
+            >
+              <Icon name="toc" size={16} />
+              文档
+            </button>
+          </div>
+          <ReadBadge state={readState} />
+        </div>
       </header>
 
       <div className="chapter-layout">
         <div className="chapter-main">
           {rendered.html ? (
-            // 已过 markdown-it(html:false) + DOMPurify 白名单，见 lib/markdown.ts
-            <div className="prose" dangerouslySetInnerHTML={{ __html: rendered.html }} />
+            mode === 'card' ? (
+              <FlashCardDeck
+                mdText={chapter.data.md ?? ''}
+                chapterTitle={chapter.data.title}
+              />
+            ) : (
+              // 已过 markdown-it(html:false) + DOMPurify 白名单，见 lib/markdown.ts
+              <div className="prose" dangerouslySetInnerHTML={{ __html: rendered.html }} />
+            )
           ) : (
             <EmptyState title="正文为空" hint="这一章只有标题，内容待补充。" icon="chapter" />
+          )}
+
+          {/* 章节测试（如果有题且切换到考试模式） */}
+          {quizQ.data && quizQ.data.length > 0 && (
+            <div className="section" style={{ marginTop: 'var(--space-8)' }}>
+              <div className="section-head">
+                <h2 className="section-title">章节测试</h2>
+                <span className="row-meta">{quizQ.data.length} 道题</span>
+              </div>
+              {!showQuiz ? (
+                <button type="button" className="btn btn-primary" onClick={() => setShowQuiz(true)}>
+                  <Icon name="quiz" size={16} />
+                  开始测试
+                </button>
+              ) : (
+                <QuizDeck questions={quizQ.data} title={chapter.data.title} />
+              )}
+            </div>
           )}
 
           <footer className="chapter-foot">
@@ -111,12 +176,12 @@ export default function ChapterPage() {
             </Link>
             <Link className="btn btn-primary btn-sm" to="/sql-space">
               <Icon name="sql" size={16} />
-              到 SQL 工作台动手练
+              到模拟台动手练
             </Link>
           </footer>
         </div>
 
-        {rendered.toc.length > 1 && (
+        {mode === 'doc' && rendered.toc.length > 1 && (
           <nav className="chapter-aside" aria-label="本章目录">
             <p className="toc-title">
               <Icon name="toc" size={16} />

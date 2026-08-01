@@ -22,6 +22,41 @@ export async function listQuestionsSvc(c: Ctx, chapterId: number) {
   }));
 }
 
+/** 模块汇总：按 topic 查所有章节的题目（不含答案） */
+export async function listTopicQuestionsSvc(c: Ctx, topicId: number) {
+  const rows = await quizRepo.listQuestionsByTopic(c.db, topicId);
+  return rows.map((r) => ({
+    id: r.id,
+    chapterId: r.chapter_id,
+    type: r.type,
+    stem: r.stem,
+    options: parseJson(r.options) as string[],
+  }));
+}
+
+/** 答案校验：比对用户答案与正确答案，返回对错 + 解析 */
+export async function gradeAnswerSvc(c: Ctx, questionId: number, userAnswer: string) {
+  const row = await quizRepo.getAnswer(c.db, questionId);
+  if (!row) return null;
+
+  let correct = false;
+  if (row.type === 'multi') {
+    // 多选：排序后比对
+    const userSet = userAnswer.split(',').map((s) => s.trim()).sort();
+    const correctSet = row.answer.split(',').map((s) => s.trim()).sort();
+    correct = userSet.length === correctSet.length && userSet.every((v, i) => v === correctSet[i]);
+  } else {
+    // 单选/判断：直接比对
+    correct = userAnswer.trim() === row.answer.trim();
+  }
+
+  return {
+    correct,
+    correctAnswer: row.answer,
+    explanation: row.explanation,
+  };
+}
+
 /**
  * SQL 实训题 DTO（ADR-005 判题契约）。
  *
