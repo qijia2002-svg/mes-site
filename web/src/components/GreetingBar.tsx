@@ -3,7 +3,6 @@
  * 昵称存 localStorage（个人中心可编辑），进度数据复用 React Query 缓存。
  */
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { Icon } from './Icon';
 import { api } from '../api/endpoints';
 import './GreetingBar.css';
@@ -90,10 +89,6 @@ export function GreetingBar() {
         </p>
         <p className="greeting-motivation">{motivation}</p>
       </div>
-      <Link className="greeting-cta" to="/courses">
-        <Icon name="run" size={16} />
-        继续学习
-      </Link>
     </div>
   );
 }

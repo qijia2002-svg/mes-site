@@ -8,24 +8,14 @@ import { NavLink, Link } from 'react-router-dom';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { Icon, type IconName } from './Icon';
 import { Breadcrumb } from './Breadcrumb';
-import { useAuth, useLogout } from './AuthGuard';
 import { api } from '../api/endpoints';
 
 interface NavEntry {
-  to: string;
   label: string;
   icon: IconName;
+  to: string;
   end?: boolean;
 }
-
-// 四大模块导航（用户指令：首页 / 学习中心 / 模拟台 / 工厂模拟）
-// 学习中心改为可展开分组，子项直达各知识模块
-const PRIMARY_NAV: NavEntry[] = [
-  { to: '/', label: '首页', icon: 'dashboard', end: true },
-  { to: '/courses', label: '学习中心', icon: 'courses' },
-  { to: '/sql-space', label: '模拟台', icon: 'sql' },
-  { to: '/simulator', label: '工厂模拟', icon: 'routing' },
-];
 
 // 学习中心子模块（可展开的二级导航）
 const LEARN_SUB: NavEntry[] = [
@@ -122,49 +112,6 @@ function HealthPill() {
   );
 }
 
-/** 侧栏底部：已登录显示用户名+退出，否则淡隐（RequireAuth 已兜底，这里只是信息展示） */
-function AuthFooterLink() {
-  const { data } = useAuth();
-  const { logout } = useLogout();
-  if (!data?.sub) return null;
-  return (
-    <>
-      <span className="nav-subitem" style={{ color: 'var(--meta-on-ink)', cursor: 'default' }}>
-        <Icon name="user" size={16} className="nav-subglyph" />
-        <span>{data.sub}</span>
-      </span>
-      <button
-        type="button"
-        className="nav-subitem"
-        style={{ background: 'transparent', border: 0, fontFamily: 'inherit', cursor: 'pointer' }}
-        onClick={() => { logout().catch(() => {}); }}
-      >
-        <Icon name="login" size={16} className="nav-subglyph" />
-        <span>退出登录</span>
-      </button>
-    </>
-  );
-}
-
-function NavList({ items }: { items: NavEntry[] }) {
-  return (
-    <ul className="nav-list">
-      {items.map((item) => (
-        <li key={item.to}>
-          <NavLink
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) => (isActive ? 'nav-item is-active' : 'nav-item')}
-          >
-            <Icon name={item.icon} size={20} className="nav-glyph" />
-            <span className="nav-label">{item.label}</span>
-          </NavLink>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const [learnOpen, setLearnOpen] = useState(true);
@@ -255,13 +202,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="sidebar-foot">
           <SidebarProgress />
-          <div className="sidebar-links">
-            <NavLink to="/profile" className={({ isActive }) => (isActive ? 'nav-subitem is-active' : 'nav-subitem')}>
-              <Icon name="user" size={16} className="nav-subglyph" />
-              <span>个人中心</span>
-            </NavLink>
-            <AuthFooterLink />
-          </div>
         </div>
       </aside>
 
@@ -288,7 +228,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* 移动端底部 Tab（框架范式，≤768px 显示） */}
       <nav className="mobile-tabbar only-mobile" aria-label="主导航">
-        {PRIMARY_NAV.map((item) => (
+        {[
+          { to: '/', label: '首页', icon: 'dashboard' as IconName, end: true },
+          { to: '/courses', label: '学习', icon: 'courses' as IconName },
+          { to: '/sql-space', label: '模拟台', icon: 'sql' as IconName },
+          { to: '/simulator', label: '工厂', icon: 'routing' as IconName },
+        ].map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

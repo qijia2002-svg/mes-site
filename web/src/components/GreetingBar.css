@@ -43,41 +43,6 @@
   color: var(--accent-on-ink);
   font-weight: 500;
 }
-/* 深底反色按钮（与 .panel.dash-hero .dash-cta 同款） */
-.greeting-cta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  color: var(--fg);
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-  flex-shrink: 0;
-  border: 1px solid transparent;
-  transition:
-    transform var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard),
-    background-color var(--motion-fast) var(--ease-standard);
-}
-.greeting-cta:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--elev-card-hover);
-  background: var(--fg-on-ink);
-}
-.greeting-cta:active {
-  background: var(--fg-2-on-ink);
-}
-.greeting-cta:focus-visible {
-  box-shadow:
-    0 0 0 2px var(--surface-ink),
-    0 0 0 4px var(--accent-on-ink);
-}
-
 @media (max-width: 768px) {
   .greeting-bar {
     flex-direction: column;
