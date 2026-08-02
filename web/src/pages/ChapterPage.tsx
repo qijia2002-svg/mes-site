@@ -18,7 +18,7 @@ import { api } from '../api/endpoints';
 type ReadMode = 'doc' | 'card';
 
 /** 停留满这个时长才算"读过"，避免误点一下就记完成。 */
-const READ_DWELL_MS = 6000;
+const READ_DWELL_MS = 2000;
 
 export default function ChapterPage() {
   const { chapterId } = useParams();

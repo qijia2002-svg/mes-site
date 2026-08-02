@@ -142,6 +142,31 @@ export default function CoursesPage() {
           </div>
         );
       })}
+
+      {/* 兜底：未匹配到任何分组的课程 */}
+      {(() => {
+        const matched = new Set(GROUPS.flatMap((g) => topics.data!.filter(g.match).map((t) => t.id)));
+        const unmatched = topics.data!.filter((t) => !matched.has(t.id));
+        if (unmatched.length === 0) return null;
+        return (
+          <div className="section">
+            <div className="section-head">
+              <h2 className="section-title">更多课程</h2>
+              <span className="row-meta">其他知识模块</span>
+            </div>
+            <ul className="card-grid">
+              {unmatched.map((t) => {
+                const stat = topicStats.get(t.id) ?? { done: 0, total: 0 };
+                return (
+                  <li key={t.id}>
+                    <TopicCard topic={t} done={stat.done} total={stat.total} />
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })()}
     </section>
   );
 }

@@ -3,20 +3,20 @@
 -- 来源：E:/我的脑库/10_Learning（学习）/
 
 -- 先清理旧数据（如果重复导入）
-DELETE FROM chapters WHERE topic_id = 4;
-DELETE FROM topics WHERE id = 4;
-DELETE FROM chapters WHERE topic_id = 5;
-DELETE FROM topics WHERE id = 5;
-DELETE FROM chapters WHERE topic_id = 6;
-DELETE FROM topics WHERE id = 6;
-DELETE FROM chapters WHERE topic_id = 7;
-DELETE FROM topics WHERE id = 7;
+-- SKIP: 
+-- SKIP: 
+-- SKIP: 
+-- SKIP: 
+-- SKIP: 
+-- SKIP: 
+-- SKIP: 
+-- SKIP: 
 
 -- Topics
-INSERT INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (4, 'erp', 'ERP 原理与模块', '从销售订单到财务结算的企业经营全貌', '["theory"]', 4, 'published', strftime('%s','now'), strftime('%s','now'));
-INSERT INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (5, 'mes', 'MES 核心模块', '工单/物料/报工/质量/追溯/设备/看板', '["theory"]', 5, 'published', strftime('%s','now'), strftime('%s','now'));
-INSERT INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (6, 'sql', 'SQL 查询基础', 'SELECT/WHERE/GROUP BY/JOIN', '["theory"]', 6, 'published', strftime('%s','now'), strftime('%s','now'));
-INSERT INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (7, 'plc', 'PLC 可编程逻辑控制器', '基础/梯形图/工业控制/SCADA-MES集成', '["theory"]', 7, 'published', strftime('%s','now'), strftime('%s','now'));
+INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (4, 'erp', 'ERP 原理与模块', '从销售订单到财务结算的企业经营全貌', '["theory"]', 4, 'published', 1785648000, 1785648000);
+INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (5, 'mes', 'MES 核心模块', '工单/物料/报工/质量/追溯/设备/看板', '["theory"]', 5, 'published', 1785648000, 1785648000);
+INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (6, 'sql', 'SQL 查询基础', 'SELECT/WHERE/GROUP BY/JOIN', '["theory"]', 6, 'published', 1785648000, 1785648000);
+INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (7, 'plc', 'PLC 可编程逻辑控制器', '基础/梯形图/工业控制/SCADA-MES集成', '["theory"]', 7, 'published', 1785648000, 1785648000);
 
 -- Chapters
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (4, 'ERP 是什么', 1, 'published', '# ERP 是什么
@@ -55,7 +55,7 @@ ERP 就像公司的 **"数字大脑"**——记录每一笔交易、每一个订
 | 管理层用 | 车间用 |
 
 ## 下一步
-→ [[04_MRP物料需求计划|MRP 物料需求计划]]', 1, strftime('%s','now'));
+→ [[04_MRP物料需求计划|MRP 物料需求计划]]', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (4, '销售管理', 2, 'published', '# 销售管理
 
 ## 一句话理解
@@ -81,7 +81,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 **观察任务：** 销售订单怎么传到生产部门的？ERP里看得到吗？
 
 ## 关联
-- 销售订单 → MRP → 采购 → 生产 → 发货', 1, strftime('%s','now'));
+- 销售订单 → MRP → 采购 → 生产 → 发货', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (4, '生产计划', 3, 'published', '# 生产计划
 
 ## 一句话理解
@@ -104,7 +104,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 ERP自动根据订单、库存、产能生成生产计划。
 
 ## 面试能讲的
-"我理解生产计划从长期产能规划到日常排产的层次。在奥来，计划排产主要靠人工，这是数字化转型的切入点。"', 1, strftime('%s','now'));
+"我理解生产计划从长期产能规划到日常排产的层次。在奥来，计划排产主要靠人工，这是数字化转型的切入点。"', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (4, 'MRP 物料需求计划', 4, 'published', '# MRP 物料需求计划
 
 ## 一句话理解
@@ -160,7 +160,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 "我在奥来观察到缺料问题根本原因是缺少 MRP 运算——计划靠人工估算。我理解了 MRP 怎么根据 BOM 和订单自动算物料需求。"
 
 ## 下一步
-→ [[../MES/01_MES是什么|MES 是什么]]', 1, strftime('%s','now'));
+→ [[../MES/01_MES是什么|MES 是什么]]', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (4, '采购管理', 5, 'published', '# 采购管理
 
 ## 一句话理解
@@ -185,7 +185,7 @@ KBO 有 52 个零件，来自不同供应商。
 - 采购提前期多长？
 
 ## 关联你的案例
-IQC（来料检验）不合格 → 退回供应商 → 这就是采购+质量的联动。', 1, strftime('%s','now'));
+IQC（来料检验）不合格 → 退回供应商 → 这就是采购+质量的联动。', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (4, '库存管理', 6, 'published', '# 库存管理
 
 ## 一句话理解
@@ -206,7 +206,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 系统知道每种物料还有多少、什么时候用完、什么时候该采购。
 
 ## 面试能讲的
-"我在产线上观察到了缺料问题，根本原因是库存状态不透明、没有安全库存预警机制。"', 1, strftime('%s','now'));
+"我在产线上观察到了缺料问题，根本原因是库存状态不透明、没有安全库存预警机制。"', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (4, '生产管理（ERP视角）', 7, 'published', '# 生产管理（ERP视角）
 
 ## 一句话理解
@@ -227,7 +227,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 |------------|------------|
 | 管"要生产多少" | 管"怎么生产的" |
 | 管到生产订单级别 | 管到每道工序 |
-| 结果导向 | 过程导向 |', 1, strftime('%s','now'));
+| 结果导向 | 过程导向 |', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (4, '财务会计', 8, 'published', '# 财务会计
 
 ## 一句话理解
@@ -247,7 +247,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 - 制造费用：设备折旧、电费、厂房
 
 ## 为什么MES实施要懂一点财务？
-MES采集的生产数据（报工、物料消耗） → 传给ERP → 做成本核算。', 1, strftime('%s','now'));
+MES采集的生产数据（报工、物料消耗） → 传给ERP → 做成本核算。', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (4, 'ERP与MES的边界', 9, 'published', '# ERP与MES的边界
 
 ## 面试最常问的问题
@@ -276,7 +276,7 @@ MES（执行）→ 完工/质量数据 → ERP（结算）
 ```
 
 ## 面试能讲的
-"我在奥来观察到的场景：ERP可能下达了生产任务，但车间还是靠纸质传递——这中间的断层就是MES要解决的。MES把ERP的''要做什么''变成车间实际执行的''怎么做、做得怎么样''。"', 1, strftime('%s','now'));
+"我在奥来观察到的场景：ERP可能下达了生产任务，但车间还是靠纸质传递——这中间的断层就是MES要解决的。MES把ERP的''要做什么''变成车间实际执行的''怎么做、做得怎么样''。"', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, 'MES 是什么', 1, 'published', '# MES 是什么
 
 ## 一句话理解
@@ -314,7 +314,7 @@ MES（管执行）→ 分解工单、追踪每道工序
 拿 15 道 SOP 每道问自己："如果上 MES，这步会怎么变？"
 
 ## 下一步
-→ [[02_工单管理|工单管理]]', 1, strftime('%s','now'));
+→ [[02_工单管理|工单管理]]', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '工单管理', 2, 'published', '# 工单管理
 
 ## 一句话理解
@@ -345,7 +345,7 @@ work_order 工单表：
   wo_id, prod_order_id, process_id,
   station_id, planned_qty, actual_qty,
   status, start_time, end_time
-```', 1, strftime('%s','now'));
+```', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '物料管理', 3, 'published', '# 物料管理
 
 ## 一句话理解
@@ -368,7 +368,7 @@ material_shortage 缺料表：
   ms_id, work_order_id, station_id,
   material_code, qty, request_time,
   delivery_time, status
-```', 1, strftime('%s','now'));
+```', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '生产报工', 4, 'published', '# 生产报工
 
 ## 一句话理解
@@ -395,7 +395,7 @@ production_record 报工表：
 ```
 
 ## 面试能讲的
-"我在奥来看到计件靠纸质记录，月底人工核对——如果上了MES扫码报工，效率能提升多少、出错率能降到多少。"', 1, strftime('%s','now'));
+"我在奥来看到计件靠纸质记录，月底人工核对——如果上了MES扫码报工，效率能提升多少、出错率能降到多少。"', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '质量管理', 5, 'published', '# 质量管理
 
 ## 一句话理解
@@ -422,7 +422,7 @@ quality_record 质量记录表：
 ```
 
 ## 面试能讲的
-"我是IPQC，正在用统一格式记录不良数据。这是MES质量管理模块最核心的输入——不良代码体系+数据采集+SPC分析。"', 1, strftime('%s','now'));
+"我是IPQC，正在用统一格式记录不良数据。这是MES质量管理模块最核心的输入——不良代码体系+数据采集+SPC分析。"', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '追溯管理', 6, 'published', '# 追溯管理
 
 ## 一句话理解
@@ -457,7 +457,7 @@ traceability 追溯表：
 ```
 
 ## 面试能讲的
-"如果客户投诉一批断路器漏电——用MES追溯系统，5分钟内就能查到：这批断路器用了哪个供应商的线圈、经过哪些工序、谁装配的、测试结果是什么。"', 1, strftime('%s','now'));
+"如果客户投诉一批断路器漏电——用MES追溯系统，5分钟内就能查到：这批断路器用了哪个供应商的线圈、经过哪些工序、谁装配的、测试结果是什么。"', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '设备管理', 7, 'published', '# 设备管理
 
 ## 一句话理解
@@ -478,7 +478,7 @@ KBO产线的测试设备：
 OEE = 可用率 × 性能率 × 良品率
 
 ## 你的案例
-[[设备故障无预警]] —— 这就是设备管理模块要解决的问题。', 1, strftime('%s','now'));
+[[设备故障无预警]] —— 这就是设备管理模块要解决的问题。', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '看板与报表', 8, 'published', '# 看板与报表
 
 ## 一句话理解
@@ -496,7 +496,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 你做过信息化专员，用ERP数据做过生产大屏——这就是看板的雏形。
 
 ## 下一步
-结合KBO产线数据 → 设计一个生产看板的Demo → 面试作品集。', 1, strftime('%s','now'));
+结合KBO产线数据 → 设计一个生产看板的Demo → 面试作品集。', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (6, 'SELECT 查询', 1, 'published', '# SELECT 查询
 
 ## 一句话理解
@@ -549,7 +549,7 @@ FROM bom;
 "我用 SQL 建了一个 KBO 断路器的 BOM 数据库，包含 52 个零件的完整信息，能用 SELECT 做各种查询。"
 
 ## 下一步
-→ [[03_WHERE过滤|WHERE 条件过滤]]', 1, strftime('%s','now'));
+→ [[03_WHERE过滤|WHERE 条件过滤]]', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (6, 'WHERE 条件过滤', 2, 'published', '# WHERE 条件过滤
 
 ## 一句话理解
@@ -607,7 +607,7 @@ WHERE name LIKE ''%触头%'';
 "我能用 WHERE 条件从 KBO 的 52 个零件里快速筛选——比如查所有关键件、查所有五金件数量大于 2 的。"
 
 ## 下一步
-→ [[04_GROUP_BY聚合|GROUP BY 分组统计]]', 1, strftime('%s','now'));
+→ [[04_GROUP_BY聚合|GROUP BY 分组统计]]', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (6, 'GROUP BY 分组统计', 3, 'published', '# GROUP BY 分组统计
 
 ## 一句话理解
@@ -678,7 +678,7 @@ LIMIT 3;
 ```
 
 ## 下一步
-→ [[05_JOIN多表关联|JOIN 多表关联]]', 1, strftime('%s','now'));
+→ [[05_JOIN多表关联|JOIN 多表关联]]', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (6, 'JOIN 多表关联', 4, 'published', '# JOIN 多表关联
 
 ## 一句话理解
@@ -733,7 +733,7 @@ WHERE p.sn = ''KBO-20260719-001'';
 → 一个 JOIN 查询全搞定。这就是 MES 追溯的核心能力。
 
 ## 下一步
-→ [[06_实战_生产报表|实战：生产日报查询]]', 1, strftime('%s','now'));
+→ [[06_实战_生产报表|实战：生产日报查询]]', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (7, 'PLC 是什么', 1, 'published', '# PLC 是什么
 
 ## 一句话理解
@@ -806,7 +806,7 @@ PLC 不是事件驱动，而是**循环扫描**：
 - 柴天佑等. 软件定义智能控制系统未来发展展望[J]. 东北大学学报(自然科学版), 2025, 46(7). [[文献清单#文献1|全文PDF]] — 院士团队综述，Scopus 收录
 
 ## 下一步
-[[02_PLC编程语言与梯形图|02 编程语言与梯形图]]', 1, strftime('%s','now'));
+[[02_PLC编程语言与梯形图|02 编程语言与梯形图]]', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (7, 'PLC 编程语言与梯形图', 2, 'published', '# PLC 编程语言与梯形图
 
 ## 一句话理解
@@ -878,7 +878,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 - 乔增光等. 嵌入式软PLC一体化研究与应用[J]. 自动化应用, 2025, 66(11). [[文献清单#文献2|全文PDF]] — 梯形图→指令表→嵌入式解释执行
 
 ## 下一步
-[[03_PLC与工业控制应用|03 工业控制应用]]', 1, strftime('%s','now'));
+[[03_PLC与工业控制应用|03 工业控制应用]]', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (7, 'PLC 与工业控制应用', 3, 'published', '# PLC 与工业控制应用
 
 ## 一句话理解
@@ -935,7 +935,7 @@ PLC 在工业控制中做三件事：**顺序控制、运动控制、过程控�
 - 牟小龙等. PLC在自动化生产线控制系统中的应用与调试研究[J]. 中国建筑, 2025, 8(11). [[文献清单#文献5|详情]]
 
 ## 下一步
-[[04_PLC与SCADA及MES集成|04 与 SCADA/MES 集成]]', 1, strftime('%s','now'));
+[[04_PLC与SCADA及MES集成|04 与 SCADA/MES 集成]]', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (7, 'PLC 与 SCADA/MES 集成', 4, 'published', '# PLC 与 SCADA/MES 集成
 
 ## 一句话理解
@@ -1008,7 +1008,7 @@ MES 数据库 → 良率报表 / 追溯
 - 莫昭育等. 基于PLC与SCADA的炼铁高炉自动化控制系统设计[J]. 中阿科技论坛, 2025(12). [[文献清单#文献3|全文PDF]]
 
 ## 下一步
-[[05_嵌入式软PLC与前沿趋势|05 嵌入式软PLC与前沿趋势]]', 1, strftime('%s','now'));
+[[05_嵌入式软PLC与前沿趋势|05 嵌入式软PLC与前沿趋势]]', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (7, '嵌入式软PLC与前沿趋势', 5, 'published', '# 嵌入式软PLC与前沿趋势
 
 ## 一句话理解
@@ -1084,4 +1084,4 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 - 柴天佑等. 软件定义智能控制系统未来发展展望[J]. 东北大学学报(自然科学版), 2025, 46(7). [[文献清单#文献1|全文PDF]] — Scopus 收录
 
 ## 回到地图
-[[index|← PLC 学习地图]]', 1, strftime('%s','now'));
+[[index|← PLC 学习地图]]', 1, 1785648000);
