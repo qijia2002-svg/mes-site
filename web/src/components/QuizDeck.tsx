@@ -21,7 +21,7 @@ interface QuestionResult {
 
 export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
   const [current, setCurrent] = useState(0);
-  const [selected, setSelected] = useState<string>('');
+  const [sel, setSel] = useState<string[]>([]);
   const [graded, setGraded] = useState(false);
   const [result, setResult] = useState<QuestionResult | null>(null);
   const [grading, setGrading] = useState(false);
@@ -36,7 +36,7 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
   const q = questions[current];
 
   const reset = useCallback(() => {
-    setSelected('');
+    setSel([]);
     setGraded(false);
     setResult(null);
     setOpenText('');
@@ -75,10 +75,10 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
     }
 
     // 选择/判断题型
-    if (!selected) return;
+    if (sel.length === 0) return;
     setGrading(true);
     try {
-      const r = await api.gradeQuestion(q.id, selected);
+      const r = await api.gradeQuestion(q.id, sel.join(','));
       setResult(r);
       setGraded(true);
       setResults((prev) => {
@@ -92,7 +92,7 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
     } finally {
       setGrading(false);
     }
-  }, [q, selected, grading, openText, openSubmitting, current]);
+  }, [q, sel, grading, openText, openSubmitting, current]);
 
   const next = useCallback(() => {
     if (current < questions.length - 1) {
@@ -116,7 +116,13 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
       if (finished) return;
       if (!graded && e.key >= '1' && e.key <= '9') {
         const idx = Number(e.key) - 1;
-        if (q.options[idx]) setSelected(q.options[idx]);
+        const opt = q.options[idx];
+        if (!opt) return;
+        if (q.type === 'multi') {
+          setSel((prev) => (prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]));
+        } else {
+          setSel([opt]);
+        }
       } else if (graded && e.key === 'Enter') {
         next();
       }
@@ -245,7 +251,7 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
             {/* 选项 */}
             <div className="quiz-options">
               {q.options.map((opt, i) => {
-                const isSelected = selected === opt;
+                const isSelected = sel.includes(opt);
                 const isCorrect = graded && result?.correctAnswer.includes(opt);
                 const isWrong = graded && isSelected && !result?.correct;
                 const cls = `quiz-option${isSelected ? ' is-selected' : ''}${isCorrect ? ' is-correct' : ''}${isWrong ? ' is-wrong' : ''}`;
@@ -254,7 +260,14 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
                     key={i}
                     type="button"
                     className={cls}
-                    onClick={() => !graded && setSelected(opt)}
+                    onClick={() => {
+                      if (graded) return;
+                      if (q.type === 'multi') {
+                        setSel((prev) => (prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]));
+                      } else {
+                        setSel([opt]);
+                      }
+                    }}
                     disabled={graded}
                   >
                     <span className="quiz-option-key">{String.fromCharCode(65 + i)}</span>
@@ -294,7 +307,7 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
             type="button"
             className="btn btn-primary"
             onClick={submit}
-            disabled={q.type === 'open' ? openText.trim().length < 10 || openSubmitting : !selected || grading}
+            disabled={q.type === 'open' ? openText.trim().length < 10 || openSubmitting : sel.length === 0 || grading}
           >
             <Icon name="run" size={16} />
             {q.type === 'open' ? (openSubmitting ? 'AI 评分中…' : '提交理解') : (grading ? '提交中…' : '提交答案')}

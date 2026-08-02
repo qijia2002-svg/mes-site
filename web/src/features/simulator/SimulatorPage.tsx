@@ -3,11 +3,11 @@
  * 支持「运行仿真」：工单沿工艺路线流转，实时日志 + 指标。
  */
 import { useReducer, useState, useCallback, useRef } from 'react';
-import { simReducer, initialSimState, seedExampleState } from './simReducer';
+import { simReducer, initialSimState, seedExampleState, createNode } from './simReducer';
 import { loadFromStorage } from './simStorage';
 import { planSimulation, computeStep, startLog, DEFAULT_BATCH, type SimMetrics, type SimLogEntry } from './simEngine';
 import SimToolbar from './SimToolbar';
-import SimTasks from './SimTasks';
+import SimPalette from './SimPalette';
 import SimCanvas from './SimCanvas';
 import SimProps from './SimProps';
 import SimLog from './SimLog';
@@ -32,6 +32,19 @@ export default function SimulatorPage() {
   const stopRef = useRef(false);
 
   const selectedNode = state.nodes.find((n) => n.id === state.selectedId) ?? null;
+
+  // 点击左侧工序库 → 在画布左上角区域级联摆放，避免堆叠，用户可再拖拽调整
+  const handleAddNode = useCallback((type: string) => {
+    const n = state.nodes.length;
+    const x = 40 + (n % 5) * 150;
+    const y = 40 + Math.floor(n / 5) * 130;
+    const node = createNode(type, x + 60, y + 30);
+    if (node) dispatch({ type: 'ADD_NODE', node });
+  }, [state.nodes.length, dispatch]);
+
+  const handleDeleteNode = useCallback(() => {
+    if (state.selectedId) dispatch({ type: 'DELETE_NODE', id: state.selectedId });
+  }, [state.selectedId, dispatch]);
 
   const stopRun = useCallback(() => {
     stopRef.current = true;
@@ -94,17 +107,14 @@ export default function SimulatorPage() {
     <section className="sim-page">
       <SimToolbar state={state} dispatch={dispatch} run={run} onRun={runSim} onStop={stopRun} />
       <div className="sim-body">
-        <SimTasks
-          nodeCount={state.nodes.length}
-          edgeCount={state.edges.length}
-          onClear={() => dispatch({ type: 'CLEAR' })}
-        />
+        <SimPalette onCreate={handleAddNode} />
         <div className="sim-main">
           <SimCanvas state={state} dispatch={dispatch} activeNodeId={run.activeNodeId} />
           <SimProps
             node={selectedNode}
             onChange={(props) => { if (state.selectedId) dispatch({ type: 'UPDATE_PROPS', id: state.selectedId, props }); }}
             onLabelChange={(label) => { if (state.selectedId) dispatch({ type: 'UPDATE_LABEL', id: state.selectedId, label }); }}
+            onDelete={handleDeleteNode}
           />
         </div>
         <SimLog

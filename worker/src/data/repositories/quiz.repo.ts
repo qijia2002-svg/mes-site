@@ -63,10 +63,10 @@ export const quizRepo = {
       cursor,
     ),
 
-  /** 答案校验专用：查 answer + explanation（R6 例外：仅在服务端校验逻辑内使用，不通过 API 下发） */
+  /** 答案校验专用：查 answer + explanation + options（R6 例外：仅在服务端校验逻辑内使用，不通过 API 下发） */
   getAnswer: (db: DbSession, id: number) =>
-    db.first<{ id: number; type: string; answer: string; explanation: string }>(
-      `SELECT id, type, answer, explanation FROM questions WHERE id = ?1`,
+    db.first<{ id: number; type: string; answer: string; explanation: string; options: string }>(
+      `SELECT id, type, answer, explanation, options FROM questions WHERE id = ?1`,
       id,
     ),
 

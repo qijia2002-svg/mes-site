@@ -1,20 +1,28 @@
 import type { SimNode, SimNodeProps } from './simTypes';
 import { NODE_LIBRARY } from './simTypes';
+import { Icon } from '../../components/Icon';
 
 interface Props {
   node: SimNode | null;
   onChange: (props: Partial<SimNodeProps>) => void;
   onLabelChange: (label: string) => void;
+  onDelete: () => void;
 }
 
-export default function SimProps({ node, onChange, onLabelChange }: Props) {
+export default function SimProps({ node, onChange, onLabelChange, onDelete }: Props) {
   if (!node) return null;
   const def = NODE_LIBRARY[node.nodeType];
   const isInspect = def?.category === 'inspect';
 
   return (
     <div className="sim-props">
-      <div className="sim-props-head">{def?.label ?? '工序'} · 属性</div>
+      <div className="sim-props-head">
+        {def?.label ?? '工序'} · 属性
+        <button type="button" className="sim-props-delete" onClick={onDelete} title="删除该工序节点">
+          <Icon name="delete" size={16} />
+          删除
+        </button>
+      </div>
       <div className="sim-props-body">
         <label className="sim-field">
           <span className="sim-field-label">名称</span>

@@ -34,25 +34,44 @@ export async function listTopicQuestionsSvc(c: Ctx, topicId: number) {
   }));
 }
 
-/** 答案校验：比对用户答案与正确答案，返回对错 + 解析 */
+/** 答案校验：比对用户答案与正确答案，返回对错 + 解析。
+ *
+ * 约定：`answer` 列存的是**选项索引**（0-based，多选用逗号分隔），不是选项文本。
+ * 例如 options=["A","B","C","D"]、answer="1" 表示正确答案是 B。
+ * 前端提交的是选项**文本**，因此这里先把索引映射回选项文本再比对；
+ * 同时兼容 answer 直接存文本的老数据（opts.includes 命中即按文本比）。
+ */
 export async function gradeAnswerSvc(c: Ctx, questionId: number, userAnswer: string) {
   const row = await quizRepo.getAnswer(c.db, questionId);
   if (!row) return null;
 
+  const opts = parseJson(row.options) as string[];
   let correct = false;
+  let correctAnswerText = '';
+
   if (row.type === 'multi') {
-    // 多选：排序后比对
-    const userSet = userAnswer.split(',').map((s) => s.trim()).sort();
-    const correctSet = row.answer.split(',').map((s) => s.trim()).sort();
-    correct = userSet.length === correctSet.length && userSet.every((v, i) => v === correctSet[i]);
+    // 多选：answer 是索引串 "0,1,3"，映射成文本集合后比对
+    const idxs = row.answer.split(',').map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n));
+    const correctTexts = idxs.map((i) => opts[i]).filter((t): t is string => typeof t === 'string');
+    const userSet = userAnswer.split(',').map((s) => s.trim()).filter(Boolean).sort();
+    const correctSet = correctTexts.map((t) => t.trim()).sort();
+    correct = userSet.length > 0 && userSet.length === correctSet.length && userSet.every((v, i) => v === correctSet[i]);
+    correctAnswerText = correctTexts.join(',');
   } else {
-    // 单选/判断：直接比对
-    correct = userAnswer.trim() === row.answer.trim();
+    // 单选/判断：索引 → 文本；兼容直接存文本
+    const raw = row.answer.trim();
+    if (opts.includes(raw)) {
+      correctAnswerText = raw;
+    } else {
+      const idx = parseInt(raw, 10);
+      correctAnswerText = typeof opts[idx] === 'string' ? opts[idx] : raw;
+    }
+    correct = userAnswer.trim() === correctAnswerText.trim() && correctAnswerText !== '';
   }
 
   return {
     correct,
-    correctAnswer: row.answer,
+    correctAnswer: correctAnswerText,
     explanation: row.explanation,
   };
 }

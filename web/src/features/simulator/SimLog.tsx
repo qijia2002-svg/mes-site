@@ -26,7 +26,7 @@ function buildLog(nodes: Props['nodes'], edges: Props['edges']): StaticLog[] {
   logs.push({ ts: t(0), type: 'info', msg: '画布已就绪，等待搭建流程' });
 
   if (nodes.length === 0) {
-    logs.push({ ts: t(0), type: 'warn', msg: '画布为空，请从左侧拖拽工序节点' });
+    logs.push({ ts: t(0), type: 'warn', msg: '画布为空，请点击左侧工序库添加工序' });
     return logs;
   }
 

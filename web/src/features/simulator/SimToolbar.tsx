@@ -41,6 +41,10 @@ export default function SimToolbar({ state, dispatch, run, onRun, onStop }: Prop
           <Icon name="confirm" size={16} />
           <span className="sim-toolbar-label">保存</span>
         </button>
+        <button className="sim-toolbar-btn" title="清空画布" onClick={() => { if (state.nodes.length === 0 || confirm('确定清空画布？此操作不可撤销')) dispatch({ type: 'CLEAR' }); }}>
+          <Icon name="delete" size={16} />
+          <span className="sim-toolbar-label">清空</span>
+        </button>
         <button className="sim-toolbar-btn" title="导出 JSON" onClick={() => {
           const json = exportJSON(state);
           const blob = new Blob([json], { type: 'application/json' });

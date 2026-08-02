@@ -1,5 +1,11 @@
 import type { SimNodeDef, SimCategory } from './simTypes';
 import { NODE_LIBRARY } from './simTypes';
+import { Icon } from '../../components/Icon';
+
+interface Props {
+  /** 点击工序项时，由父组件把对应类型的节点添加到画布 */
+  onCreate: (type: string) => void;
+}
 
 interface CatGroup { cat: SimCategory; label: string; items: SimNodeDef[] }
 
@@ -22,30 +28,33 @@ const SHAPE_PREVIEW: Record<string, string> = {
   storage: 'sim-shape-storage',
 };
 
-export default function SimPalette() {
+export default function SimPalette({ onCreate }: Props) {
   return (
     <aside className="sim-palette">
       <div className="sim-palette-title">工序库</div>
-      <p className="sim-palette-hint">拖拽到右侧画布</p>
+      <p className="sim-palette-hint">点击或拖拽到画布添加工序</p>
       {GROUPS.map((g) => {
         if (g.items.length === 0) return null;
         return (
           <div key={g.cat} className="sim-palette-group">
             <div className="sim-palette-grouplabel">{g.label}</div>
             {g.items.map((def) => (
-              <div
+              <button
                 key={def.type}
+                type="button"
                 className="sim-palette-item"
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData('text/plain', def.type);
                   e.dataTransfer.effectAllowed = 'copy';
                 }}
+                onClick={() => onCreate(def.type)}
+                title={`添加「${def.label}」到画布`}
               >
                 <span className={SHAPE_PREVIEW[def.shape] ?? 'sim-shape-rect'} />
                 <span className="sim-palette-name">{def.label}</span>
-                {def.critical && <span className="sim-critical-mark">⭐</span>}
-              </div>
+                {def.critical && <Icon name="quality" size={16} className="sim-critical-mark" />}
+              </button>
             ))}
           </div>
         );
