@@ -172,20 +172,20 @@ export async function aiGradeSvc(c: Ctx, questionId: number, userText: string): 
   if (!row || row.type !== 'open') return null;
 
   try {
-    const resp = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
-      messages: [
-        { role: 'system', content: AI_SYSTEM_PROMPT },
-        { role: 'user', content: buildAiPrompt(row.stem, row.reference_answer, userText) },
-      ],
-      temperature: 0.3,
-    });
+    const resp = await c.env.AI.run(
+      '@cf/meta/llama-3.1-8b-instruct',
+      {
+        prompt: `${AI_SYSTEM_PROMPT}\n\n${buildAiPrompt(row.stem, row.reference_answer, userText)}\n请严格只返回 JSON。`,
+        temperature: 0.3,
+      },
+    );
     const text = typeof (resp as { response?: unknown }).response === 'string'
       ? (resp as { response: string }).response
       : '';
     return parseAiResponse(text);
   } catch (e) {
     c.log.error({ msg: 'ai-grade failed', err: String(e) });
-    return { score: 0, feedback: 'AI 评分服务暂时不可用，请稍后重试。', keyPoints: [] };
+    return { score: 0, feedback: 'AI 评分服务暂时不可用：' + String(e).slice(0, 200), keyPoints: [] };
   }
 }
 
