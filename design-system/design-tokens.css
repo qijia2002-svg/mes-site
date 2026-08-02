@@ -32,14 +32,10 @@
      A1-identity · 品牌身份（品牌升级才动）
      ====================================================================== */
 
-  /* 品牌墨色：深钢蓝黑。不是 #000，带蓝相，来自工控机金属外壳的冷调
-     v3：不改色值，但要大幅扩大它的使用面积（主按钮 / 首页锚点区） */
-  --brand-ink: #0f1b26;
-  /* 唯一强调色：仪表蓝。v3 从 #2563eb(221°) 沉到 #0a61b8(210°)，
-     与 --brand-ink 206° 同源；对白底 6.15:1（v2 是 5.17:1）。
-     v3 起 accent 只编码「状态与链接」：选中 / 焦点 / 运行中 / 进度 / 超链接，
-     不再给标签、装饰图标、非关键数字上色（每屏可见 accent ≤3 处）。 */
-  --accent: #0a61b8;
+  /* 品牌墨色：深森绿。保留给 SQL 沙箱深底 */
+  --brand-ink: #2d3a33;
+  /* 强调色：低饱和森系绿（参考李勃老师.com） */
+  --accent: #547C70;
   --accent-on: #ffffff;
 
   /* 字体族 —— Latin/数字走 Archivo，CJK 自然回落 Noto Sans SC。
@@ -128,46 +124,40 @@
        surface    #ffffff  L 100.0%  ┘        ← 卡片（顶端）
      铁律：改这四个值时必须重算，任何一级倒置都会让画面重新变"平"。
      ====================================================================== */
-  --bg: #edf1f5;          /* 页面底（v3 压深 7%，白卡片才浮得起来） */
+  --bg: #F3F3E9;          /* 暖米底色 */
   --surface: #ffffff;     /* 卡片 / 面板 */
-  --surface-2: #f6f8fa;   /* 表头 / 内嵌区 / hover 底（v3 修正倒置，现在亮于 bg） */
-  --surface-3: #e3e9f0;   /* 选中底 / 进度槽 / 按下态（唯一下沉面） */
+  --surface-2: #F7F7EF;   /* 侧栏 / 表头 / hover 底（微米色，与主底色区分） */
+  --surface-3: #EAEAE0;   /* 选中底 / 进度槽 / 按下态 */
 
-  --fg: #0f1b26;          /* 主文本 = --brand-ink（对新 bg 15.35:1） */
-  --fg-2: #33475b;        /* 次级文本 / 正文段落（8.44:1） */
-  --muted: #4e6376;       /* 说明文字（对新 bg 5.49:1） */
-  --meta: #5c6f85;        /* 时间戳 / 计数（4.55:1）。v2 的 #6b8093 只有 4.09:1，本就不合规 */
+  --fg: #222222;          /* 主文本 */
+  --fg-2: #3d4540;        /* 次级文本 / 正文段落 */
+  --muted: #606864;       /* 说明文字 */
+  --meta: #8a928d;        /* 时间戳 / 计数 */
 
-  --border: #d3dce5;      /* 卡片 / 输入框边框。取消卡片阴影后 hairline 是唯一分层手段，必须加强 */
-  --border-soft: #e4eaf0; /* 表格行分隔（v2 值与新 bg 撞色，必须让开） */
-  --border-strong: #b3c2ce;/* 输入框 hover / 分栏拖拽条 */
+  --border: #DDDFD6;      /* 卡片 / 输入框边框 */
+  --border-soft: #E8E9E0; /* 表格行分隔 */
+  --border-strong: #c5c7bb;/* 输入框 hover / 分栏拖拽条 */
 
   /* ======================================================================
      A2 · 派生与语义（有默认值，可覆盖）
      ====================================================================== */
-  --accent-hover: #08508f;  /* 白字 8.22:1 */
-  --accent-active: #063f73; /* 白字 10.68:1 */
-  --accent-soft: #e8f0fa;   /* 选中行底 / 轻量 Badge 底（v3 去掉偏紫倾向，对齐 210°） */
-  --accent-border: #b8d2ec;
+  --accent-hover: #466B60;  /* hover 加深 */
+  --accent-active: #3a564d; /* 按下更深 */
+  --accent-soft: #E1EBE4;   /* 选中行底 / 轻量 Badge 底 */
+  --accent-border: #b8cfc0;
 
-  /* 墨色实底组 —— 主按钮与深色锚点的驱动源。
-     为什么不直接用 --brand-ink：它是 A1-identity 身份色，同时被 --fg 和
-     --code-bg 引用；按钮需要独立的 hover/active 派生，直接复用会把
-     "文字色"和"按钮底色"耦合死，以后单独调按钮深浅就必须动身份色。 */
-  --ink-solid: var(--brand-ink);   /* #0f1b26  白字 17.43:1 */
-  --ink-solid-hover: #1d2c3a;      /* 白字 14.25:1 */
-  --ink-solid-active: #080f16;     /* 白字 19.26:1 */
+  /* 墨色实底组（SQL 沙箱深底用） */
+  --ink-solid: var(--brand-ink);   /* #2d3a33 */
+  --ink-solid-hover: #3d4d44;
+  --ink-solid-active: #1d2922;
 
-  /* 深色锚点区组 —— 浅色页面里的深色区块（首页 dash-hero 等）。
-     为什么不复用 --code-*：那是 C-extension 层、SQL 沙箱专属，语义是"这是代码"；
-     锚点区语义是"这是本页重心"。色值同源可以，语义必须分开，
-     否则以后调 SQL 面板会误伤首页。 */
-  --surface-ink: var(--brand-ink); /* 深色区块底 */
-  --fg-on-ink: #f2f6f9;            /* 16.04:1  主文字 */
-  --fg-2-on-ink: #b6c6d4;          /*  9.97:1  次级文字 */
-  --meta-on-ink: #8199ac;          /*  5.88:1  元信息 */
-  --border-on-ink: #24374a;        /*  1.43    深色区内部分隔线 */
-  --accent-on-ink: #63b3ed;        /*  7.64:1  深底上的强调（浅色 accent） */
+  /* 深色锚点区（SQL 沙箱文字色） */
+  --surface-ink: var(--brand-ink);
+  --fg-on-ink: #edf2ee;
+  --fg-2-on-ink: #bcc8c0;
+  --meta-on-ink: #8fa396;
+  --border-on-ink: #405247;
+  --accent-on-ink: #7db89a;
 
   /* 语义色 —— 对齐 MES 设备语义：运行 / 待处理 / 故障 / 提示 */
   --success: #15803d;       /* 设备运行 / 判题通过 */
@@ -233,13 +223,10 @@
   /* ======================================================================
      B-slot · 组件插槽（消费上面的语义层，组件只读这一层）
      ====================================================================== */
-  /* 主按钮 v3 转墨色（Vercel / Linear 做法）：
-     ① 立刻在近白页面上制造深色锚点；② 一次性释放最大的 accent 配额；
-     ③ 只改 B-slot，全站 .btn-primary 同时生效，零组件改动。 */
-  --btn-primary-bg: var(--ink-solid);
+  --btn-primary-bg: var(--accent);
   --btn-primary-fg: #ffffff;
-  --btn-primary-bg-hover: var(--ink-solid-hover);
-  --btn-primary-bg-active: var(--ink-solid-active);
+  --btn-primary-bg-hover: var(--accent-hover);
+  --btn-primary-bg-active: var(--accent-active);
 
   --btn-secondary-bg: var(--surface);
   --btn-secondary-fg: var(--fg-2);
@@ -304,19 +291,19 @@
      C-extension · MES 项目专属
      ====================================================================== */
 
-  /* SQL 编辑器深色面板（浅色应用里的深色工作区，Supabase Studio 形态） */
-  --code-bg: #0f1b26;          /* 与 --brand-ink 同值，墨色即面板 */
-  --code-bg-gutter: #16232f;   /* 行号槽 */
-  --code-fg: #e3ecf2;
-  --code-border: #22384a;
-  --code-selection: #17475a;
-  --code-caret: #4cc4dd;
-  --syn-keyword: #7dd3fc;      /* SELECT / FROM / JOIN */
-  --syn-string: #86efac;
-  --syn-number: #fcd34d;
-  --syn-func: #93c5fd;         /* v3 由 #c4b5fd 紫改浅蓝：消除全站唯一紫色，免除 P0-2 解释成本 */
-  --syn-comment: #6b8093;
-  --syn-operator: #cbd5e1;
+  /* SQL 编辑器深色面板 */
+  --code-bg: #2d3a33;
+  --code-bg-gutter: #36453c;
+  --code-fg: #edf2ee;
+  --code-border: #405247;
+  --code-selection: #3a564d;
+  --code-caret: #7db89a;
+  --syn-keyword: #7db89a;
+  --syn-string: #a3c9ae;
+  --syn-number: #e8d58a;
+  --syn-func: #8fc9b3;
+  --syn-comment: #6b7a71;
+  --syn-operator: #bcc8c0;
 
   /* 设备 / 工单状态点（MES 语义，与通用语义色解耦以便单独调） */
   --status-running: var(--success);

@@ -34,6 +34,7 @@
   font-size: 14px;
   color: var(--accent);
   font-weight: 500;
+  font-family: "Source Han Serif CN", "思源宋体", "Noto Serif SC", serif;
 }
 
 @media (max-width: 768px) {

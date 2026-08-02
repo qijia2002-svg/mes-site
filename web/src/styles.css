@@ -348,11 +348,10 @@ body,
   width: 100%;
   max-width: var(--container-app);
   margin: 0 auto;
-  padding: var(--section-y-desktop) var(--gutter-desktop) var(--space-16);
+  padding: 40px var(--gutter-desktop) var(--space-16);
   display: flex;
   flex-direction: column;
-  gap: var(--app-shell-gap);
-  /* 页面入场：轻微淡入+上移，150ms 不拖沓 */
+  gap: var(--space-8);
   animation: pageEnter 0.2s var(--ease-out) both;
 }
 @keyframes pageEnter {
@@ -388,6 +387,7 @@ body,
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-display);
   font-weight: var(--weight-announce-cjk);
+  font-family: "Source Han Serif CN", "思源宋体", "Noto Serif SC", var(--font-body);
 }
 .page-sub {
   margin: 0;
@@ -502,8 +502,8 @@ body,
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-5);
 }
 .card {
   display: flex;
@@ -624,7 +624,7 @@ body,
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-2);
+  padding: var(--space-4) var(--space-3);
   color: var(--fg);
   text-decoration: none;
   transition: background-color var(--motion-fast) var(--ease-standard);
