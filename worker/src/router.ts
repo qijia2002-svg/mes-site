@@ -98,8 +98,8 @@ export const routes: Route[] = [
   // Phase 2 题库 / SQL 实训（题面与答案分离，防缓存泄露 R6）
   { method: 'GET', path: '/api/v1/quiz/questions', handler: listQuestions },
   { method: 'GET', path: '/api/v1/quiz/topic-questions', handler: listTopicQuestions },
-  { method: 'POST', path: '/api/v1/quiz/grade', handler: gradeAnswer },
-  { method: 'POST', path: '/api/v1/quiz/ai-grade', handler: aiGrade },
+  { method: 'POST', path: '/api/v1/quiz/grade', handler: gradeAnswer, noAuth: true },
+  { method: 'POST', path: '/api/v1/quiz/ai-grade', handler: aiGrade, noAuth: true },
   { method: 'GET', path: '/api/v1/sql-exercises', handler: listSqlExercises },
   { method: 'GET', path: '/api/v1/sql-exercises/:id', handler: getSqlExercise },
   { method: 'POST', path: '/api/v1/sql-exercises/:id/submit', handler: submitSql },
