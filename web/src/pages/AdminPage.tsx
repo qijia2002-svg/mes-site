@@ -7,6 +7,97 @@ import { Icon } from '../components/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
 import { api, type Topic } from '../api/endpoints';
 
+/** Markdown 直传导入：上传 .md 文件 → 前端解析 frontmatter → 调 importContent API */
+function MdImportPanel() {
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [result, setResult] = useState<string | null>(null);
+
+  const importMut = useMutation({
+    mutationFn: (body: unknown) => api.importContent(body),
+    onSuccess: (data) => {
+      setResult(`导入成功：${data.topicsCreated} 个主题，${data.chaptersCreated} 个章节`);
+      void qc.invalidateQueries({ queryKey: ['admin-topics'] });
+    },
+    onError: () => setResult('导入失败，请检查文件格式'),
+  });
+
+  /** 解析 YAML frontmatter（简易实现，兼容 ---\nkey: value\n--- 格式） */
+  const parseFM = (text: string) => {
+    const meta: Record<string, any> = {};
+    let body = text;
+    if (text.startsWith('---')) {
+      const end = text.indexOf('---', 3);
+      if (end !== -1) {
+        const fm = text.slice(3, end);
+        body = text.slice(end + 3).trim();
+        for (const line of fm.split('\n')) {
+          const m = line.match(/^(\w+):\s*(.+)$/);
+          if (m) {
+            let val: any = m[2].trim();
+            if (val.startsWith('[') && val.endsWith(']')) val = val.slice(1, -1).split(',').map((s: string) => s.trim());
+            meta[m[1]] = val;
+          }
+        }
+      }
+    }
+    const titleMatch = body.match(/^#\s+(.+)/m);
+    return { meta, body, title: titleMatch ? titleMatch[1].trim() : '' };
+  };
+
+  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+
+    const chapters: any[] = [];
+    const tagSet = new Set<string>();
+    let topicTitle = '';
+
+    Promise.all(files.map((f) => f.text())).then((texts) => {
+      texts.forEach((text, i) => {
+        const { meta, body, title } = parseFM(text);
+        if (!title) return;
+        const sortMatch = files[i].name.match(/^(\d+)/);
+        const sort = sortMatch ? parseInt(sortMatch[1]) : i + 1;
+        chapters.push({ title, sort, md: body });
+        if (meta.topic) topicTitle = meta.topic;
+        if (Array.isArray(meta.tags)) meta.tags.forEach((t: string) => tagSet.add(t));
+      });
+
+      if (chapters.length === 0) { setResult('未找到有效章节（需要 # 标题）'); return; }
+      if (!topicTitle) topicTitle = files[0].name.replace(/^\d+_?|\.md$/g, '');
+
+      importMut.mutate({
+        topics: [{
+          slug: topicTitle.replace(/\s+/g, '-').toLowerCase(),
+          title: topicTitle,
+          description: chapters.map((c) => c.title).join(' / '),
+          modules: [...tagSet],
+          chapters,
+        }],
+      });
+    });
+    e.target.value = '';
+  };
+
+  return (
+    <section className="panel">
+      <header className="panel-head">
+        <h2><Icon name="chapter" size={20} className="panel-glyph" />Markdown 导入</h2>
+        <span className="panel-note">上传 .md 文件（含 --- frontmatter），自动解析标题/序号/标签</span>
+      </header>
+      <div className="btn-row">
+        <button type="button" className="btn btn-secondary" onClick={() => fileRef.current?.click()}>
+          <Icon name="copy" size={16} />选择 .md 文件（可多选）
+        </button>
+        <input ref={fileRef} type="file" multiple accept=".md,.txt,.markdown" style={{ display: 'none' }} onChange={handleFiles} />
+      </div>
+      {importMut.isPending && <LoadingState label="正在导入…" />}
+      {result && <p className="alert alert-info">{result}</p>}
+    </section>
+  );
+}
+
 function ImportPanel() {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -147,6 +238,7 @@ export default function AdminPage() {
         {create.isError && <ErrorState error={create.error} title="新建失败" />}
       </section>
 
+      <MdImportPanel />
       <ImportPanel />
 
       <section className="panel">
