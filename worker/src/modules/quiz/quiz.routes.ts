@@ -46,6 +46,19 @@ export async function listSqlExercises(c: Ctx): Promise<Response> {
   return ok(c, await svc.listSqlExercisesSvc(c, topicId));
 }
 
+/** POST /api/v1/quiz/ai-grade — AI 判读自由理解（open 题，调 Workers AI 评分） */
+export async function aiGrade(c: Ctx): Promise<Response> {
+  const body = ((await c.req.json().catch(() => ({}))) ?? {}) as Record<string, unknown>;
+  const questionId = Number(body.question_id ?? body.questionId);
+  const userText = String(body.text ?? body.userText ?? '').trim();
+  if (!Number.isInteger(questionId) || userText.length < 10 || userText.length > 2000) {
+    return fail(c, Err.paramMissing());
+  }
+  const result = await svc.aiGradeSvc(c, questionId, userText);
+  if (!result) return fail(c, Err.notFound());
+  return ok(c, result);
+}
+
 /** POST /api/v1/sql-exercises/:id/submit — 提交判题结果（判定在客户端，服务端只落进度） */
 export async function submitSql(c: Ctx): Promise<Response> {
   const id = Number(c.params.id);

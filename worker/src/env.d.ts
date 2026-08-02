@@ -12,6 +12,8 @@ export interface Env {
   SESSION_SECRET: string;
   /** 后台登录口令（Phase 1 启用后台时使用，wrangler secret put） */
   ADMIN_PASSWORD?: string;
+  /** Workers AI 绑定（AI 判读自由理解，调 @cf/meta/llama-3.1-8b-instruct） */
+  AI: Ai;
   /** 部署期环境标识 */
   NODE_ENV: string;
 }

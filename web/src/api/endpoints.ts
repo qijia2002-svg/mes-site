@@ -153,6 +153,12 @@ export const api = {
       '/api/v1/quiz/grade',
       { question_id: questionId, answer },
     ),
+  /** AI 判读自由理解（open 题）：用户写理解文本 → 模型评分+反馈 */
+  aiGradeQuestion: (questionId: number, text: string) =>
+    apiPost<{ score: number; feedback: string; keyPoints: string[] }>(
+      '/api/v1/quiz/ai-grade',
+      { question_id: questionId, text },
+    ),
   sqlExercises: (topicId: number) =>
     apiGet<SqlExercise[]>(`/api/v1/sql-exercises?topicId=${topicId}`),
   sqlExercise: (id: number) => apiGet<SqlExercise>(`/api/v1/sql-exercises/${id}`),

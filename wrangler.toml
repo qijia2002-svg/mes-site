@@ -36,3 +36,8 @@ NODE_ENV = "production"
 
 # 自定义域名 shuojia.qzz.io：qzz.io zone 不在本 Cloudflare 账户，无法用 routes 自动接管。
 # 请在 qzz.io 的 DNS 提供商处添加 CNAME：shuojia.qzz.io -> mes-site.qijia2002.workers.dev
+
+# Workers AI 绑定（AI 判读自由理解：用户写理解 → 模型评分+反馈）
+# 免费账户默认可用 @cf/meta/llama-3.1-8b-instruct 等模型
+[ai]
+binding = "AI"

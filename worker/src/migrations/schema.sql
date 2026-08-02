@@ -48,8 +48,9 @@ CREATE TABLE IF NOT EXISTS questions (
   type         TEXT NOT NULL DEFAULT 'single', -- single | multi | judge
   stem         TEXT NOT NULL,
   options      TEXT NOT NULL DEFAULT '[]',     -- JSON 数组
-  answer       TEXT NOT NULL DEFAULT '',        -- 服务端保留，不下发
+  answer       TEXT NOT NULL DEFAULT '',        -- 服务端保留，不下发（single/multi/judge 用）
   explanation  TEXT NOT NULL DEFAULT '',
+  reference_answer TEXT NOT NULL DEFAULT '',     -- open 题参考答案要点，仅 AI 判读时服务端读取，不下发
   sort         INTEGER NOT NULL DEFAULT 0,
   created_at   INTEGER NOT NULL
 );

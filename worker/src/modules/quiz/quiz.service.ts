@@ -106,6 +106,89 @@ export interface SubmitSqlInput {
   clientHash: string;
 }
 
+// ---------- AI 判读自由理解（Workers AI） ----------
+
+export interface AiGradeResult {
+  /** 0-100 整数评分 */
+  score: number;
+  /** 中文反馈：到位与不到位的地方 */
+  feedback: string;
+  /** 用户遗漏或应补充的要点 */
+  keyPoints: string[];
+}
+
+const AI_SYSTEM_PROMPT =
+  '你是一名制造业数字化学习平台的 AI 评分助教。用户会提交对某个知识点的自由理解，' +
+  '你需要评分并给出反馈。必须严格只返回 JSON，不要任何额外文字或 markdown 代码块标记。' +
+  'JSON 格式：{"score": 0到100的整数, "feedback": "中文反馈，指出理解到位与不到位之处，80字内", ' +
+  '"keyPoints": ["用户遗漏或应补充的要点1", "要点2"]}。评分标准：' +
+  '完全覆盖参考答案要点且表述准确=80-100；覆盖主要要点但有偏差=60-79；' +
+  '仅部分相关或明显误解=30-59；基本无关或空白=0-29。';
+
+function buildAiPrompt(stem: string, reference: string, userText: string): string {
+  return [
+    `题目：${stem}`,
+    reference ? `参考答案要点：${reference}` : '（本题无标准参考答案，请基于制造业常识评价用户理解的正确性与深度）',
+    `用户的回答：${userText}`,
+    '请按系统指令要求返回 JSON。',
+  ].join('\n');
+}
+
+/** 容错解析 AI 返回的 JSON（模型偶尔会包 markdown 代码块） */
+function parseAiResponse(raw: string): AiGradeResult {
+  const cleaned = raw
+    .replace(/^```(?:json)?/i, '')
+    .replace(/```$/i, '')
+    .trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    try {
+      const obj = JSON.parse(cleaned.slice(start, end + 1));
+      const score = Math.max(0, Math.min(100, Math.round(Number(obj.score) || 0)));
+      const feedback = typeof obj.feedback === 'string' ? obj.feedback : '';
+      const keyPoints = Array.isArray(obj.keyPoints)
+        ? obj.keyPoints.filter((k: unknown) => typeof k === 'string').slice(0, 5)
+        : [];
+      return { score, feedback, keyPoints };
+    } catch {
+      /* 落到下方兜底 */
+    }
+  }
+  return {
+    score: 50,
+    feedback: raw.slice(0, 200) || '已收到你的回答，但评分解析异常，请参考参考答案自行核对。',
+    keyPoints: [],
+  };
+}
+
+/**
+ * AI 判读：用户写自由理解 → 调 Workers AI 评分。
+ * 仅 open 题型可调用；reference_answer 从服务端读取，API 层不下发，避免泄题。
+ * AI 调用失败时不抛错，返回兜底结果保证前端可用。
+ */
+export async function aiGradeSvc(c: Ctx, questionId: number, userText: string): Promise<AiGradeResult | null> {
+  const row = await quizRepo.getReference(c.db, questionId);
+  if (!row || row.type !== 'open') return null;
+
+  try {
+    const resp = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+      messages: [
+        { role: 'system', content: AI_SYSTEM_PROMPT },
+        { role: 'user', content: buildAiPrompt(row.stem, row.reference_answer, userText) },
+      ],
+      temperature: 0.3,
+    });
+    const text = typeof (resp as { response?: unknown }).response === 'string'
+      ? (resp as { response: string }).response
+      : '';
+    return parseAiResponse(text);
+  } catch (e) {
+    c.log.error({ msg: 'ai-grade failed', err: String(e) });
+    return { score: 0, feedback: 'AI 评分服务暂时不可用，请稍后重试。', keyPoints: [] };
+  }
+}
+
 const SHA256_HEX = /^[0-9a-f]{64}$/;
 
 /** 归一化提交入参（前端发 snake_case，这里同时兼容 camelCase）。userId 由路由层从会话中提取。 */

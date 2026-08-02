@@ -70,6 +70,13 @@ export const quizRepo = {
       id,
     ),
 
+  /** AI 判读专用：查 open 题的 stem + reference_answer（仅服务端，不下发） */
+  getReference: (db: DbSession, id: number) =>
+    db.first<{ id: number; type: string; stem: string; reference_answer: string }>(
+      `SELECT id, type, stem, reference_answer FROM questions WHERE id = ?1`,
+      id,
+    ),
+
   /** 模块汇总：按 topic 查所有章节的题目（不含 answer） */
   listQuestionsByTopic: (db: DbSession, topicId: number) =>
     db.all<QuestionRow>(

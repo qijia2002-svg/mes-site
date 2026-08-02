@@ -28,6 +28,10 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
   const [results, setResults] = useState<(boolean | null)[]>(() => questions.map(() => null));
   const [finished, setFinished] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  // open 题型（自由理解 + AI 判读）
+  const [openText, setOpenText] = useState('');
+  const [openSubmitting, setOpenSubmitting] = useState(false);
+  const [openResult, setOpenResult] = useState<{ score: number; feedback: string; keyPoints: string[] } | null>(null);
 
   const q = questions[current];
 
@@ -35,6 +39,9 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
     setSelected('');
     setGraded(false);
     setResult(null);
+    setOpenText('');
+    setOpenSubmitting(false);
+    setOpenResult(null);
   }, []);
 
   // 切题时重置
@@ -43,7 +50,32 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
   }, [current, reset]);
 
   const submit = useCallback(async () => {
-    if (!selected || grading) return;
+    if (grading || openSubmitting) return;
+
+    // open 题型：调 AI 判读
+    if (q.type === 'open') {
+      if (openText.trim().length < 10) return;
+      setOpenSubmitting(true);
+      try {
+        const r = await api.aiGradeQuestion(q.id, openText.trim());
+        setOpenResult(r);
+        setGraded(true);
+        setResults((prev) => {
+          const next = [...prev];
+          next[current] = r.score >= 60;
+          return next;
+        });
+      } catch {
+        setOpenResult({ score: 0, feedback: '提交失败，请重试', keyPoints: [] });
+        setGraded(true);
+      } finally {
+        setOpenSubmitting(false);
+      }
+      return;
+    }
+
+    // 选择/判断题型
+    if (!selected) return;
     setGrading(true);
     try {
       const r = await api.gradeQuestion(q.id, selected);
@@ -60,7 +92,7 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
     } finally {
       setGrading(false);
     }
-  }, [selected, grading, q.id, current]);
+  }, [q, selected, grading, openText, openSubmitting, current]);
 
   const next = useCallback(() => {
     if (current < questions.length - 1) {
@@ -118,7 +150,11 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
   }
 
   const pct = Math.round(((current + 1) / questions.length) * 100);
-  const typeLabel = q.type === 'judge' ? '判断题' : q.type === 'multi' ? '多选题' : '单选题';
+  const typeLabel =
+    q.type === 'judge' ? '判断题'
+    : q.type === 'multi' ? '多选题'
+    : q.type === 'open' ? '理解题'
+    : '单选题';
 
   return (
     <div className="flash-deck">
@@ -175,46 +211,79 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
         </div>
         <h3 className="flash-card-title">{q.stem}</h3>
 
-        {/* 选项 */}
-        <div className="quiz-options">
-          {q.options.map((opt, i) => {
-            const isSelected = selected === opt;
-            const isCorrect = graded && result?.correctAnswer.includes(opt);
-            const isWrong = graded && isSelected && !result?.correct;
-            const cls = `quiz-option${isSelected ? ' is-selected' : ''}${isCorrect ? ' is-correct' : ''}${isWrong ? ' is-wrong' : ''}`;
-            return (
-              <button
-                key={i}
-                type="button"
-                className={cls}
-                onClick={() => !graded && setSelected(opt)}
-                disabled={graded}
-              >
-                <span className="quiz-option-key">{String.fromCharCode(65 + i)}</span>
-                <span className="quiz-option-text">{opt}</span>
-                {isCorrect && <Icon name="success" size={16} className="quiz-option-icon" />}
-                {isWrong && <Icon name="error" size={16} className="quiz-option-icon" />}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 解析（提交后显示） */}
-        {graded && result && (
-          <div className={`quiz-result ${result.correct ? 'is-correct' : 'is-wrong'}`}>
-            <div className="quiz-result-head">
-              <Icon name={result.correct ? 'success' : 'error'} size={20} />
-              <span>{result.correct ? '回答正确！' : '回答错误'}</span>
-            </div>
-            {!result.correct && (
-              <p className="quiz-result-answer">
-                正确答案：<strong>{result.correctAnswer}</strong>
-              </p>
-            )}
-            {result.explanation && (
-              <p className="quiz-result-explanation">{result.explanation}</p>
+        {q.type === 'open' ? (
+          <div className="quiz-open">
+            <textarea
+              className="quiz-open-input"
+              placeholder="写下你对这个问题的理解（不少于 10 字）…"
+              value={openText}
+              onChange={(e) => setOpenText(e.target.value)}
+              disabled={graded}
+              rows={6}
+            />
+            {graded && openResult && (
+              <div className={`quiz-result ${openResult.score >= 60 ? 'is-correct' : 'is-wrong'}`}>
+                <div className="quiz-result-head">
+                  <Icon name={openResult.score >= 60 ? 'success' : 'error'} size={20} />
+                  <span>AI 评分 {openResult.score} 分</span>
+                </div>
+                {openResult.feedback && (
+                  <p className="quiz-result-explanation">{openResult.feedback}</p>
+                )}
+                {openResult.keyPoints.length > 0 && (
+                  <ul className="quiz-result-keypoints">
+                    {openResult.keyPoints.map((k, i) => (
+                      <li key={i}>{k}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
           </div>
+        ) : (
+          <>
+            {/* 选项 */}
+            <div className="quiz-options">
+              {q.options.map((opt, i) => {
+                const isSelected = selected === opt;
+                const isCorrect = graded && result?.correctAnswer.includes(opt);
+                const isWrong = graded && isSelected && !result?.correct;
+                const cls = `quiz-option${isSelected ? ' is-selected' : ''}${isCorrect ? ' is-correct' : ''}${isWrong ? ' is-wrong' : ''}`;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className={cls}
+                    onClick={() => !graded && setSelected(opt)}
+                    disabled={graded}
+                  >
+                    <span className="quiz-option-key">{String.fromCharCode(65 + i)}</span>
+                    <span className="quiz-option-text">{opt}</span>
+                    {isCorrect && <Icon name="success" size={16} className="quiz-option-icon" />}
+                    {isWrong && <Icon name="error" size={16} className="quiz-option-icon" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 解析（提交后显示） */}
+            {graded && result && (
+              <div className={`quiz-result ${result.correct ? 'is-correct' : 'is-wrong'}`}>
+                <div className="quiz-result-head">
+                  <Icon name={result.correct ? 'success' : 'error'} size={20} />
+                  <span>{result.correct ? '回答正确！' : '回答错误'}</span>
+                </div>
+                {!result.correct && (
+                  <p className="quiz-result-answer">
+                    正确答案：<strong>{result.correctAnswer}</strong>
+                  </p>
+                )}
+                {result.explanation && (
+                  <p className="quiz-result-explanation">{result.explanation}</p>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -225,10 +294,10 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
             type="button"
             className="btn btn-primary"
             onClick={submit}
-            disabled={!selected || grading}
+            disabled={q.type === 'open' ? openText.trim().length < 10 || openSubmitting : !selected || grading}
           >
             <Icon name="run" size={16} />
-            {grading ? '提交中…' : '提交答案'}
+            {q.type === 'open' ? (openSubmitting ? 'AI 评分中…' : '提交理解') : (grading ? '提交中…' : '提交答案')}
           </button>
         ) : (
           <button type="button" className="btn btn-primary" onClick={next}>
@@ -237,7 +306,9 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
           </button>
         )}
         <p className="flash-hint">
-          {!graded ? '键盘 1-9 选择选项' : 'Enter 继续'}
+          {q.type === 'open'
+            ? (graded ? 'Enter 继续' : '写下你的理解，AI 会评分')
+            : (!graded ? '键盘 1-9 选择选项' : 'Enter 继续')}
         </p>
       </div>
     </div>

@@ -406,3 +406,40 @@
   line-height: var(--leading-body);
   color: var(--muted);
 }
+.quiz-result-keypoints {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* ---------- 自由理解（open 题型）---------- */
+.quiz-open {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.quiz-open-input {
+  width: 100%;
+  min-height: 120px;
+  padding: var(--space-3) var(--space-4);
+  font: inherit;
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--fg);
+  background: var(--surface-1);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  resize: vertical;
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+.quiz-open-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.quiz-open-input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
