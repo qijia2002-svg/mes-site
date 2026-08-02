@@ -76,7 +76,7 @@ for (const f of files) {
   const title = titleMatch ? titleMatch[1].trim() : f.name.replace('.md', '');
 
   // SQL: 用占位符 {{mes_topic_id}}
-  sql += `INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+  sql += `INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '${escapeSQL(title)}', ${f.num}, '${escapeSQL(body)}', 'published', ${now}
 FROM topics WHERE slug = '${topicSlug}';\n\n`;
 

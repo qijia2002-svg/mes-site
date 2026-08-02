@@ -1,10 +1,14 @@
+/**
+ * 车间仿真沙盒 · 三栏布局：任务指引 | 画布 | 运行日志
+ */
 import { useReducer } from 'react';
 import { simReducer, initialSimState } from './simReducer';
 import { loadFromStorage } from './simStorage';
 import SimToolbar from './SimToolbar';
-import SimPalette from './SimPalette';
+import SimTasks from './SimTasks';
 import SimCanvas from './SimCanvas';
 import SimProps from './SimProps';
+import SimLog from './SimLog';
 import './SimulatorPage.css';
 
 export default function SimulatorPage() {
@@ -12,9 +16,9 @@ export default function SimulatorPage() {
     const saved = loadFromStorage();
     if (saved) {
       const s = initialSimState();
-      return { ...s, projectName: saved.name, nodes: saved.nodes, edges: saved.edges };
+      return { ...s, projectName: saved.name || '车间仿真沙盒', nodes: saved.nodes, edges: saved.edges };
     }
-    return initialSimState();
+    return { ...initialSimState(), projectName: '车间仿真沙盒' };
   });
 
   const selectedNode = state.nodes.find((n) => n.id === state.selectedId) ?? null;
@@ -23,7 +27,11 @@ export default function SimulatorPage() {
     <section className="sim-page">
       <SimToolbar state={state} dispatch={dispatch} />
       <div className="sim-body">
-        <SimPalette />
+        <SimTasks
+          nodeCount={state.nodes.length}
+          edgeCount={state.edges.length}
+          onClear={() => dispatch({ type: 'CLEAR' })}
+        />
         <div className="sim-main">
           <SimCanvas state={state} dispatch={dispatch} />
           <SimProps
@@ -32,6 +40,10 @@ export default function SimulatorPage() {
             onLabelChange={(label) => { if (state.selectedId) dispatch({ type: 'UPDATE_LABEL', id: state.selectedId, label }); }}
           />
         </div>
+        <SimLog
+          nodes={state.nodes.map((n) => ({ id: n.id, label: n.label, nodeType: n.nodeType }))}
+          edges={state.edges}
+        />
       </div>
     </section>
   );
