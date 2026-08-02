@@ -8,6 +8,7 @@ import { NavLink, Link } from 'react-router-dom';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { Icon, type IconName } from './Icon';
 import { Breadcrumb } from './Breadcrumb';
+import GlossarySearch from './GlossarySearch';
 import { api } from '../api/endpoints';
 
 interface NavEntry {
@@ -140,12 +141,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="brand-text">MES 实训平台</span>
         </div>
 
-        {/* 主导航：首页 + 模拟台 + 工厂模拟（学习中心单独渲染为可展开分组） */}
+        {/* 主导航：首页 + 职业路径 + 模拟台 + 工厂模拟（学习中心单独渲染为可展开分组） */}
         <ul className="nav-list">
           <li>
             <NavLink to="/" end className={({ isActive }) => (isActive ? 'nav-item is-active' : 'nav-item')}>
               <Icon name="dashboard" size={20} className="nav-glyph" />
               <span className="nav-label">首页</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/roadmap" className={({ isActive }) => (isActive ? 'nav-item is-active' : 'nav-item')}>
+              <Icon name="stage" size={20} className="nav-glyph" />
+              <span className="nav-label">职业路径</span>
             </NavLink>
           </li>
         </ul>
@@ -217,6 +224,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
           <Breadcrumb />
           <div className="topbar-right">
+            <GlossarySearch />
             <HealthPill />
           </div>
         </header>
@@ -231,6 +239,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {[
           { to: '/', label: '首页', icon: 'dashboard' as IconName, end: true },
           { to: '/courses', label: '课程', icon: 'courses' as IconName },
+          // 手机上侧栏整段不渲染，职业路径必须在底栏留入口，否则移动端进不去
+          { to: '/roadmap', label: '路径', icon: 'stage' as IconName },
           { to: '/sql-space', label: 'SQL', icon: 'sql' as IconName },
           { to: '/simulator', label: '沙盒', icon: 'routing' as IconName },
         ].map((item) => (

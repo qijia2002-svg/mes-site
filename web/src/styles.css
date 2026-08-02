@@ -5,6 +5,7 @@
    ========================================================================== */
 @import '../../design-system/design-tokens.css';
 @import './styles.pages.css';
+@import './styles.roadmap.css';
 
 :root {
   /* 派生量：从 token 混出来，不引入新色值 */
@@ -1286,9 +1287,17 @@ body,
 @media (max-width: 1024px) {
   .content {
     padding: var(--space-6) var(--gutter-tablet) var(--space-10);
+    max-width: 100%;
   }
   .topbar {
     padding: 0 var(--gutter-tablet);
+  }
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-4);
+  }
+  .dash-hero-row {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1403,4 +1412,53 @@ body,
 }
 .tab-label {
   line-height: 1.1;
+}
+
+/* ---------- 名词搜索 ---------- */
+.glossary-wrap { position: relative; }
+.glossary-overlay {
+  position: fixed; inset: 0; z-index: var(--z-dropdown);
+  background: color-mix(in srgb, var(--brand-ink) 30%, transparent);
+  display: flex; justify-content: center; padding-top: 12vh;
+}
+.glossary-panel {
+  width: 560px; max-width: 90vw; max-height: 70vh;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--elev-modal);
+  display: flex; flex-direction: column; overflow: hidden;
+  align-self: flex-start;
+}
+.glossary-input-row {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-soft);
+}
+.glossary-input {
+  flex: 1; border: 0; outline: none;
+  font-family: inherit; font-size: var(--text-lg); color: var(--fg);
+  background: transparent;
+}
+.glossary-input::placeholder { color: var(--meta); }
+.glossary-results {
+  padding: var(--space-3); overflow-y: auto; flex: 1;
+}
+.glossary-item {
+  padding: var(--space-3); border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2); background: var(--surface-2);
+}
+.glossary-term {
+  font-size: var(--text-base); font-weight: var(--weight-announce-cjk); color: var(--accent);
+}
+.glossary-aliases {
+  font-size: var(--text-xs); color: var(--meta); margin: 2px 0 4px;
+}
+.glossary-def {
+  font-size: var(--text-sm); color: var(--fg-2); line-height: var(--leading-body);
+}
+.glossary-empty, .glossary-hint {
+  text-align: center; color: var(--meta); font-size: var(--text-sm); padding: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .glossary-panel { max-width: 96vw; }
 }
