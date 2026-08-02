@@ -109,10 +109,10 @@
   --container-prose: 720px;  /* 理论正文行宽上限（45-75ch） */
   --gutter-desktop: 24px;
   --gutter-tablet: 16px;
-  --gutter-phone: 12px;
+  --gutter-phone: 16px;
   --section-y-desktop: 48px; /* 应用不是落地页，48 不是 80 */
   --section-y-tablet: 32px;
-  --section-y-phone: 24px;
+  --section-y-phone: 28px;
 
   /* ======================================================================
      A1 · 中性色阶（冷调，带微量青相 chroma，不是纯灰）

@@ -195,3 +195,14 @@ CREATE TABLE IF NOT EXISTS sql_datasets (
   created_at INTEGER NOT NULL
 );
 
+-- 工厂模拟器工艺方案存档（Phase 3 沙盒）
+CREATE TABLE IF NOT EXISTS mes_sandbox_save (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id     TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  project_json TEXT NOT NULL DEFAULT '{}',
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sandbox_user ON mes_sandbox_save(user_id);
+
