@@ -76,6 +76,16 @@ export interface SimState {
   edges: SimEdge[];
   selectedId: string | null;
   connectingFrom: string | null;
+  connectingPort: 'out' | 'out2' | null;
+}
+
+/** 仿真运行状态（与画布设计态分离） */
+export interface SimRunState {
+  active: boolean;
+  activeNodeId: string | null;
+  logs: import('./simEngine').SimLogEntry[];
+  metrics: import('./simEngine').SimMetrics | null;
+  progress: number; // 0~1
 }
 
 /** Action */
@@ -88,7 +98,7 @@ export type SimAction =
   | { type: 'ADD_EDGE'; edge: SimEdge }
   | { type: 'TOGGLE_EDGE'; id: string }
   | { type: 'SELECT'; id: string | null }
-  | { type: 'START_CONNECT'; fromId: string }
+  | { type: 'START_CONNECT'; fromId: string; port: 'out' | 'out2' }
   | { type: 'CANCEL_CONNECT' }
   | { type: 'LOAD_PROJECT'; project: SimProject }
   | { type: 'CLEAR' }

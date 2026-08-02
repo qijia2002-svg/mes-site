@@ -1,10 +1,11 @@
 /**
- * 右侧运行日志面板：仿真执行时的输出。
- * 当前展示静态搭建信息，后续接入仿真引擎后显示实时日志。
+ * 右侧运行日志面板：仿真执行时显示实时流转日志；
+ * 未运行时显示画布搭建状态。
  */
 import { Icon } from '../../components/Icon';
+import type { SimLogEntry } from './simEngine';
 
-interface LogEntry {
+interface StaticLog {
   ts: string;
   type: 'info' | 'ok' | 'warn';
   msg: string;
@@ -13,13 +14,15 @@ interface LogEntry {
 interface Props {
   nodes: { id: string; label: string; nodeType: string }[];
   edges: { id: string; from: string; to: string }[];
+  runLogs?: SimLogEntry[];
+  running?: boolean;
+  metrics?: import('./simEngine').SimMetrics | null;
 }
 
-function generateLog(nodes: Props['nodes'], edges: Props['edges']): LogEntry[] {
+function buildLog(nodes: Props['nodes'], edges: Props['edges']): StaticLog[] {
   const now = new Date();
   const t = (s: number) => new Date(now.getTime() - s * 1000).toLocaleTimeString('zh-CN');
-
-  const logs: LogEntry[] = [];
+  const logs: StaticLog[] = [];
   logs.push({ ts: t(0), type: 'info', msg: '画布已就绪，等待搭建流程' });
 
   if (nodes.length === 0) {
@@ -38,7 +41,7 @@ function generateLog(nodes: Props['nodes'], edges: Props['edges']): LogEntry[] {
 
   if (edges.length > 0) {
     logs.push({ ts: t(2), type: 'ok', msg: `${edges.length} 条连线已建立` });
-    logs.push({ ts: t(1), type: 'info', msg: '工艺流程连通，可运行仿真查看流转' });
+    logs.push({ ts: t(1), type: 'info', msg: '工艺流程连通，点击「运行仿真」查看工单流转' });
   } else if (nodes.length >= 2) {
     logs.push({ ts: t(2), type: 'warn', msg: '节点间尚未连线，请连接工序端口' });
   }
@@ -48,22 +51,42 @@ function generateLog(nodes: Props['nodes'], edges: Props['edges']): LogEntry[] {
     const to = nodeMap.get(e.to);
     if (from && to) logs.push({ ts: t(1), type: 'info', msg: `${from.label} → ${to.label}` });
   }
-
   return logs;
 }
 
-export default function SimLog({ nodes, edges }: Props) {
-  const logs = generateLog(nodes, edges);
+function MetricRow({ label, value, accent }: { label: string; value: string; accent?: string }) {
+  return (
+    <div className="sim-metric">
+      <span className="sim-metric-label">{label}</span>
+      <span className="sim-metric-value" style={accent ? { color: accent } : undefined}>{value}</span>
+    </div>
+  );
+}
+
+export default function SimLog({ nodes, edges, runLogs, running, metrics }: Props) {
+  const useRun = !!runLogs && runLogs.length > 0;
 
   return (
     <aside className="sim-log">
       <div className="sim-log-title">
         <Icon name="sql" size={16} />
-        运行日志
+        {running ? '仿真运行中…' : '运行日志'}
       </div>
+
+      {metrics && (
+        <div className="sim-metrics">
+          <MetricRow label="投产" value={`${metrics.total}`} />
+          <MetricRow label="合格发货" value={`${metrics.passed}`} accent="var(--success)" />
+          <MetricRow label="不良" value={`${metrics.defective}`} accent="var(--warn)" />
+          <MetricRow label="返工" value={`${metrics.reworked}`} />
+          <MetricRow label="报废" value={`${metrics.scrapped}`} accent="var(--danger)" />
+          <MetricRow label="累计工时" value={`${metrics.leadTimeMin} 分`} />
+        </div>
+      )}
+
       <div className="sim-log-body">
-        {logs.map((entry, i) => (
-          <div key={i} className={`sim-log-entry sim-log-${entry.type}`}>
+        {(useRun ? runLogs! : buildLog(nodes, edges)).map((entry, i) => (
+          <div key={i} className={`sim-log-entry sim-log-${(entry as any).type}`}>
             <span className="sim-log-time">{entry.ts}</span>
             <span className="sim-log-msg">{entry.msg}</span>
           </div>

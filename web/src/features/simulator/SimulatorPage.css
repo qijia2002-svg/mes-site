@@ -38,6 +38,16 @@
   transition: background var(--motion-fast), color var(--motion-fast);
 }
 .sim-toolbar-btn:hover { background: var(--surface-2); color: var(--fg); }
+.sim-run-btn {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+}
+.sim-run-btn:hover { background: var(--accent); color: var(--surface); }
+.sim-run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.sim-run-btn.is-running { background: var(--danger-soft); color: var(--danger); }
+.sim-run-btn.is-running:hover { background: var(--danger); color: var(--surface); }
 
 /* ---------- 主体三栏 ---------- */
 .sim-body { display: flex; flex: 1; min-height: 0; }
@@ -133,6 +143,19 @@
 }
 .sim-port:hover { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 6px rgba(84,124,112,0.3); }
 
+/* 仿真运行：当前工序高亮 + 脉冲 */
+.sim-node.is-active {
+  animation: simPulse 0.9s var(--ease-standard) infinite;
+  z-index: 3;
+}
+@keyframes simPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(84,124,112,0.45); }
+  50% { box-shadow: 0 0 0 8px rgba(84,124,112,0); }
+}
+.sim-edge.is-flowing { stroke: var(--accent); stroke-width: 3; animation: edgeFlow 0.9s var(--ease-standard) infinite; }
+@keyframes edgeFlow { 0%, 100% { stroke-dashoffset: 0; } 50% { stroke-dashoffset: -12; } }
+.sim-edge.is-dashed.is-flowing { stroke: var(--warn); }
+
 /* ---------- 底部属性 ---------- */
 .sim-props {
   border-top: 1px solid var(--border);
@@ -177,6 +200,59 @@
 .sim-log-warn .sim-log-msg { color: var(--warn); }
 .sim-log-entry.sim-log-ok { background: var(--success-soft); }
 .sim-log-entry.sim-log-warn { background: var(--warn-soft); }
+.sim-log-entry.sim-log-fail { background: var(--danger-soft); }
+.sim-log-entry.sim-log-fail .sim-log-msg { color: var(--danger); }
+
+/* 指标面板 */
+.sim-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-soft);
+}
+.sim-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.sim-metric-label { font-size: 10px; color: var(--meta); }
+.sim-metric-value { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: var(--weight-announce); color: var(--fg); }
+
+/* 底部运行进度条 */
+.sim-run-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface-2);
+  flex: none;
+}
+.sim-run-progress {
+  flex: 1;
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.sim-run-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+  transition: width var(--motion-base) var(--ease-standard);
+}
+.sim-run-pct {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--meta);
+  flex: none;
+}
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 1024px) {
@@ -184,7 +260,26 @@
   .sim-log { width: 180px; }
 }
 @media (max-width: 768px) {
-  .sim-page { margin: calc(-1 * var(--section-y-phone)) calc(-1 * var(--gutter-phone)); }
-  .sim-tasks { display: none; }
-  .sim-log { display: none; }
+  .sim-page {
+    margin: calc(-1 * var(--section-y-phone)) calc(-1 * var(--gutter-phone));
+    height: auto;
+    min-height: 0;
+  }
+  .sim-body { flex-direction: column; }
+  /* 画布保持可操作高度，侧栏改为可滚动的上下区块 */
+  .sim-canvas { min-height: 46vh; }
+  .sim-tasks,
+  .sim-log {
+    display: block;
+    width: auto;
+    border-right: 0;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    max-height: none;
+  }
+  .sim-tasks { order: 2; }
+  .sim-log { order: 3; }
+  .sim-main { order: 1; }
+  .sim-props { order: 1; }
+  .sim-run-bar { order: 4; }
 }

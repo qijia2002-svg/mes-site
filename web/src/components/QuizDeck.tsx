@@ -27,6 +27,7 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
   const [grading, setGrading] = useState(false);
   const [results, setResults] = useState<(boolean | null)[]>(() => questions.map(() => null));
   const [finished, setFinished] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const q = questions[current];
 
@@ -70,6 +71,12 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
       onComplete?.(score, questions.length);
     }
   }, [current, questions.length, results, onComplete]);
+
+  // 答题卡：跳转到指定题目
+  const jump = useCallback((i: number) => {
+    setCurrent(i);
+    setSheetOpen(false);
+  }, []);
 
   // 键盘快捷键
   useEffect(() => {
@@ -122,6 +129,32 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
         </div>
         <span className="flash-progress-text">{current + 1} / {questions.length}</span>
       </div>
+
+      {/* 答题卡（下拉导航） */}
+      <button type="button" className="quiz-sheet-toggle" onClick={() => setSheetOpen((o) => !o)} aria-expanded={sheetOpen}>
+        <Icon name="dashboard" size={16} />
+        <span>答题卡</span>
+        <span className="quiz-sheet-count">{questions.length} 题</span>
+        <Icon name="chevron-down" size={16} className={`quiz-sheet-chevron${sheetOpen ? ' is-open' : ''}`} />
+      </button>
+      {sheetOpen && (
+        <div className="quiz-sheet">
+          {questions.map((_, i) => {
+            const st = results[i];
+            const cls = [
+              'quiz-sheet-cell',
+              st === true && 'is-correct',
+              st === false && 'is-wrong',
+              i === current && 'is-current',
+            ].filter(Boolean).join(' ');
+            return (
+              <button key={i} type="button" className={cls} onClick={() => jump(i)} title={`第 ${i + 1} 题`}>
+                {i + 1}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* 统计 */}
       <div className="flash-stats">

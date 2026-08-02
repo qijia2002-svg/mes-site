@@ -21,7 +21,7 @@ export function createEdge(from: string, to: string): SimEdge {
 }
 
 export function initialSimState(): SimState {
-  return { projectName: '未命名方案', nodes: [], edges: [], selectedId: null, connectingFrom: null };
+  return { projectName: '未命名方案', nodes: [], edges: [], selectedId: null, connectingFrom: null, connectingPort: null };
 }
 
 export function simReducer(state: SimState, action: SimAction): SimState {
@@ -37,15 +37,16 @@ export function simReducer(state: SimState, action: SimAction): SimState {
     case 'DELETE_NODE':
       return { ...state, nodes: state.nodes.filter((n) => n.id !== action.id), edges: state.edges.filter((e) => e.from !== action.id && e.to !== action.id), selectedId: state.selectedId === action.id ? null : state.selectedId };
     case 'ADD_EDGE':
-      return { ...state, edges: [...state.edges, action.edge], connectingFrom: null };
+      // 从 out2（不合格）端口连出的边默认标记为回流线（虚线）
+      return { ...state, edges: [...state.edges, { ...action.edge, dashed: state.connectingPort === 'out2' }], connectingFrom: null, connectingPort: null };
     case 'TOGGLE_EDGE':
       return { ...state, edges: state.edges.map((e) => e.id === action.id ? { ...e, dashed: !e.dashed } : e) };
     case 'SELECT':
-      return { ...state, selectedId: action.id, connectingFrom: null };
+      return { ...state, selectedId: action.id, connectingFrom: null, connectingPort: null };
     case 'START_CONNECT':
-      return { ...state, connectingFrom: action.fromId, selectedId: null };
+      return { ...state, connectingFrom: action.fromId, connectingPort: action.port, selectedId: null };
     case 'CANCEL_CONNECT':
-      return { ...state, connectingFrom: null };
+      return { ...state, connectingFrom: null, connectingPort: null };
     case 'LOAD_PROJECT':
       return { ...initialSimState(), projectName: action.project.name, nodes: action.project.nodes, edges: action.project.edges };
     case 'CLEAR':

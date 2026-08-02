@@ -1,15 +1,15 @@
 import { createNode, createEdge } from './simReducer';
-import { outPort, inPort, outPort2, straightPath, reworkPath, edgePairs } from './simUtils';
+import { straightPath, reworkPath, edgePairs } from './simUtils';
 import SimNodeComp from './SimNodeComp';
 
 interface Props {
-  state: { nodes: any[]; edges: any[]; selectedId: string | null; connectingFrom: string | null };
+  state: { nodes: any[]; edges: any[]; selectedId: string | null; connectingFrom: string | null; connectingPort: 'out' | 'out2' | null };
   dispatch: React.Dispatch<any>;
+  activeNodeId?: string | null;
 }
 
-export default function SimCanvas({ state, dispatch }: Props) {
+export default function SimCanvas({ state, dispatch, activeNodeId }: Props) {
   const pairs = edgePairs(state);
-  let reworkY = 0;
 
   return (
     <div
@@ -40,14 +40,13 @@ export default function SimCanvas({ state, dispatch }: Props) {
       {/* SVG 连线层 */}
       <svg className="sim-svg">
         {pairs.map(({ edge, from, to }) => {
-          // OUT→IN 为正常流转线，OUT2→IN 为不合格回流线
-          const isRework = from.nodeType === edge.from && false; // TODO: detect out2 port usage
-          const d = straightPath(from, to);
+          // 回流线（虚线）用底部折回路径，普通流转线用直连
+          const d = edge.dashed ? reworkPath(from, to, 36) : straightPath(from, to);
           return (
             <path
               key={edge.id}
               d={d}
-              className={`sim-edge${edge.dashed ? ' is-dashed' : ''}`}
+              className={`sim-edge${edge.dashed ? ' is-dashed' : ''}${activeNodeId === from.id || activeNodeId === to.id ? ' is-flowing' : ''}`}
               onDoubleClick={(e) => { e.stopPropagation(); dispatch({ type: 'TOGGLE_EDGE', id: edge.id }); }}
             />
           );
@@ -58,12 +57,14 @@ export default function SimCanvas({ state, dispatch }: Props) {
       {state.nodes.map((node) => {
         const isSelected = state.selectedId === node.id;
         const isConnecting = state.connectingFrom === node.id;
+        const isActive = activeNodeId === node.id;
         return (
           <SimNodeComp
             key={node.id}
             node={node}
             isSelected={isSelected}
             isConnecting={isConnecting}
+            isActive={isActive}
             onSelect={() => dispatch({ type: 'SELECT', id: node.id })}
             onMove={(x, y) => dispatch({ type: 'MOVE_NODE', id: node.id, x, y })}
             onPortClick={(side) => {
@@ -74,7 +75,7 @@ export default function SimCanvas({ state, dispatch }: Props) {
                   dispatch({ type: 'CANCEL_CONNECT' });
                 }
               } else if (side === 'out' || side === 'out2') {
-                dispatch({ type: 'START_CONNECT', fromId: node.id });
+                dispatch({ type: 'START_CONNECT', fromId: node.id, port: side });
               }
             }}
           />
@@ -87,3 +88,4 @@ export default function SimCanvas({ state, dispatch }: Props) {
     </div>
   );
 }
+

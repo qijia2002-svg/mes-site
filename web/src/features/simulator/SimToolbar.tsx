@@ -1,14 +1,17 @@
 import { useRef } from 'react';
-import type { SimState } from './simTypes';
+import type { SimState, SimRunState } from './simTypes';
 import { Icon } from '../../components/Icon';
 import { saveToStorage, exportJSON, importJSON } from './simStorage';
 
 interface Props {
   state: SimState;
   dispatch: React.Dispatch<any>;
+  run: SimRunState;
+  onRun: () => void;
+  onStop: () => void;
 }
 
-export default function SimToolbar({ state, dispatch }: Props) {
+export default function SimToolbar({ state, dispatch, run, onRun, onStop }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -23,6 +26,17 @@ export default function SimToolbar({ state, dispatch }: Props) {
       </span>
 
       <div className="sim-toolbar-actions">
+        {run.active ? (
+          <button className="sim-toolbar-btn sim-run-btn is-running" onClick={onStop} title="停止仿真">
+            <Icon name="reset" size={16} />
+            <span className="sim-toolbar-label">停止</span>
+          </button>
+        ) : (
+          <button className="sim-toolbar-btn sim-run-btn" onClick={onRun} title="运行仿真（工单流转）" disabled={state.nodes.length === 0}>
+            <Icon name="run" size={16} />
+            <span className="sim-toolbar-label">运行仿真</span>
+          </button>
+        )}
         <button className="sim-toolbar-btn" title="保存到本地" onClick={() => saveToStorage(state)}>
           <Icon name="confirm" size={16} />
           <span className="sim-toolbar-label">保存</span>
