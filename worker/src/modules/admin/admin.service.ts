@@ -163,3 +163,54 @@ export async function commitImportSvc(c: Ctx, b: Record<string, unknown>) {
     note: 'row materialization (parse Excel → insert) deferred to content phase',
   };
 }
+
+/** 一步导入：接收 { topics: [{ slug, title, description, modules, chapters: [{ title, sort, md }] }] } */
+export async function importContentSvc(c: Ctx, body: Record<string, unknown>) {
+  const topics = body.topics as any[];
+  if (!Array.isArray(topics) || topics.length === 0) throw Err.paramMissing();
+
+  let topicsCreated = 0;
+  let chaptersCreated = 0;
+
+  for (const t of topics) {
+    const slug = String(t.slug ?? '');
+    const title = String(t.title ?? '');
+    const desc = String(t.description ?? '');
+    const modules = JSON.stringify(Array.isArray(t.modules) ? t.modules : []);
+    if (!slug || !title) continue;
+
+    // upsert topic
+    const existing = await adminRepo.getTopicBySlug(c.db, slug);
+    let topicId: number;
+    if (existing) {
+      topicId = existing.id;
+    } else {
+      const maxSort = 100; // 简单默认 sort
+      await adminRepo.createTopic(c.db, { slug, title, description: desc, modules, sort: maxSort, status: 'published' });
+      topicsCreated++;
+      const created = await adminRepo.getTopicBySlug(c.db, slug);
+      if (!created) continue;
+      topicId = created.id;
+    }
+
+    // insert chapters
+    const chapters = Array.isArray(t.chapters) ? t.chapters : [];
+    for (const ch of chapters) {
+      const chTitle = String(ch.title ?? '');
+      const chSort = Number(ch.sort ?? 0);
+      const chMd = String(ch.md ?? '');
+      if (!chTitle) continue;
+      await adminRepo.createChapter(c.db, {
+        topic_id: topicId,
+        title: chTitle,
+        sort: chSort,
+        status: 'published',
+        md_text: chMd,
+        schema_version: 1,
+      });
+      chaptersCreated++;
+    }
+  }
+
+  return { ok: true, topicsCreated, chaptersCreated };
+}

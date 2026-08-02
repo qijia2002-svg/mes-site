@@ -1,11 +1,66 @@
 /**
  * 最小后台：查看主题、新建主题。MVP 内容走 seed.sql，这里只保留兜底能力。
  */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
 import { api, type Topic } from '../api/endpoints';
+
+function ImportPanel() {
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [result, setResult] = useState<string | null>(null);
+
+  const importMut = useMutation({
+    mutationFn: (body: unknown) => api.importContent(body),
+    onSuccess: (data) => {
+      setResult(`导入成功：${data.topicsCreated} 个主题，${data.chaptersCreated} 个章节`);
+      void qc.invalidateQueries({ queryKey: ['admin-topics'] });
+    },
+    onError: () => setResult('导入失败，请检查 JSON 格式'),
+  });
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const body = JSON.parse(reader.result as string);
+        importMut.mutate(body);
+      } catch {
+        setResult('JSON 解析失败');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  return (
+    <section className="panel">
+      <header className="panel-head">
+        <h2>
+          <Icon name="copy" size={20} className="panel-glyph" />
+          导入内容
+        </h2>
+        <span className="panel-note">上传 JSON 文件，格式见 /mes-content.json</span>
+      </header>
+      <div className="btn-row">
+        <button type="button" className="btn btn-secondary" onClick={() => fileRef.current?.click()}>
+          <Icon name="copy" size={16} />
+          选择 JSON 文件
+        </button>
+        <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleFile} />
+        <a className="text-link" href="/mes-content.json" download style={{ alignSelf: 'center' }}>
+          下载模板
+        </a>
+      </div>
+      {importMut.isPending && <LoadingState label="正在导入…" />}
+      {result && <p className="alert alert-info">{result}</p>}
+    </section>
+  );
+}
 
 export default function AdminPage() {
   const qc = useQueryClient();
@@ -91,6 +146,8 @@ export default function AdminPage() {
         </form>
         {create.isError && <ErrorState error={create.error} title="新建失败" />}
       </section>
+
+      <ImportPanel />
 
       <section className="panel">
         <header className="panel-head">

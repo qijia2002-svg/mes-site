@@ -175,6 +175,10 @@ export const api = {
   createChapter: (body: unknown) => apiPost('/api/v1/admin/chapters', body),
   updateChapter: (id: number, body: unknown) => apiPut(`/api/v1/admin/chapters/${id}`, body),
 
+  // 导入内容
+  importContent: (body: unknown) =>
+    apiPost<{ ok: boolean; topicsCreated: number; chaptersCreated: number }>('/api/v1/admin/import/content', body),
+
   // 认证
   whoami: () => apiGet<{ sub: string }>('/api/v1/auth/whoami'),
   login: (body: { username: string; password: string }) =>

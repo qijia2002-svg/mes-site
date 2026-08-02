@@ -128,6 +128,9 @@ export const adminRepo = {
 
   deleteChapter: (db: DbSession, id: number) => db.run(`DELETE FROM chapters WHERE id = ?1`, id),
 
+  getTopicBySlug: (db: DbSession, slug: string) =>
+    db.first<{ id: number }>(`SELECT id FROM topics WHERE slug = ?1`, slug),
+
   // ---- import（两阶段：chunk 落 import_chunks，commit 校验整体到达） ----
   recordChunk: (db: DbSession, importId: string, chunkIndex: number, rows: number) =>
     db.run(

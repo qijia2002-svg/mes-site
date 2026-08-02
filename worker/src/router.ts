@@ -25,6 +25,7 @@ import {
   importStart,
   importChunk,
   importCommit,
+  importContent,
 } from './modules/admin/admin.routes';
 import {
   listQuestions,
@@ -91,6 +92,7 @@ export const routes: Route[] = [
   { method: 'POST', path: '/api/v1/admin/import/start', admin: true, handler: importStart },
   { method: 'POST', path: '/api/v1/admin/import/chunk', admin: true, handler: importChunk },
   { method: 'POST', path: '/api/v1/admin/import/commit', admin: true, handler: importCommit },
+  { method: 'POST', path: '/api/v1/admin/import/content', admin: true, handler: importContent },
 
   // Phase 2 题库 / SQL 实训（题面与答案分离，防缓存泄露 R6）
   { method: 'GET', path: '/api/v1/quiz/questions', handler: listQuestions },

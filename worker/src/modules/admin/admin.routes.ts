@@ -72,3 +72,6 @@ export async function importChunk(c: Ctx): Promise<Response> {
 export async function importCommit(c: Ctx): Promise<Response> {
   return ok(c, await svc.commitImportSvc(c, await jsonBody(c)));
 }
+export async function importContent(c: Ctx): Promise<Response> {
+  return ok(c, await svc.importContentSvc(c, await jsonBody(c)));
+}
