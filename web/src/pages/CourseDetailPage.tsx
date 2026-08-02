@@ -65,13 +65,32 @@ export default function CourseDetailPage() {
         {topic && topic.modules.length > 0 && (
           <div className="tag-row">
             {topic.modules.map((m) => (
-              <span key={m} className="tag">
-                {m}
-              </span>
+              <span key={m} className="tag">{m}</span>
             ))}
           </div>
         )}
       </header>
+
+      {/* 学习目标（ABCD 格式） */}
+      {chapters.data && chapters.data.length > 0 && (
+        <div className="alert alert-info" role="note">
+          <Icon name="chapter" size={16} className="alert-glyph" />
+          <div>
+            <strong>学完本课程后，你将能够：</strong>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--fg-2)', display: 'block', marginTop: 2 }}>
+              在实际 MES 实施场景中，{topic?.slug?.includes('sql') ? '编写并执行 SQL 查询，分析生产和质量数据' :
+              topic?.slug?.includes('erp') ? '理解企业资源计划的核心流程，说明 ERP 与 MES 的数据交互关系' :
+              topic?.slug?.includes('mes') ? '说明 MES 核心模块的功能和数据流转，诊断常见车间执行问题' :
+              topic?.slug?.includes('plc') ? '理解 PLC 工作原理和梯形图基础，说明设备层与 MES 的数据采集链路' :
+              topic?.slug?.includes('quality') ? '执行质量追溯分析，定位生产批次问题根因' :
+              '掌握相关理论知识，为后续实战模块打好基础'}。
+            </span>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--meta)', display: 'block', marginTop: 4 }}>
+              {totalCount} 章 · 预计 {Math.max(1, Math.round(totalCount * 0.25))} 小时 · 布鲁姆 {progressPct > 50 ? 'L3 应用' : 'L2 理解'}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="section">
         <div className="section-head">

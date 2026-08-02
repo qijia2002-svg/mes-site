@@ -33,11 +33,16 @@ export default function ChapterPage() {
 
   useCrumbTail(chapter.data?.title);
 
-  // 拉章节测试题（如果有）
+  // 拉章节测试题 + 同课程章节列表（用于下一章导航）
   const quizQ = useQuery({
     queryKey: ['quiz', id],
     queryFn: () => api.quizQuestions(id),
     enabled: valid && !!chapter.data,
+  });
+  const chaptersQ = useQuery({
+    queryKey: ['chapters', chapter.data?.topicId],
+    queryFn: () => api.chapters(chapter.data?.topicId ?? 0),
+    enabled: valid && !!chapter.data?.topicId,
   });
 
   const [showQuiz, setShowQuiz] = useState(false);
@@ -101,7 +106,8 @@ export default function ChapterPage() {
         <div>
           <h1 className="page-title">{chapter.data.title}</h1>
           <p className="page-sub">
-            所属课程 #{chapter.data.topicId}
+            <span className="pill pill-ok" style={{ marginRight: 'var(--space-2)' }}>L2 理解</span>
+            约 {Math.max(1, Math.round((chapter.data.md?.length ?? 0) / 900))} 分钟阅读
             {chapter.data.updatedAt
               ? ` · 更新于 ${new Date(chapter.data.updatedAt * 1000).toLocaleDateString('zh-CN')}`
               : ''}
@@ -174,10 +180,17 @@ export default function ChapterPage() {
               <Icon name="arrow-left" size={16} />
               返回章节列表
             </Link>
-            <Link className="btn btn-primary btn-sm" to="/sql-space">
-              <Icon name="sql" size={16} />
-              到模拟台动手练
-            </Link>
+            {(() => {
+              const chs = (chaptersQ.data ?? []).slice().sort((a, b) => a.sort - b.sort);
+              const idx = chs.findIndex((c) => c.id === id);
+              const next = idx >= 0 && idx < chs.length - 1 ? chs[idx + 1] : null;
+              return next ? (
+                <Link className="btn btn-primary btn-sm" to={`/chapters/${next.id}`}>
+                  下一章：{next.title}
+                  <Icon name="arrow-right" size={16} />
+                </Link>
+              ) : null;
+            })()}
           </footer>
         </div>
 
