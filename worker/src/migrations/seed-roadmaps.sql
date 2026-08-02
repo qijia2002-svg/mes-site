@@ -14,7 +14,7 @@ INSERT INTO learning_paths (id, slug, title, description, topic_ids, sort, statu
   (500, 'rm-500', 'MES 实施工程师学习路线图', '用户画像：有 MES 使用/运维经验，目标成为 MES 实施/配置工程师，每周可投入 3-5 小时 / 预计总时长：约 16-20 周（约 4-5 个月）', '[5000,5001,5002,5003]', 1, 'published', strftime('%s','now')),
   (501, 'rm-501', '实施工程师 · 30天冲刺路线图', '核心逻辑：不是学知识，是解决问题。围绕"帮一个中小企业上线ERP/MES"这个完整场景，边学边练边投简历。 / 适合人群：有 MES 使用/运维经验，目标锁定实施工程师岗位，愿意高强度投入 / 时间投入：每天 1-2 小时（周末可加倍）', '[5004,5005,5006,5007]', 2, 'published', strftime('%s','now')),
   (502, 'rm-502', '实施工程师学习路线图', '目标：从 MES/工业软件实施切入，系统掌握实施工程师的完整知识体系，并规划清晰的职业发展路径 / 用户画像：有 MES 使用/运维经验，目标成为专业实施工程师，方向涵盖 MES + 泛行业实施方法论 / 每周可投入：3-5 小时', '[5008,5009,5010,5011]', 3, 'published', strftime('%s','now')),
-  (503, 'rm-503', '戚家硕 · MES/SCADA 实施岗 · 25天冲刺计划', '定向定制版。基于你的真实简历（SCADA运维4车间 + MES设备联调 + PLC现场经验）制定。 / 目标：把现场经验讲成值钱的故事，补齐SQL/Linux短板，准备好面试。', '[5012,5013,5014,5015]', 4, 'published', strftime('%s','now'));
+  (503, 'rm-503', '学员 · MES/SCADA 实施岗 · 25天冲刺计划', '定向定制版。基于你的真实简历（SCADA运维4车间 + MES设备联调 + PLC现场经验）制定。 / 目标：把现场经验讲成值钱的故事，补齐SQL/Linux短板，准备好面试。', '[5012,5013,5014,5015]', 4, 'published', strftime('%s','now'));
 
 -- topics
 INSERT INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES
@@ -30,10 +30,10 @@ INSERT INTO topics (id, slug, title, description, modules, sort, status, created
   (5009, 'rm-502-2', '三大核心能力', '路线图「实施工程师学习路线图」第2阶段', '["theory"]', 2, 'published', strftime('%s','now'), strftime('%s','now')),
   (5010, 'rm-502-3', '项目全流程', '路线图「实施工程师学习路线图」第3阶段', '["theory"]', 3, 'published', strftime('%s','now'), strftime('%s','now')),
   (5011, 'rm-502-4', '职业发展与出口', '路线图「实施工程师学习路线图」第4阶段', '["theory"]', 4, 'published', strftime('%s','now'), strftime('%s','now')),
-  (5012, 'rm-503-1', 'SCADA知识深化', '路线图「戚家硕 · MES/SCADA 实施岗 · 25天冲刺计划」第1阶段', '["theory"]', 1, 'published', strftime('%s','now'), strftime('%s','now')),
-  (5013, 'rm-503-2', 'SQL与Linux', '路线图「戚家硕 · MES/SCADA 实施岗 · 25天冲刺计划」第2阶段', '["theory"]', 2, 'published', strftime('%s','now'), strftime('%s','now')),
-  (5014, 'rm-503-3', 'SCADA面试与场景', '路线图「戚家硕 · MES/SCADA 实施岗 · 25天冲刺计划」第3阶段', '["theory"]', 3, 'published', strftime('%s','now'), strftime('%s','now')),
-  (5015, 'rm-503-4', '简历与面试决胜', '路线图「戚家硕 · MES/SCADA 实施岗 · 25天冲刺计划」第4阶段', '["theory"]', 4, 'published', strftime('%s','now'), strftime('%s','now'));
+  (5012, 'rm-503-1', 'SCADA知识深化', '路线图「学员 · MES/SCADA 实施岗 · 25天冲刺计划」第1阶段', '["theory"]', 1, 'published', strftime('%s','now'), strftime('%s','now')),
+  (5013, 'rm-503-2', 'SQL与Linux', '路线图「学员 · MES/SCADA 实施岗 · 25天冲刺计划」第2阶段', '["theory"]', 2, 'published', strftime('%s','now'), strftime('%s','now')),
+  (5014, 'rm-503-3', 'SCADA面试与场景', '路线图「学员 · MES/SCADA 实施岗 · 25天冲刺计划」第3阶段', '["theory"]', 3, 'published', strftime('%s','now'), strftime('%s','now')),
+  (5015, 'rm-503-4', '简历与面试决胜', '路线图「学员 · MES/SCADA 实施岗 · 25天冲刺计划」第4阶段', '["theory"]', 4, 'published', strftime('%s','now'), strftime('%s','now'));
 
 -- chapters（学习指南/知识作业/实战作业/每日任务 → 理论正文）
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5000, '第1阶段学习指南：MES 概念深化', 1, 'published', '# 第1阶段学习指南：MES 概念深化
@@ -1047,16 +1047,16 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 ## 复盘问题（Day 7回答）
 
 1. 我的学历/专业是否达到实施工程师的基本门槛？
-   > _______________________________________________________
+ > _______________________________________________________
 
 2. Top3差距项中，第2周我最应该先补哪一个？为什么？
-   > _______________________________________________________
+ > _______________________________________________________
 
 3. 我计划投递的10家公司中，最想去的3家是哪些？
-   > _______________________________________________________
+ > _______________________________________________________
 
 4. 第一批简历投递后，有没有收到面试邀请？收到/没收到，原因是什么？
-   > _______________________________________________________
+ > _______________________________________________________
 ', 1, strftime('%s','now'));
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5004, '第1周每日任务：硬性门槛自检', 3, 'published', '# 第1周每日任务：硬性门槛自检
 
@@ -1344,9 +1344,9 @@ HAVING cnt > 1;
 ## 本周时间安排建议
 
 ```
-Day 1-2：Linux基础（安装+基本命令）         → 2小时/天
-Day 3：Linux进阶（权限+日志+进程）          → 2小时
-Day 4-5：SQL基础（SELECT/JOIN/聚合）        → 2小时/天
+Day 1-2：Linux基础（安装+基本命令） → 2小时/天
+Day 3：Linux进阶（权限+日志+进程） → 2小时
+Day 4-5：SQL基础（SELECT/JOIN/聚合） → 2小时/天
 Day 6-7：SQL实战（LeetCode刷题+模拟数据验证） → 3小时/天
 （中间件穿插：Day 3装Tomcat，Day 5装Nginx）
 ```
@@ -1412,21 +1412,21 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 -- 请补全下面的查询
 
 SELECT 
-    -- 你来补全字段
+ -- 你来补全字段
 FROM 
-    -- 你来补全表名
+ -- 你来补全表名
 WHERE 
-    -- 你来补全条件
+ -- 你来补全条件
 GROUP BY 
-    -- 你来补全分组字段
+ -- 你来补全分组字段
 ;
 ```
 
 **参考完成形态**：
 ```sql
 SELECT 
-    status,
-    COUNT(*) as order_count
+ status,
+ COUNT(*) as order_count
 FROM mes_work_order
 WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
 GROUP BY status
@@ -1444,11 +1444,11 @@ ORDER BY order_count DESC;
 -- 需要关联：成品表 + BOM表
 
 SELECT 
-    -- 你来补全
+ -- 你来补全
 FROM 
-    -- 你来补全
+ -- 你来补全
 WHERE 
-    -- 你来补全（条件：物料编码 = ''FG-001''）
+ -- 你来补全（条件：物料编码 = ''FG-001''）
 ;
 ```
 
@@ -1463,9 +1463,9 @@ WHERE
 -- 需要关联：工单表 + 报工记录表
 
 SELECT 
-    wo.order_no,
-    wo.product_name,
-    wo.dispatch_time
+ wo.order_no,
+ wo.product_name,
+ wo.dispatch_time
 FROM mes_work_order wo
 LEFT JOIN mes_production_report pr ON wo.id = pr.order_id
 WHERE wo.status = ''DISPATCHED''
@@ -1874,8 +1874,8 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 五个为什么：
 为什么？→ _______________
   为什么？→ _______________
-    为什么？→ _______________（根本原因）
-      为什么？→ _______________（可验证的根因）
+ 为什么？→ _______________（根本原因）
+ 为什么？→ _______________（可验证的根因）
 
 ---
 
@@ -1971,13 +1971,13 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 请独立回答以下问题（不许查资料）：
 
 1. 你选择的目标行业是什么？这个行业的 MES 和通用 MES 相比，有什么特殊要求？
-   > _______________________________________________
+ > _______________________________________________
 
 2. 客户说"我们需要更好的生产管理"——你会问哪些具体问题来挖出真实需求？
-   > _______________________________________________
+ > _______________________________________________
 
 3. 实施工程师和开发工程师，对"业务理解"的要求有什么不同？
-   > _______________________________________________
+ > _______________________________________________
 ', 1, strftime('%s','now'));
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5006, '第3周每日任务：业务理解 + 场景代入', 3, 'published', '# 第3周每日任务：业务理解 + 场景代入
 
@@ -2031,8 +2031,8 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 表面问题：XXX
 为什么？→ 原因1
   为什么？→ 原因2
-    为什么？→ 原因3（根本原因）
-      为什么？→ 原因4（可验证）
+ 为什么？→ 原因3（根本原因）
+ 为什么？→ 原因4（可验证）
 ```
 
 **今日验收**：
@@ -2047,12 +2047,12 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 **任务清单**：
 - [ ] 阅读指南中的"华锐汽车零部件"场景
 - [ ] 假设你是这家公司的老板，回答：
-    - 我最关心的 3 件事是什么？
-    - 我愿意花多少钱/时间上线系统？
-    - 我最担心上线失败的原因是什么？
+ - 我最关心的 3 件事是什么？
+ - 我愿意花多少钱/时间上线系统？
+ - 我最担心上线失败的原因是什么？
 - [ ] 从老板视角重新审视 MES 功能清单，给每个功能打分（1-10分）：
-    - 这个功能对我来说值多少钱？
-    - 不用这个功能我的损失是什么？
+ - 这个功能对我来说值多少钱？
+ - 不用这个功能我的损失是什么？
 
 **今日验收**：
 > 给 MES 的"工序报工"功能写一个价值描述（老板能听懂的话），不超过 50 字
@@ -2066,10 +2066,10 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 **任务清单**：
 - [ ] 在网上找一份真实的 MES 实施方案文档（政府招标网站有）
 - [ ] 拆解方案结构：
-    - 有哪些章节？
-    - 每个章节的核心内容是什么？
-    - 哪些是模板（可以复用）？
-    - 哪些是定制内容（针对客户具体写）？
+ - 有哪些章节？
+ - 每个章节的核心内容是什么？
+ - 哪些是模板（可以复用）？
+ - 哪些是定制内容（针对客户具体写）？
 - [ ] 记住实施方案的标准结构（见下方）
 
 **实施方案标准结构**：
@@ -3044,9 +3044,9 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 表面问题：XXX
 为什么？→ 原因1
   为什么？→ 原因2
-    为什么？→ 原因3
-      为什么？→ 原因4（根本原因）
-        为什么？→ 原因5（可验证的根因）
+ 为什么？→ 原因3
+ 为什么？→ 原因4（根本原因）
+ 为什么？→ 原因5（可验证的根因）
 ```
 
 ### 验收标准
@@ -3205,8 +3205,8 @@ Step 6: 验收交付
 二、现状问题分析
 三、解决方案（分模块描述）
   - 模块1：XXX
-    - 功能点1
-    - 功能点2
+ - 功能点1
+ - 功能点2
 四、预期效果（量化）
 五、实施计划
 六、风险评估
@@ -3405,14 +3405,14 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
   - 每个痛点的根因分析
 三、解决方案（分模块）
   - 模块1：生产计划与工单管理
-    * 功能设计（至少3个功能点）
-    * 预期效果（量化描述）
+ * 功能设计（至少3个功能点）
+ * 预期效果（量化描述）
   - 模块2：质量追溯管理
-    * 功能设计（至少2个功能点）
-    * 预期效果
+ * 功能设计（至少2个功能点）
+ * 预期效果
   - 模块3：设备数据采集与OEE
-    * 功能设计（至少2个功能点）
-    * 预期效果
+ * 功能设计（至少2个功能点）
+ * 预期效果
 四、预期效果汇总
   - 量化指标（如：排产时间减少50%、追溯时间从2小时缩短到5分钟等）
 五、实施计划
@@ -3433,17 +3433,17 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 针对"生产计划与工单管理"模块，完成以下配置文档：
 
 1. **基础数据配置**：
-   - 工厂/车间/产线层级结构（文字描述或表格）
-   - BOM 清单（至少 3 层，至少 5 个物料）
+ - 工厂/车间/产线层级结构（文字描述或表格）
+ - BOM 清单（至少 3 层，至少 5 个物料）
 
 2. **工单配置**：
-   - 工单类型定义
-   - 工单状态流转图（从创建到完工的全状态，含状态转换条件）
-   - 工序定义（至少 3 道工序）
+ - 工单类型定义
+ - 工单状态流转图（从创建到完工的全状态，含状态转换条件）
+ - 工序定义（至少 3 道工序）
 
 3. **测试用例（UAT）**：
-   - 至少 5 个测试用例
-   - 每个用例：前置条件 / 操作步骤（至少3步）/ 预期结果
+ - 至少 5 个测试用例
+ - 每个用例：前置条件 / 操作步骤（至少3步）/ 预期结果
 
 ---
 
@@ -3457,13 +3457,13 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 1. **上线前准备工作**（分日期列出，上线前 1 周）
 2. **上线切换方案**：数据迁移策略 / 并行运行策略 / 回滚方案
 3. **上线后支持计划**（上线后 2 周）：
-   - 每日检查项
-   - 问题处理优先级定义
-   - 用户支持联系人清单
+ - 每日检查项
+ - 问题处理优先级定义
+ - 用户支持联系人清单
 4. **培训计划**：
-   - 培训对象分层
-   - 培训内容（每个角色）
-   - 培训时长
+ - 培训对象分层
+ - 培训内容（每个角色）
+ - 培训时长
 
 ---
 
@@ -3488,26 +3488,26 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 
 ```
 实施工程师
-    │
-    ├── 路径1：技术专家
-    │     方向：专攻某一平台（西门子 MOM / 罗克韦尔 / SAP / 用友）
-    │     关键动作：持续深耕一个产品，考取厂商认证，积累项目案例
-    │     典型标签："西门子的专家"、"MES 实施领域的权威"
-    │
-    ├── 路径2：项目经理
-    │     方向：从实施顾问 → 项目经理 → 项目总监
-    │     关键动作：考 PMP，学风险管理，培养带团队的能力
-    │     典型标签："能扛项目的人"、"交给他的项目老板放心"
-    │
-    ├── 路径3：咨询顾问
-    │     方向：从实施执行 → 方案设计 → 流程优化咨询
-    │     关键动作：强化业务深度（不只是系统配置，要理解行业本质）
-    │     典型标签："比客户更懂他们的业务"、"能设计流程的人"
-    │
-    └── 路径4：售前/解决方案
-          方向：从实施 → 售前 → 解决方案架构师 → 行业专家
-          关键动作：强化方案设计和演讲能力，学会打单
-          典型标签："能讲清楚价值的人"、"技术销售两栖"
+ │
+ ├── 路径1：技术专家
+ │ 方向：专攻某一平台（西门子 MOM / 罗克韦尔 / SAP / 用友）
+ │ 关键动作：持续深耕一个产品，考取厂商认证，积累项目案例
+ │ 典型标签："西门子的专家"、"MES 实施领域的权威"
+ │
+ ├── 路径2：项目经理
+ │ 方向：从实施顾问 → 项目经理 → 项目总监
+ │ 关键动作：考 PMP，学风险管理，培养带团队的能力
+ │ 典型标签："能扛项目的人"、"交给他的项目老板放心"
+ │
+ ├── 路径3：咨询顾问
+ │ 方向：从实施执行 → 方案设计 → 流程优化咨询
+ │ 关键动作：强化业务深度（不只是系统配置，要理解行业本质）
+ │ 典型标签："比客户更懂他们的业务"、"能设计流程的人"
+ │
+ └── 路径4：售前/解决方案
+ 方向：从实施 → 售前 → 解决方案架构师 → 行业专家
+ 关键动作：强化方案设计和演讲能力，学会打单
+ 典型标签："能讲清楚价值的人"、"技术销售两栖"
 ```
 
 ---
@@ -3737,16 +3737,16 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 结构要求（参考"电梯演讲"）：
 ```
 1. 我是谁 + 背景（15秒）
-   "我叫XX，有X年XX经验，目前做XX工作"
+ "我叫XX，有X年XX经验，目前做XX工作"
 
 2. 我的核心能力（45秒）
-   "我最擅长的有两点：一是XX，二是XX（各举一个例子）"
+ "我最擅长的有两点：一是XX，二是XX（各举一个例子）"
 
 3. 我为什么来应聘这个岗位（30秒）
-   "我来应聘这个岗位是因为..."
+ "我来应聘这个岗位是因为..."
 
 4. 一个让我骄傲的项目成果（30秒）
-   "举个例子，我曾经..."
+ "举个例子，我曾经..."
 ```
 
 ### 验收标准
@@ -3770,8 +3770,8 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 Month 1（第1个月）
   目标：XXX
   具体行动：
-    - 行动1
-    - 行动2
+ - 行动1
+ - 行动2
   验证标准：XXX（我怎么知道做到了）
 
 Month 2-6：[同上]
@@ -3836,15 +3836,15 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                    SCADA架构                         │
-│                                                      │
-│  【现场设备层】  传感器 / PLC / 电表 / 变频器         │
-│       ↓ Modbus/OPC UA/工业总线                        │
-│  【数据采集层】  SCADA采集模块（是你装的那个东西）      │
-│       ↓ TCP/IP                                         │
-│  【监控服务层】  SCADA Server（实时数据库）            │
-│       ↓                                               │
-│  【人机交互层】  组态画面 / 大屏 / 报警管理            │
+│ SCADA架构 │
+│ │
+│  【现场设备层】  传感器 / PLC / 电表 / 变频器 │
+│ ↓ Modbus/OPC UA/工业总线 │
+│  【数据采集层】  SCADA采集模块（是你装的那个东西） │
+│ ↓ TCP/IP │
+│  【监控服务层】  SCADA Server（实时数据库） │
+│ ↓ │
+│  【人机交互层】  组态画面 / 大屏 / 报警管理 │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -3917,8 +3917,8 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 ### SCADA和PLC的关系
 ```
 传感器信号 → PLC（执行控制逻辑） → 采集模块（SCADA） → 大屏显示
-     ↑                                   ↓
-     ←←←←←←←←← 控制指令 ←←←←←←←←←←←←←←←
+ ↑ ↓
+ ←←←←←←←←← 控制指令 ←←←←←←←←←←←←←←←
 ```
 
 ### 面试能讲的PLC理解
@@ -3940,8 +3940,8 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 ### 大屏背后的数据逻辑要知道
 ```
 设备运行状态（在线/离线） → SCADA采集 → 数据处理 → 大屏展示
-        ↑
-   PLC/采集模块采集
+ ↑
+ PLC/采集模块采集
 ```
 
 ---
@@ -4032,8 +4032,8 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 
 ```
 传感器 → [这里写什么设备] → [这里写SCADA采集] → [这里写大屏展示]
-                            ↑
-                     PLC/采集模块（你装的那个）
+ ↑
+ PLC/采集模块（你装的那个）
 ```
 
 **如果手画有困难，用文字描述数据从设备到屏幕的完整路径**：
@@ -4069,13 +4069,13 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 ## 复盘问题
 
 1. 第一阶段SCADA知识，有没有哪个概念是你之前理解有误的？
-   > _______________________________________________
+ > _______________________________________________
 
 2. 你的4车间SCADA运维经历，最值钱的一点是什么？（面试时最能打动面试官的地方）
-   > _______________________________________________
+ > _______________________________________________
 
 3. 本周投递了多少家简历？有没有面试机会？
-   > _______________________________________________
+ > _______________________________________________
 ', 1, strftime('%s','now'));
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5012, '第1阶段每日任务：SCADA知识深化（Day 1-7）', 3, 'published', '# 第1阶段每日任务：SCADA知识深化（Day 1-7）
 
@@ -4187,7 +4187,7 @@ R（结果，量化）：_______________
 - [ ] 复习SCADA知识框架（对着镜子复述一遍）
 - [ ] 完成本阶段实战作业（SCADA知识问答 + STAR故事）
 - [ ] 继续投递简历（目标：累计投递10家）
-- [ ] 确认简历时间节点（威灵/美智/美芝/奥来）
+- [ ] 确认简历时间节点（威灵/美智/美芝/某制造企业）
 - [ ] 补全联系电话
 
 **第一阶段总结问题**：
@@ -4294,10 +4294,10 @@ WHERE pr.id IS NULL
 ```sql
 -- 查询某车间近24小时内设备在线率
 SELECT 
-    factory,
-    COUNT(CASE WHEN status = ''ONLINE'' THEN 1 END) as online_count,
-    COUNT(*) as total_count,
-    ROUND(COUNT(CASE WHEN status = ''ONLINE'' THEN 1 END) * 100.0 / COUNT(*), 2) as online_rate
+ factory,
+ COUNT(CASE WHEN status = ''ONLINE'' THEN 1 END) as online_count,
+ COUNT(*) as total_count,
+ ROUND(COUNT(CASE WHEN status = ''ONLINE'' THEN 1 END) * 100.0 / COUNT(*), 2) as online_rate
 FROM device_status
 WHERE update_time >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
   AND factory = ''卷线一厂''
@@ -4308,10 +4308,10 @@ GROUP BY factory
 ```sql
 -- 查询近7天内所有掉线设备，按掉线次数排序
 SELECT 
-    device_code,
-    device_name,
-    factory,
-    COUNT(*) as offline_count
+ device_code,
+ device_name,
+ factory,
+ COUNT(*) as offline_count
 FROM device_log
 WHERE event_type = ''OFFLINE''
   AND create_time >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
@@ -4324,9 +4324,9 @@ LIMIT 10
 ```sql
 -- 查询某个设备连续30分钟无数据上报的记录
 SELECT 
-    device_code,
-    last_update_time,
-    TIMESTAMPDIFF(MINUTE, last_update_time, NOW()) as gap_minutes
+ device_code,
+ last_update_time,
+ TIMESTAMPDIFF(MINUTE, last_update_time, NOW()) as gap_minutes
 FROM device_status
 WHERE TIMESTAMPDIFF(MINUTE, last_update_time, NOW()) > 30
   AND status != ''OFFLINE''
@@ -4350,19 +4350,19 @@ WHERE TIMESTAMPDIFF(MINUTE, last_update_time, NOW()) > 30
 ### 场景1：登录 + 基本操作（第一天就会）
 
 ```bash
-ssh username@server_ip        # 登录服务器
-ls -la                        # 查看目录详情
-cd /var/log                   # 切换到日志目录
-pwd                           # 看当前在哪
+ssh username@server_ip # 登录服务器
+ls -la # 查看目录详情
+cd /var/log # 切换到日志目录
+pwd # 看当前在哪
 ```
 
 ### 场景2：查日志（最常用，必须会）
 
 ```bash
-tail -f /var/log/scada.log              # 实时查看日志
-grep ERROR /var/log/scada.log            # 找错误行
+tail -f /var/log/scada.log # 实时查看日志
+grep ERROR /var/log/scada.log # 找错误行
 grep -C 3 "device offline" /var/log/scada.log  # 找关键字上下文
-cat /var/log/scada.log | wc -l          # 数日志总行数
+cat /var/log/scada.log | wc -l # 数日志总行数
 ```
 
 ### 场景3：文件权限（理解概念，会改就行）
@@ -4372,34 +4372,34 @@ ls -l /var/log/scada.log
 # 输出：-rw-r--r--  1 scada  scada  12345  Jul 31 10:00  scada.log
 # -rw-r--r-- = 所有者可读写，群组可读，其他可读
 
-chmod +x /opt/scada/start.sh   # 添加可执行权限
-chmod 644 /var/log/scada.log   # 设置权限为 rw-r--r--
+chmod +x /opt/scada/start.sh # 添加可执行权限
+chmod 644 /var/log/scada.log # 设置权限为 rw-r--r--
 ```
 
 ### 场景4：进程管理（能看能重启）
 
 ```bash
-ps aux | grep scada            # 查SCADA进程是否在运行
-top                            # 看系统资源占用
-kill -9 12345                  # 强制结束进程（慎用）
-systemctl restart scada        # 重启SCADA服务（如果用systemd）
+ps aux | grep scada # 查SCADA进程是否在运行
+top # 看系统资源占用
+kill -9 12345 # 强制结束进程（慎用）
+systemctl restart scada # 重启SCADA服务（如果用systemd）
 ```
 
 ### 场景5：网络诊断（排查连接问题）
 
 ```bash
-ping 192.168.1.100             # 测试设备是否可达
-netstat -tlnp | grep 502       # 看502端口（Modbus默认）是否在监听
+ping 192.168.1.100 # 测试设备是否可达
+netstat -tlnp | grep 502 # 看502端口（Modbus默认）是否在监听
 curl http://192.168.1.100:8080 # 测试HTTP连接
-telnet 192.168.1.100 502       # 测试端口连通性
+telnet 192.168.1.100 502 # 测试端口连通性
 ```
 
 ### 场景6：磁盘和内存（知道怎么看）
 
 ```bash
-df -h                          # 看磁盘使用
-du -sh /var/log                # 看日志目录大小
-free -h                        # 看内存使用
+df -h # 看磁盘使用
+du -sh /var/log # 看日志目录大小
+free -h # 看内存使用
 ```
 
 ---
@@ -4429,8 +4429,8 @@ tail -f /opt/scada/logs/collector.log
 # 找 ERROR 或 OFFLINE 关键字
 
 Step 4: 看系统资源
-df -h /     # 磁盘是不是满了
-free -h     # 内存是不是用光了
+df -h / # 磁盘是不是满了
+free -h # 内存是不是用光了
 
 Step 5: 看网络连接
 netstat -tlnp | grep 502
@@ -4478,13 +4478,13 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 -- 表名：device_info（device_code, device_name）
 
 SELECT 
-    -- 你来补全字段
+ -- 你来补全字段
 FROM 
-    -- 你来补全
+ -- 你来补全
 WHERE 
-    -- 你来补全（条件：今日数据）
+ -- 你来补全（条件：今日数据）
 GROUP BY 
-    -- 你来补全
+ -- 你来补全
 ;
 ```
 
@@ -4500,11 +4500,11 @@ GROUP BY
 -- 表名：device_info（device_code, device_name, factory）
 
 SELECT 
-    -- 你来补全
+ -- 你来补全
 FROM 
-    -- 你来补全
+ -- 你来补全
 WHERE 
-    -- 你来补全
+ -- 你来补全
 ;
 ```
 
@@ -4520,11 +4520,11 @@ WHERE
 -- 表名：mes_production_report（id, order_id, report_time）
 
 SELECT 
-    -- 你来补全
+ -- 你来补全
 FROM 
-    -- 你来补全
+ -- 你来补全
 WHERE 
-    -- 你来补全
+ -- 你来补全
 ;
 ```
 
@@ -4539,11 +4539,11 @@ WHERE
 -- 表名：device_status（device_code, device_name, status, last_update_time）
 
 SELECT 
-    -- 你来补全
+ -- 你来补全
 FROM 
-    -- 你来补全
+ -- 你来补全
 WHERE 
-    -- 你来补全（条件：在线但超过30分钟无更新）
+ -- 你来补全（条件：在线但超过30分钟无更新）
 ;
 ```
 
@@ -4682,8 +4682,8 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 ```sql
 -- 参考答案
 SELECT 
-    factory,
-    COUNT(*) as offline_count
+ factory,
+ COUNT(*) as offline_count
 FROM device_log
 WHERE event_type = ''OFFLINE''
   AND DATE(create_time) = CURDATE()
@@ -4708,9 +4708,9 @@ ORDER BY offline_count DESC;
 ```sql
 -- 参考答案
 SELECT 
-    wo.order_no,
-    wo.status,
-    pr.report_time
+ wo.order_no,
+ wo.status,
+ pr.report_time
 FROM mes_work_order wo
 LEFT JOIN mes_production_report pr ON wo.id = pr.order_id
 ORDER BY wo.create_time DESC;
@@ -4773,11 +4773,11 @@ tail -100 /var/log/scada/collector.log | grep ERROR
 
 ```bash
 # 参考答案
-ps aux | grep scada              # 进程还在吗？
-netstat -tlnp | grep 502         # 采集端口还在监听吗？
-tail -100 /var/log/scada.log     # 日志有没有报错？
-df -h /                          # 磁盘满了？
-free -h                          # 内存爆了？
+ps aux | grep scada # 进程还在吗？
+netstat -tlnp | grep 502 # 采集端口还在监听吗？
+tail -100 /var/log/scada.log # 日志有没有报错？
+df -h / # 磁盘满了？
+free -h # 内存爆了？
 ```
 
 ---
@@ -5313,8 +5313,8 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 |--------|------|
 | 关键词 | SCADA / MES / 数据采集 / 工业网络 / Modbus / PLC / 现场调试 / 生产大屏 / OEE 全部出现 |
 | 量化 | 每条工作经历至少有一个数字 |
-| 时间线 | 威灵/美智/美芝/奥来入职离职年月全部确认 |
-| 格式 | 纯文本，无表格图片，文件名：戚家硕-应聘MES实施工程师-简历.pdf |
+| 时间线 | 威灵/美智/美芝/某制造企业入职离职年月全部确认 |
+| 格式 | 纯文本，无表格图片，文件名：学员-应聘MES实施工程师-简历.pdf |
 | 联系方式 | 联系电话已补充 |
 
 ---
@@ -5324,7 +5324,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 ### 自我介绍最终版（2分钟，背到自然）
 
 ```
-面试官好，我叫戚家硕，应聘MES/SCADA实施工程师岗位。
+面试官好，我叫学员，应聘MES/SCADA实施工程师岗位。
 
 我目前有X年工业信息化工作经验。上一份工作在威灵工厂做信息化专员，
 负责4个车间（卷线一厂、卷线二厂、机加工、装配）的SCADA系统运维，
@@ -5395,7 +5395,7 @@ SCADA运维和现场沟通经验，能够快速上手并贡献价值。
 期待能加入贵公司，有任何需要补充的材料随时联系。
 
 祝工作顺利！
-戚家硕
+学员
 电话：XXXXXX
 ```
 
@@ -5456,7 +5456,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 
 | 检查项 | 状态 |
 |--------|------|
-| 威灵/美智/美芝/奥来入职离职年月全部确认 | □ |
+| 威灵/美智/美芝/某制造企业入职离职年月全部确认 | □ |
 | 联系电话已补充 | □ |
 | SCADA系统（不是模块） | □ |
 | 大屏价值句已加 | □ |
@@ -5472,7 +5472,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 请写下来，然后背熟：
 
 ```
-面试官好，我叫戚家硕，应聘MES/SCADA实施工程师岗位。
+面试官好，我叫学员，应聘MES/SCADA实施工程师岗位。
 
 （背景，1-2句）
 
@@ -5529,7 +5529,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 
 祝工作顺利！
 
-戚家硕
+学员
 手机：_______________
 ```
 
@@ -5598,10 +5598,10 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 **目标**：简历所有信息完整，准备投递
 
 **任务清单**：
-- [ ] 确认威灵/美智/美芝/奥来所有入职离职年月
+- [ ] 确认威灵/美智/美芝/某制造企业所有入职离职年月
 - [ ] 补充联系电话
 - [ ] 应用3处核心修改（SCADA系统/价值句/去掉短板句）
-- [ ] 生成PDF版本，文件名为：戚家硕-应聘MES实施工程师-简历.pdf
+- [ ] 生成PDF版本，文件名为：学员-应聘MES实施工程师-简历.pdf
 - [ ] 把简历发给一个信任的人帮忙检查错别字
 
 **简历最终自检**：
@@ -5637,7 +5637,7 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 **任务清单**：
 - [ ] 继续搜索SCADA/MES实施岗位
 - [ ] 投递15家（不等回复，继续投）
-- [ ] 每家投递时，把简历文件名改成：戚家硕-应聘MES实施-戚家硕.pdf
+- [ ] 每家投递时，把简历文件名改成：学员-应聘MES实施-学员.pdf
 - [ ] 记录投递清单（公司名/岗位名/投递日期）
 - [ ] 如果收到面试邀请，立即回复（不要超过24小时）
 
@@ -5659,13 +5659,13 @@ INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, up
 **任务清单**：
 - [ ] 继续投递15家（累计目标：40家）
 - [ ] 如果有面试邀请：
-    - 查公司背景（官网/产品/行业）
-    - 准备3个要问面试官的问题
-    - 再练一遍自我介绍
+ - 查公司背景（官网/产品/行业）
+ - 准备3个要问面试官的问题
+ - 再练一遍自我介绍
 - [ ] 如果没有面试邀请：
-    - 检查简历是否有问题
-    - 调整简历或投递方向
-    - 继续练面试题
+ - 检查简历是否有问题
+ - 调整简历或投递方向
+ - 继续练面试题
 
 ---
 
