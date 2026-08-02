@@ -1,5 +1,5 @@
 /**
- * 学习中心：分组课程卡片（带进度）+ 最近学习入口。
+ * 课程体系 — 布鲁姆分层（L1 基础认知 → L4 认证评估）+ 能力进阶视角。
  */
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
@@ -8,32 +8,60 @@ import { Icon } from '../components/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
 import { api, type Topic } from '../api/endpoints';
 
-interface Group {
-  label: string;
-  desc: string;
-  match: (t: Topic) => boolean;
+const BLOOM_LABEL: Record<string, string> = {
+  L1: '记忆·理解',
+  L2: '理解·应用',
+  L3: '应用·分析',
+  L4: '评估·创造',
+};
+
+/** 按 slug/模块名推断布鲁姆层级 */
+function bloomLevel(t: Topic): string {
+  const s = (t.slug ?? '') + (t.modules ?? []).join(',');
+  if (/cert|认证|综合|roadmap/.test(s)) return 'L4';
+  if (/sql|exercise|实训|实战|排障/.test(s)) return 'L3';
+  if (/bom|工艺|工单|报工|质量|追溯|物料/.test(s)) return 'L2';
+  return 'L1';
 }
 
-const GROUPS: Group[] = [
-  { label: 'ERP 原理与模块', desc: '从销售订单到财务结算', match: (t) => t.slug?.startsWith('erp') || t.modules?.includes('ERP') },
-  { label: 'MES 核心模块', desc: '工单/物料/报工/质量/追溯/设备/看板', match: (t) => t.slug?.startsWith('mes') || t.modules?.includes('MES') },
-  { label: 'SQL 查询基础', desc: 'SELECT / WHERE / GROUP BY / JOIN', match: (t) => t.slug?.startsWith('sql') || t.modules?.includes('SQL') },
-  { label: 'PLC 可编程逻辑控制器', desc: '梯形图 / 工业控制 / SCADA-MES集成', match: (t) => t.slug?.startsWith('plc') || t.modules?.includes('PLC') },
-];
+const BLOOM_GROUPS = ['L1', 'L2', 'L3', 'L4'];
 
-function TopicCard({ topic, done, total }: { topic: Topic; done: number; total: number }) {
+function BloomPill({ level }: { level: string }) {
+  return (
+    <span
+      className="pill"
+      style={{
+        background: level === 'L1' ? 'var(--surface-2)' : level === 'L2' ? 'var(--accent-soft)' : level === 'L3' ? 'var(--info-soft)' : 'var(--success-soft)',
+        color: level === 'L1' ? 'var(--muted)' : level === 'L2' ? 'var(--accent)' : level === 'L3' ? 'var(--accent-hover)' : 'var(--success)',
+        fontSize: '10px', padding: '1px 6px',
+      }}
+    >
+      {BLOOM_LABEL[level]}
+    </span>
+  );
+}
+
+function TopicCard({ topic, done, total, quizCount, sqlCount }: {
+  topic: Topic; done: number; total: number; quizCount: number; sqlCount: number;
+}) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  const isComplete = total > 0 && done >= total;
+  const level = bloomLevel(topic);
   return (
     <Link className="card" to={`/courses/${topic.id}`}>
-      <h3 className="card-title">{topic.title}</h3>
-      <p className="card-desc">{topic.description || '暂无课程简介。'}</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <h3 className="card-title">{topic.title}</h3>
+        <BloomPill level={level} />
+      </div>
+      <p className="card-desc">{topic.description || '暂无简介。'}</p>
+      <div className="card-meta-row">
+        {total > 0 && <span className="card-meta"><Icon name="chapter" size={16} />{total} 章</span>}
+        {quizCount > 0 && <span className="card-meta"><Icon name="quiz" size={16} />{quizCount} 题</span>}
+        {sqlCount > 0 && <span className="card-meta"><Icon name="sql" size={16} />{sqlCount} 实训</span>}
+      </div>
       {total > 0 && (
         <div className="card-progress">
-          <span className="card-progress-label">
-            {isComplete ? '已完成' : `已学 ${done}/${total} · ${pct}%`}
-          </span>
-          <div className="progress-track" style={{ height: 4 }}>
+          <span className="card-progress-label">{pct}%</span>
+          <div className="progress-track" style={{ height: 3 }}>
             <div className="progress-fill" style={{ width: `${pct}%` }} />
           </div>
         </div>
@@ -48,9 +76,11 @@ function TopicCard({ topic, done, total }: { topic: Topic; done: number; total: 
 export default function CoursesPage() {
   const topics = useQuery({ queryKey: ['topics'], queryFn: api.topics });
   const progress = useQuery({ queryKey: ['progress'], queryFn: api.progress });
+  const pathsQ = useQuery({ queryKey: ['learning-paths'], queryFn: api.learningPaths });
+  const exercisesQ = useQuery({ queryKey: ['all-sql'], queryFn: () => api.sqlExercises(0).catch(() => [] as any[]), enabled: false });
 
   const chapterQs = useQueries({
-    queries: (topics.data ?? []).map((t) => ({
+    queries: (topics.data ?? []).slice(0, 30).map((t) => ({
       queryKey: ['chapters', t.id],
       queryFn: () => api.chapters(t.id),
       staleTime: 5 * 60_000,
@@ -64,77 +94,96 @@ export default function CoursesPage() {
   );
 
   const topicStats = useMemo(() => {
-    return new Map((topics.data ?? []).map((t, i) => {
+    const m = new Map<number, { done: number; total: number }>();
+    (topics.data ?? []).forEach((t, i) => {
       const chs = chapterQs[i]?.data ?? [];
-      const done = chs.filter((c) => completedSet.has(String(c.id))).length;
-      return [t.id, { done, total: chs.length }];
-    }));
+      m.set(t.id, { done: chs.filter((c) => completedSet.has(String(c.id))).length, total: chs.length });
+    });
+    return m;
   }, [topics.data, chapterQs, completedSet]);
 
-  // 最近学习：从 events 中找最新的 chapter 事件
+  const globalDone = useMemo(() => {
+    let d = 0, t = 0;
+    for (const s of topicStats.values()) { d += s.done; t += s.total; }
+    return { done: d, total: t, pct: t > 0 ? Math.round((d / t) * 100) : 0 };
+  }, [topicStats]);
+
   const recentChapter = useMemo(() => {
     const events = progress.data?.events ?? [];
-    const chapterEvents = events.filter((e) => e.itemType === 'chapter' && e.itemId);
-    if (chapterEvents.length === 0) return null;
-    const latest = chapterEvents.reduce((a, b) =>
-      (a.createdAt ?? 0) > (b.createdAt ?? 0) ? a : b,
-    );
-    return { id: latest.itemId!, title: `章节 #${latest.itemId}` };
+    const chEvents = events.filter((e) => e.itemType === 'chapter' && e.itemId);
+    if (chEvents.length === 0) return null;
+    const latest = chEvents.reduce((a, b) => ((a.createdAt ?? 0) > (b.createdAt ?? 0) ? a : b));
+    return latest.itemId || null;
   }, [progress.data]);
 
   return (
     <section>
       <header className="page-head">
         <div>
-          <h1 className="page-title">学习中心</h1>
-          <p className="page-sub">按模块分组，选一个开始。已读章节标绿，进度实时同步。</p>
+          <h1 className="page-title">课程体系</h1>
+          <p className="page-sub">基于能力进阶模型，从基础认知到实战应用，系统化掌握 MES 实施核心技能。</p>
         </div>
-        {topics.data && <span className="row-meta">共 {topics.data.length} 门</span>}
+        {topics.data && <span className="row-meta">共 {topics.data.length} 门课程</span>}
       </header>
 
-      {/* 最近学习 */}
-      {recentChapter && (
-        <div className="alert alert-info">
-          <Icon name="run" size={16} className="alert-glyph" />
-          <div>
-            <span style={{ fontWeight: 'var(--weight-emph-cjk)' }}>继续学习</span>
-            <Link to={`/chapters/${recentChapter.id}`} className="text-link" style={{ fontSize: 'var(--text-sm)' }}>
-              最近阅读：{recentChapter.title} →
-            </Link>
-          </div>
+      {/* 进度总览 */}
+      <div className="stat-row" style={{ marginBottom: 'var(--space-2)' }}>
+        <div className="stat">
+          <span className="stat-value">{globalDone.pct}%</span>
+          <span className="stat-label">总进度</span>
         </div>
-      )}
+        <div className="stat">
+          <span className="stat-value">{globalDone.done}<span style={{ fontSize: 'var(--text-base)', color: 'var(--meta)', fontWeight: 400 }}>/{globalDone.total}</span></span>
+          <span className="stat-label">已学章节</span>
+        </div>
+        <div className="stat">
+          <span className="stat-value">{topics.data?.length ?? 0}</span>
+          <span className="stat-label">课程数量</span>
+        </div>
+        {recentChapter && (
+          <div className="stat">
+            <Link className="text-link" to={`/chapters/${recentChapter}`} style={{ fontSize: 'var(--text-sm)' }}>
+              <Icon name="run" size={16} /> 继续学习 →
+            </Link>
+            <span className="stat-label">最近学习</span>
+          </div>
+        )}
+      </div>
 
-      {topics.isLoading && <LoadingState label="正在加载课程…" />}
+      {topics.isLoading && <LoadingState label="加载课程…" />}
       {topics.isError && <ErrorState error={topics.error} onRetry={() => void topics.refetch()} />}
-      {topics.data?.length === 0 && (
-        <EmptyState title="还没有课程" hint="内容由后台导入，导入后会出现在这里。" icon="courses" />
-      )}
+      {topics.data?.length === 0 && <EmptyState title="还没有课程" hint="内容由后台导入" icon="courses" />}
 
-      {topics.data && topics.data.length > 0 && GROUPS.map((group) => {
-        // 按进度排序：未完成的排前面
+      {topics.data && BLOOM_GROUPS.map((level) => {
         const items = topics.data!
-          .filter(group.match)
+          .filter((t) => bloomLevel(t) === level && t.id < 5000) // exclude roadmap topics (id >= 5000)
           .sort((a, b) => {
             const sa = topicStats.get(a.id) ?? { done: 0, total: 0 };
             const sb = topicStats.get(b.id) ?? { done: 0, total: 0 };
-            const pa = sa.total > 0 ? sa.done / sa.total : 0;
-            const pb = sb.total > 0 ? sb.done / sb.total : 0;
-            return pa - pb; // 进度低的在前面
+            return (sa.total > 0 ? sa.done / sa.total : 0) - (sb.total > 0 ? sb.done / sb.total : 0);
           });
         if (items.length === 0) return null;
         return (
-          <div key={group.label} className="section">
+          <div key={level} className="section">
             <div className="section-head">
-              <h2 className="section-title">{group.label}</h2>
-              <span className="row-meta">{group.desc}</span>
+              <h2 className="section-title">
+                <span className="pill" style={{
+                  background: level === 'L1' ? 'var(--surface-2)' : level === 'L2' ? 'var(--accent-soft)' : level === 'L3' ? 'var(--info-soft)' : 'var(--success-soft)',
+                  color: level === 'L1' ? 'var(--muted)' : level === 'L2' ? 'var(--accent)' : level === 'L3' ? 'var(--accent-hover)' : 'var(--success)',
+                  marginRight: 'var(--space-2)', fontWeight: 600,
+                }}>{level}</span>
+                {level === 'L1' ? '基础认知' : level === 'L2' ? '核心知识' : level === 'L3' ? '实战应用' : '认证评估'}
+              </h2>
+              <span className="row-meta">
+                {level === 'L1' ? '概念入门，建立认知框架' : level === 'L2' ? '深入理解，掌握核心概念' : level === 'L3' ? '动手实操，解决真实问题' : '综合认证，能力证明'}
+              </span>
             </div>
             <ul className="card-grid">
               {items.map((t) => {
                 const stat = topicStats.get(t.id) ?? { done: 0, total: 0 };
                 return (
                   <li key={t.id}>
-                    <TopicCard topic={t} done={stat.done} total={stat.total} />
+                    <TopicCard topic={t} done={stat.done} total={stat.total} quizCount={0} sqlCount={0} />
                   </li>
                 );
               })}
@@ -143,30 +192,26 @@ export default function CoursesPage() {
         );
       })}
 
-      {/* 兜底：未匹配到任何分组的课程 */}
-      {(() => {
-        const matched = new Set(GROUPS.flatMap((g) => topics.data!.filter(g.match).map((t) => t.id)));
-        const unmatched = topics.data!.filter((t) => !matched.has(t.id));
-        if (unmatched.length === 0) return null;
-        return (
-          <div className="section">
-            <div className="section-head">
-              <h2 className="section-title">更多课程</h2>
-              <span className="row-meta">其他知识模块</span>
-            </div>
-            <ul className="card-grid">
-              {unmatched.map((t) => {
-                const stat = topicStats.get(t.id) ?? { done: 0, total: 0 };
-                return (
-                  <li key={t.id}>
-                    <TopicCard topic={t} done={stat.done} total={stat.total} />
-                  </li>
-                );
-              })}
-            </ul>
+      {/* 学习路径 */}
+      {pathsQ.data && pathsQ.data.length > 0 && (
+        <div className="section">
+          <div className="section-head">
+            <h2 className="section-title">学习路径</h2>
+            <span className="row-meta">结构化冲刺路线</span>
           </div>
-        );
-      })()}
+          <ul className="card-grid">
+            {pathsQ.data.slice(0, 4).map((p) => (
+              <li key={p.id}>
+                <Link className="card" to={`/learning-paths`}>
+                  <h3 className="card-title">{p.title}</h3>
+                  <p className="card-desc">{p.description || `${p.topicIds.length} 个阶段`}</p>
+                  <span className="tag">{p.topicIds.length} 阶段</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }

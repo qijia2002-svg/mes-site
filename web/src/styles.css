@@ -570,14 +570,28 @@ body,
 .card-progress {
   margin-top: auto;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: var(--space-2);
 }
 .card-progress-label {
   font-size: var(--text-xs);
-  color: var(--meta);
+  color: var(--accent);
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-announce);
+  min-width: 32px;
+}
+.card-meta-row {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.card-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-xs);
+  color: var(--meta);
 }
 
 .tag-row {

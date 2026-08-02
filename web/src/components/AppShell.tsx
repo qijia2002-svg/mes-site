@@ -159,7 +159,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-expanded={learnOpen}
           >
             <Icon name="courses" size={20} className="nav-glyph" />
-            <span className="nav-label">学习中心</span>
+            <span className="nav-label">课程体系</span>
             <Icon name={learnOpen ? 'close' : 'menu'} size={16} className="nav-group-arrow" />
           </button>
           {learnOpen && (
@@ -189,13 +189,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <li>
             <NavLink to="/sql-space" className={({ isActive }) => (isActive ? 'nav-item is-active' : 'nav-item')}>
               <Icon name="sql" size={20} className="nav-glyph" />
-              <span className="nav-label">模拟台</span>
+              <span className="nav-label">SQL 工作台</span>
             </NavLink>
           </li>
           <li>
             <NavLink to="/simulator" className={({ isActive }) => (isActive ? 'nav-item is-active' : 'nav-item')}>
               <Icon name="routing" size={20} className="nav-glyph" />
-              <span className="nav-label">工厂模拟</span>
+              <span className="nav-label">仿真沙盒</span>
             </NavLink>
           </li>
         </ul>
@@ -230,9 +230,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <nav className="mobile-tabbar only-mobile" aria-label="主导航">
         {[
           { to: '/', label: '首页', icon: 'dashboard' as IconName, end: true },
-          { to: '/courses', label: '学习', icon: 'courses' as IconName },
-          { to: '/sql-space', label: '模拟台', icon: 'sql' as IconName },
-          { to: '/simulator', label: '工厂', icon: 'routing' as IconName },
+          { to: '/courses', label: '课程', icon: 'courses' as IconName },
+          { to: '/sql-space', label: 'SQL', icon: 'sql' as IconName },
+          { to: '/simulator', label: '沙盒', icon: 'routing' as IconName },
         ].map((item) => (
           <NavLink
             key={item.to}
