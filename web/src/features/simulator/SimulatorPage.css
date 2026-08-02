@@ -1,4 +1,4 @@
-/* 工厂模拟 · 工艺流程图搭建器。深色主题。 */
+/* 工厂模拟 · 工艺流程图搭建器。浅色主题。 */
 
 .sim-page {
   display: flex;
@@ -6,337 +6,180 @@
   height: calc(100vh - var(--topbar-h) - var(--space-8));
   min-height: 560px;
   margin: calc(-1 * var(--section-y-desktop)) calc(-1 * var(--gutter-desktop));
-  background: var(--surface-ink);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
 /* ---------- 工具栏 ---------- */
 .sim-toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  display: flex; align-items: center; gap: var(--space-3);
   padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--border-on-ink);
+  border-bottom: 1px solid var(--border-soft);
   flex: none;
 }
 .sim-toolbar-name {
-  background: transparent;
-  border: 1px solid transparent;
+  background: transparent; border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  color: var(--fg-on-ink);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  padding: var(--space-1) var(--space-2);
-  min-width: 140px;
+  color: var(--fg); font-family: var(--font-mono); font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-2); min-width: 140px;
   transition: border-color var(--motion-fast);
 }
 .sim-toolbar-name:hover, .sim-toolbar-name:focus {
-  border-color: var(--border-on-ink);
-  outline: none;
+  border-color: var(--border); outline: none;
 }
-.sim-toolbar-actions {
-  margin-left: auto;
-  display: flex;
-  gap: var(--space-1);
-}
+.sim-toolbar-actions { margin-left: auto; display: flex; gap: var(--space-1); }
 .sim-toolbar-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
+  display: inline-flex; align-items: center; gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--meta-on-ink);
-  font-family: inherit;
-  font-size: var(--text-sm);
-  cursor: pointer;
+  border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--muted);
+  font-family: inherit; font-size: var(--text-sm); cursor: pointer;
   transition: background var(--motion-fast), color var(--motion-fast);
 }
-.sim-toolbar-btn:hover {
-  background: color-mix(in srgb, var(--fg-on-ink) 8%, transparent);
-  color: var(--fg-2-on-ink);
-}
+.sim-toolbar-btn:hover { background: var(--surface-2); color: var(--fg); }
 
 /* ---------- 主体 ---------- */
 .sim-body { display: flex; flex: 1; min-height: 0; }
 
 /* ---------- 左侧工序库 ---------- */
 .sim-palette {
-  width: 170px;
-  flex: none;
-  border-right: 1px solid var(--border-on-ink);
+  width: 170px; flex: none;
+  border-right: 1px solid var(--border);
   padding: var(--space-3) var(--space-2);
   overflow-y: auto;
 }
 .sim-palette-title {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-announce-cjk);
-  color: var(--fg-on-ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-caps);
+  font-size: var(--text-xs); font-weight: var(--weight-announce-cjk);
+  color: var(--fg); text-transform: uppercase; letter-spacing: var(--tracking-caps);
   margin-bottom: 2px;
 }
-.sim-palette-hint {
-  margin: 0 0 var(--space-2);
-  font-size: var(--text-xs);
-  color: var(--meta-on-ink);
-}
-.sim-palette-group {
-  margin-bottom: var(--space-2);
-}
+.sim-palette-hint { margin: 0 0 var(--space-2); font-size: var(--text-xs); color: var(--meta); }
+.sim-palette-group { margin-bottom: var(--space-2); }
 .sim-palette-grouplabel {
-  font-size: 10px;
-  color: var(--meta-on-ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-caps);
+  font-size: 10px; color: var(--meta);
+  text-transform: uppercase; letter-spacing: var(--tracking-caps);
   padding: var(--space-1) 0;
-  border-bottom: 1px solid var(--border-on-ink);
+  border-bottom: 1px solid var(--border-soft);
   margin-bottom: 2px;
 }
 .sim-palette-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  display: flex; align-items: center; gap: var(--space-2);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
-  color: var(--fg-2-on-ink);
-  font-size: var(--text-sm);
-  cursor: grab;
-  transition: background var(--motion-fast);
-  user-select: none;
+  color: var(--muted); font-size: var(--text-sm);
+  cursor: grab; transition: background var(--motion-fast); user-select: none;
 }
-.sim-palette-item:hover { background: color-mix(in srgb, var(--fg-on-ink) 6%, transparent); }
+.sim-palette-item:hover { background: var(--surface-2); }
 .sim-palette-name { flex: 1; }
 .sim-critical-mark { font-size: 10px; }
 
 /* 形状预览 */
-.sim-shape-rect {
-  width: 14px; height: 10px;
-  border: 1.5px solid var(--accent-on-ink);
-  border-radius: 2px;
-  flex: none;
-}
-.sim-shape-diamond {
-  width: 12px; height: 12px;
-  border: 1.5px solid var(--warn);
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  background: transparent;
-  flex: none;
-}
-.sim-shape-oval {
-  width: 14px; height: 9px;
-  border: 1.5px solid var(--meta-on-ink);
-  border-radius: 50%;
-  flex: none;
-}
-.sim-shape-storage {
-  width: 14px; height: 10px;
-  border: 1.5px solid var(--success);
-  border-radius: 4px;
-  flex: none;
-}
+.sim-shape-rect { width: 14px; height: 10px; border: 1.5px solid var(--accent); border-radius: 2px; flex: none; }
+.sim-shape-diamond { width: 12px; height: 12px; border: 1.5px solid var(--warn); clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%); background: transparent; flex: none; }
+.sim-shape-oval { width: 14px; height: 9px; border: 1.5px solid var(--muted); border-radius: 50%; flex: none; }
+.sim-shape-storage { width: 14px; height: 10px; border: 1.5px solid var(--success); border-radius: 4px; flex: none; }
 
 /* ---------- 画布 + 属性 ---------- */
 .sim-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
 .sim-canvas {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  outline: none;
-  background-image: radial-gradient(circle, var(--border-on-ink) 1px, transparent 1px);
+  flex: 1; position: relative; overflow: hidden; outline: none;
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
   background-size: 24px 24px;
 }
-.sim-svg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
+.sim-svg { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
 
-/* 连线 */
 .sim-edge {
-  fill: none;
-  stroke: var(--accent-on-ink);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  cursor: pointer;
-  pointer-events: stroke;
+  fill: none; stroke: var(--accent); stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+  cursor: pointer; pointer-events: stroke;
 }
-.sim-edge.is-dashed {
-  stroke: var(--warn);
-  stroke-dasharray: 6 4;
-}
+.sim-edge.is-dashed { stroke: var(--warn); stroke-dasharray: 6 4; }
 
 .sim-empty-hint {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  color: var(--meta-on-ink);
-  font-size: var(--text-sm);
-  pointer-events: none;
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  color: var(--meta); font-size: var(--text-sm); pointer-events: none;
 }
 
-/* ---------- 节点基类 ---------- */
-.sim-node {
-  position: absolute;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: move;
-  user-select: none;
-}
+/* ---------- 节点 ---------- */
+.sim-node { position: absolute; z-index: 1; display: flex; align-items: center; justify-content: center; cursor: move; user-select: none; }
 
-/* 矩形加工节点 */
 .sim-node-rect {
-  border: 1.5px solid var(--accent-on-ink);
+  border: 1.5px solid var(--accent-border);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--accent-on-ink) 10%, var(--surface-ink));
+  background: var(--surface);
 }
-.sim-node-rect.is-selected {
-  border-width: 2.5px;
-  box-shadow: 0 0 12px -4px rgba(99,179,237,0.3);
-}
+.sim-node-rect.is-selected { border-color: var(--accent); border-width: 2.5px; box-shadow: 0 0 12px -4px rgba(10,97,184,0.2); }
 
-/* 菱形检验节点 */
 .sim-node-diamond {
-  border: 1.5px solid var(--warn);
-  background: color-mix(in srgb, var(--warn) 10%, var(--surface-ink));
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  border: 1.5px solid var(--warn-border);
+  background: var(--surface);
+  clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%);
 }
-.sim-node-diamond.is-selected {
-  border-width: 2.5px;
-  box-shadow: 0 0 12px -4px rgba(245,158,11,0.3);
-}
+.sim-node-diamond.is-selected { border-color: var(--warn); border-width: 2.5px; box-shadow: 0 0 12px -4px rgba(245,158,11,0.2); }
 
-/* 椭圆起止节点 */
 .sim-node-oval {
-  border: 1.5px solid var(--meta-on-ink);
+  border: 1.5px solid var(--border);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--meta-on-ink) 8%, var(--surface-ink));
+  background: var(--surface);
 }
-.sim-node-oval.is-selected {
-  border-width: 2.5px;
-  border-color: var(--fg-2-on-ink);
-}
+.sim-node-oval.is-selected { border-color: var(--muted); border-width: 2.5px; }
 
-/* 圆角仓储节点 */
 .sim-node-storage {
-  border: 1.5px solid var(--success);
+  border: 1.5px solid var(--success-border);
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--success) 8%, var(--surface-ink));
+  background: var(--surface);
 }
-.sim-node-storage.is-selected {
-  border-width: 2.5px;
-  box-shadow: 0 0 12px -4px rgba(16,185,129,0.3);
-}
+.sim-node-storage.is-selected { border-color: var(--success); border-width: 2.5px; box-shadow: 0 0 12px -4px rgba(16,185,129,0.2); }
 
-/* 节点标签（菱形内部需反旋转 clip-path） */
-.sim-node-label {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-announce-cjk);
-  color: var(--fg-on-ink);
-  text-align: center;
-  line-height: 1.2;
-  padding: 2px;
-}
-.diamond-inner {
-  max-width: 60%;
-  font-size: var(--text-xs);
-}
-.sim-critical-mark {
-  font-size: 10px;
-  margin-left: 2px;
-}
+.sim-node-label { font-size: var(--text-sm); font-weight: var(--weight-announce-cjk); color: var(--fg); text-align: center; line-height: 1.2; padding: 2px; }
+.diamond-inner { max-width: 60%; font-size: var(--text-xs); }
+.sim-critical-mark { font-size: 10px; margin-left: 2px; }
 
-/* 端口 */
 .sim-port {
-  position: absolute;
-  width: 10px; height: 10px;
+  position: absolute; width: 10px; height: 10px;
   border-radius: var(--radius-pill);
-  border: 1.5px solid var(--border-on-ink);
-  background: var(--surface-ink);
-  cursor: crosshair;
-  padding: 0;
-  transform: translate(-50%, -50%);
-  z-index: 2;
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface); cursor: crosshair; padding: 0;
+  transform: translate(-50%,-50%); z-index: 2;
   transition: background var(--motion-fast), border-color var(--motion-fast);
 }
-.sim-port:hover {
-  background: var(--accent-on-ink);
-  border-color: var(--accent-on-ink);
-  box-shadow: 0 0 6px rgba(99,179,237,0.5);
-}
+.sim-port:hover { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 6px rgba(10,97,184,0.3); }
 
 /* ---------- 底部属性 ---------- */
 .sim-props {
-  border-top: 1px solid var(--border-on-ink);
+  border-top: 1px solid var(--border);
   padding: var(--space-3) var(--space-4);
   flex: none;
   animation: propsSlideUp 0.15s var(--ease-standard) both;
 }
-@keyframes propsSlideUp {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+@keyframes propsSlideUp { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
 .sim-props-head {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-announce-cjk);
-  color: var(--fg-on-ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-caps);
+  font-size: var(--text-xs); font-weight: var(--weight-announce-cjk);
+  color: var(--fg); text-transform: uppercase; letter-spacing: var(--tracking-caps);
   margin-bottom: var(--space-2);
 }
-.sim-props-body {
-  display: flex;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
+.sim-props-body { display: flex; gap: var(--space-3); flex-wrap: wrap; }
 .sim-field { display: flex; flex-direction: column; gap: 2px; }
-.sim-field-label {
-  font-size: var(--text-xs);
-  color: var(--meta-on-ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-caps);
-}
+.sim-field-label { font-size: var(--text-xs); color: var(--meta); text-transform: uppercase; letter-spacing: var(--tracking-caps); }
 .sim-field-row { flex-direction: row; align-items: center; gap: var(--space-2); }
 .sim-input {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--fg-on-ink);
-  background: color-mix(in srgb, var(--fg-on-ink) 4%, transparent);
-  border: 1px solid var(--border-on-ink);
-  border-radius: var(--radius-xs);
-  padding: var(--space-1) var(--space-2);
-  width: 120px;
-  outline: none;
+  font-family: var(--font-mono); font-size: var(--text-sm);
+  color: var(--fg); background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-xs);
+  padding: var(--space-1) var(--space-2); width: 120px; outline: none;
 }
-.sim-input:focus { border-color: var(--accent-on-ink); }
+.sim-input:focus { border-color: var(--accent); }
 .sim-toggle {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-announce);
-  padding: 2px var(--space-2);
-  border: 1px solid var(--border-on-ink);
-  border-radius: var(--radius-xs);
-  background: transparent;
-  color: var(--meta-on-ink);
-  cursor: pointer;
+  font-family: var(--font-mono); font-size: var(--text-xs); font-weight: var(--weight-announce);
+  padding: 2px var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-xs);
+  background: transparent; color: var(--muted); cursor: pointer;
 }
-.sim-toggle.is-on {
-  background: var(--success);
-  border-color: var(--success);
-  color: var(--surface);
-}
+.sim-toggle.is-on { background: var(--success); border-color: var(--success); color: #fff; }
 
-/* ---------- 响应式 ---------- */
 @media (max-width: 768px) {
-  .sim-page {
-    margin: calc(-1 * var(--section-y-phone)) calc(-1 * var(--gutter-phone));
-  }
+  .sim-page { margin: calc(-1 * var(--section-y-phone)) calc(-1 * var(--gutter-phone)); }
   .sim-palette { display: none; }
 }

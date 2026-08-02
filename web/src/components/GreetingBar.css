@@ -1,4 +1,4 @@
-/* 首页打招呼区域。深色主题，与仪表盘 .dash 区域共用 v3 token 体系。 */
+/* 首页打招呼区域。浅色主题。 */
 
 .greeting-bar {
   display: flex;
@@ -6,21 +6,18 @@
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-5) var(--space-6);
-  background: var(--surface-ink);
-  border: 1px solid var(--border-on-ink);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  color: var(--fg-on-ink);
+  box-shadow: var(--elev-card);
 }
-.greeting-main {
-  min-width: 0;
-  flex: 1;
-}
+.greeting-main { min-width: 0; flex: 1; }
 .greeting-title {
   margin: 0 0 var(--space-1);
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--fg-on-ink);
+  color: var(--fg);
 }
 .greeting-meta {
   display: flex;
@@ -28,24 +25,17 @@
   gap: var(--space-1);
   margin: 0 0 var(--space-2);
   font-size: 13px;
-  color: var(--fg-2-on-ink);
+  color: var(--muted);
 }
-.greeting-meta svg {
-  opacity: 0.7;
-}
-.greeting-sep {
-  margin: 0 var(--space-1);
-  color: var(--meta-on-ink);
-}
+.greeting-meta svg { opacity: 0.7; }
+.greeting-sep { margin: 0 var(--space-1); color: var(--meta); }
 .greeting-motivation {
   margin: 0;
   font-size: 14px;
-  color: var(--accent-on-ink);
+  color: var(--accent);
   font-weight: 500;
 }
+
 @media (max-width: 768px) {
-  .greeting-bar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+  .greeting-bar { flex-direction: column; align-items: flex-start; }
 }

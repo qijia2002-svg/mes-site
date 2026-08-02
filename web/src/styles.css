@@ -45,10 +45,7 @@ body,
   top: var(--space-2);
 }
 
-/* ---------- Sidebar（v3.1 深色化）----------
-   深色侧栏是驾驶舱风格的核心视觉特征。用 V3 的 --surface-ink（= --brand-ink #0f1b26），
-   与首页深色锚点区、SQL 沙箱深色面板同源——深色不再是孤岛，而是贯穿全站的「框架」语义。
-   侧栏内所有元素用 --fg-on-ink / --meta-on-ink / --border-on-ink 等 on-ink token。 */
+/* ---------- Sidebar ---------- */
 .sidebar {
   position: sticky;
   top: 0;
@@ -57,8 +54,8 @@ body,
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-2);
-  background: var(--surface-ink);
-  border-right: 1px solid var(--border-on-ink);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   overflow: hidden;
 }
 .sidebar-brand {
@@ -68,17 +65,17 @@ body,
   padding: var(--space-2) var(--space-2) var(--space-4);
   font-weight: var(--weight-announce-cjk);
   letter-spacing: var(--tracking-title);
-  color: var(--fg-on-ink);
+  color: var(--fg);
   white-space: nowrap;
-  border-bottom: 1px solid var(--border-on-ink);
+  border-bottom: 1px solid var(--border-soft);
 }
 .brand-glyph {
-  color: var(--accent-on-ink);
+  color: var(--accent);
   flex: none;
 }
 .sidebar-foot {
   margin-top: auto;
-  border-top: 1px solid var(--border-on-ink);
+  border-top: 1px solid var(--border-soft);
   padding-top: var(--space-3);
 }
 
@@ -90,7 +87,6 @@ body,
   flex-direction: column;
   gap: 2px;
 }
-/* 深底导航项：默认 --meta-on-ink，hover 用浅色叠层，active 用 accent 半透明底 */
 .nav-item {
   position: relative;
   display: flex;
@@ -98,7 +94,7 @@ body,
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
-  color: var(--meta-on-ink);
+  color: var(--muted);
   text-decoration: none;
   white-space: nowrap;
   transition:
@@ -106,12 +102,12 @@ body,
     color var(--motion-fast) var(--ease-standard);
 }
 .nav-item:hover {
-  background: color-mix(in srgb, var(--fg-on-ink) 8%, transparent);
-  color: var(--fg-2-on-ink);
+  background: var(--surface-2);
+  color: var(--fg);
 }
 .nav-item.is-active {
-  background: color-mix(in srgb, var(--accent-on-ink) 15%, transparent);
-  color: var(--fg-on-ink);
+  background: var(--accent-soft);
+  color: var(--fg);
   font-weight: var(--weight-emph-cjk);
 }
 .nav-item.is-active::before {
@@ -123,7 +119,7 @@ body,
   width: 3px;
   height: 60%;
   border-radius: var(--radius-pill);
-  background: var(--accent-on-ink);
+  background: var(--accent);
 }
 .nav-glyph {
   flex: none;
@@ -156,8 +152,8 @@ body,
   padding: var(--space-2) var(--space-3);
   border: 0;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--fg-on-ink) 4%, transparent);
-  color: var(--meta-on-ink);
+  background: transparent;
+  color: var(--muted);
   font-family: inherit;
   font-size: var(--text-base);
   text-align: left;
@@ -168,12 +164,12 @@ body,
     color var(--motion-fast) var(--ease-standard);
 }
 .nav-group-head:hover {
-  background: color-mix(in srgb, var(--fg-on-ink) 8%, transparent);
-  color: var(--fg-2-on-ink);
+  background: var(--surface-2);
+  color: var(--fg);
 }
 .nav-group-arrow {
   margin-left: auto;
-  color: var(--meta-on-ink);
+  color: var(--meta);
   flex: none;
 }
 .nav-sublist {
@@ -183,8 +179,7 @@ body,
   display: flex;
   flex-direction: column;
   gap: 1px;
-  /* 左侧引导线，区分层级 */
-  border-left: 1px solid var(--border-on-ink);
+  border-left: 1px solid var(--border);
   margin-left: var(--space-3);
 }
 .nav-subitem {
@@ -193,7 +188,7 @@ body,
   gap: var(--space-2);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-xs);
-  color: var(--meta-on-ink);
+  color: var(--muted);
   text-decoration: none;
   font-size: var(--text-sm);
   white-space: nowrap;
@@ -202,11 +197,11 @@ body,
     color var(--motion-fast) var(--ease-standard);
 }
 .nav-subitem:hover {
-  background: color-mix(in srgb, var(--fg-on-ink) 6%, transparent);
-  color: var(--fg-2-on-ink);
+  background: var(--surface-2);
+  color: var(--fg);
 }
 .nav-subitem.is-active {
-  color: var(--accent-on-ink);
+  color: var(--accent);
   font-weight: var(--weight-emph-cjk);
 }
 .nav-subglyph {
@@ -228,7 +223,7 @@ body,
 }
 .sidebar-progress-label {
   font-size: var(--text-xs);
-  color: var(--meta-on-ink);
+  color: var(--meta);
   text-transform: uppercase;
   letter-spacing: var(--tracking-caps);
 }
@@ -236,23 +231,23 @@ body,
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   font-weight: var(--weight-announce);
-  color: var(--fg-on-ink);
+  color: var(--fg);
 }
 .sidebar-progress-track {
   height: 4px;
-  background: var(--border-on-ink);
+  background: var(--surface-3);
   border-radius: var(--radius-pill);
   overflow: hidden;
 }
 .sidebar-progress-fill {
   height: 100%;
-  background: var(--accent-on-ink);
+  background: var(--accent);
   border-radius: var(--radius-pill);
   transition: width var(--motion-slow) var(--ease-standard);
 }
 .sidebar-progress-meta {
   font-size: var(--text-xs);
-  color: var(--meta-on-ink);
+  color: var(--meta);
   font-family: var(--font-mono);
 }
 .sidebar-progress-cta {
@@ -263,15 +258,15 @@ body,
   margin-top: var(--space-2);
   padding: var(--space-2);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--accent-on-ink) 20%, transparent);
-  color: var(--fg-on-ink);
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: var(--text-sm);
   font-weight: var(--weight-emph-cjk);
   text-decoration: none;
   transition: background-color var(--motion-fast) var(--ease-standard);
 }
 .sidebar-progress-cta:hover {
-  background: color-mix(in srgb, var(--accent-on-ink) 30%, transparent);
+  background: var(--accent-border);
 }
 
 
