@@ -80,7 +80,9 @@ export function planSimulation(nodes: SimNode[], edges: SimEdge[], batch = DEFAU
     indeg.set(n.id, 0);
     adj.set(n.id, []);
   });
+  // 回流（虚线）边是反馈环，不参与拓扑排序，否则会被误判成"环/断点"。
   edges.forEach((e) => {
+    if (e.dashed) return;
     if (indeg.has(e.to) && adj.has(e.from)) {
       indeg.set(e.to, (indeg.get(e.to) ?? 0) + 1);
       adj.get(e.from)!.push(e.to);
@@ -131,7 +133,7 @@ export function computeStep(node: SimNode, inGood: number, plan: SimPlan, now: D
     }
     // 发货
     return {
-      log: { ts, type: 'ok', msg: `成品发货 ${inGood} 件，订单履约完成 ✓` },
+      log: { ts, type: 'ok', msg: `成品发货 ${inGood} 件，订单履约完成` },
       outGood: inGood,
       defective: 0,
       reworked: 0,
@@ -156,7 +158,7 @@ export function computeStep(node: SimNode, inGood: number, plan: SimPlan, now: D
       defective > 0
         ? `检验「${node.label}」：${inGood} 件中 ${defective} 件不良` +
           (reworkTarget ? `，${reworked} 件回流返工、${defective - reworked} 件报废` : `，${scrapped} 件报废`)
-        : `检验「${node.label}」：全部合格 ✓`;
+        : `检验「${node.label}」：全部合格`;
     return {
       log: { ts, type: defective > 0 ? 'warn' : 'ok', msg },
       outGood,

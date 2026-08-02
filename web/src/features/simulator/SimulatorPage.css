@@ -101,11 +101,13 @@
 .sim-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
 .sim-canvas {
-  flex: 1; position: relative; overflow: hidden; outline: none;
+  flex: 1; position: relative; overflow: auto; outline: none;
   background-image: radial-gradient(circle, var(--border-soft) 1px, transparent 1px);
   background-size: 20px 20px;
 }
-.sim-svg { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+/* 舞台固定尺寸，画布可滚动，节点/连线超出视口也不丢失 */
+.sim-stage { position: relative; width: 1000px; height: 520px; }
+.sim-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
 
 .sim-edge {
   fill: none; stroke: var(--accent); stroke-width: 2;

@@ -3,7 +3,7 @@
  * 支持「运行仿真」：工单沿工艺路线流转，实时日志 + 指标。
  */
 import { useReducer, useState, useCallback, useRef } from 'react';
-import { simReducer, initialSimState } from './simReducer';
+import { simReducer, initialSimState, seedExampleState } from './simReducer';
 import { loadFromStorage } from './simStorage';
 import { planSimulation, computeStep, startLog, DEFAULT_BATCH, type SimMetrics, type SimLogEntry } from './simEngine';
 import SimToolbar from './SimToolbar';
@@ -21,11 +21,11 @@ const EMPTY_RUN: SimRunState = { active: false, activeNodeId: null, logs: [], me
 export default function SimulatorPage() {
   const [state, dispatch] = useReducer(simReducer, null, () => {
     const saved = loadFromStorage();
-    if (saved) {
-      const s = initialSimState();
-      return { ...s, projectName: saved.name || '车间仿真沙盒', nodes: saved.nodes, edges: saved.edges };
+    // 有本地存档且非空 → 恢复；否则播种示例工厂，保证画布非空、开箱即用
+    if (saved && saved.nodes.length > 0) {
+      return { ...initialSimState(), projectName: saved.name || '车间仿真沙盒', nodes: saved.nodes, edges: saved.edges };
     }
-    return { ...initialSimState(), projectName: '车间仿真沙盒' };
+    return seedExampleState();
   });
 
   const [run, setRun] = useState<SimRunState>(EMPTY_RUN);

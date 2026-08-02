@@ -35,7 +35,7 @@ function buildLog(nodes: Props['nodes'], edges: Props['edges']): StaticLog[] {
   const hasEndpoint = nodes.some((n) => n.nodeType === 'material' || n.nodeType === 'ship');
   const hasProcess = nodes.some((n) => n.nodeType !== 'material' && n.nodeType !== 'ship' && !n.nodeType.startsWith('i_'));
 
-  if (hasEndpoint) logs.push({ ts: t(5), type: 'ok', msg: '起止节点已设置 ✓' });
+  if (hasEndpoint) logs.push({ ts: t(5), type: 'ok', msg: '起止节点已设置' });
   if (hasProcess) logs.push({ ts: t(4), type: 'ok', msg: `已添加 ${nodes.filter((n) => n.nodeType !== 'material' && n.nodeType !== 'ship' && !n.nodeType.startsWith('i_')).length} 个加工节点` });
   if (hasInspect) logs.push({ ts: t(3), type: 'ok', msg: `已添加 ${nodes.filter((n) => n.nodeType.startsWith('i_')).length} 个检验节点` });
 

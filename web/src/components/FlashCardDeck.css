@@ -3,7 +3,7 @@
 .flash-deck {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 /* ---------- 顶部进度条 ---------- */
@@ -58,7 +58,7 @@
   border: 1px solid var(--card-border);
   border-radius: var(--card-radius);
   padding: var(--space-6);
-  min-height: 280px;
+  min-height: 200px;
   max-height: min(68vh, 640px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;

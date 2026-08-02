@@ -343,15 +343,17 @@ body,
 }
 
 /* ---------- 内容区 ---------- */
+/* v2 收紧：顶部留白 40→24、底部 64→48、区块间距 32→24，
+   让章节/课程页标题更靠上、学习卡片更早出现在首屏（移动端优先）。 */
 .content {
   flex: 1;
   width: 100%;
   max-width: var(--container-app);
   margin: 0 auto;
-  padding: 40px var(--gutter-desktop) var(--space-16);
+  padding: 24px var(--gutter-desktop) var(--space-12);
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-6);
   animation: pageEnter 0.2s var(--ease-out) both;
 }
 @keyframes pageEnter {
@@ -1283,7 +1285,7 @@ body,
 /* ---------- 响应式：1024 / 640（Spec §10） ---------- */
 @media (max-width: 1024px) {
   .content {
-    padding: var(--section-y-tablet) var(--gutter-tablet) var(--space-12);
+    padding: var(--space-6) var(--gutter-tablet) var(--space-10);
   }
   .topbar {
     padding: 0 var(--gutter-tablet);
@@ -1305,8 +1307,8 @@ body,
     display: none;
   }
   .content {
-    padding: var(--space-5) var(--gutter-phone)
-      calc(var(--tabbar-h) + var(--space-6));
+    padding: var(--space-4) var(--gutter-phone)
+      calc(var(--tabbar-h) + var(--space-5));
   }
   .card-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -1316,8 +1318,8 @@ body,
 
 @media (max-width: 640px) {
   .content {
-    padding: var(--space-5) var(--gutter-phone)
-      calc(var(--tabbar-h) + var(--space-6));
+    padding: var(--space-4) var(--gutter-phone)
+      calc(var(--tabbar-h) + var(--space-5));
   }
   .topbar {
     padding: 0 var(--gutter-phone);
