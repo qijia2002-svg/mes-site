@@ -1,11 +1,11 @@
--- MES 核心知识 种子数据（生成时间 2026-08-02T05:10:07.215Z）
+-- MES 核心知识 种子数据（生成时间 2026-08-02T05:13:30.841Z）
 -- 来源：E:\我的脑库\10_Learning（学习）\MES\
 -- 16 章完整 MES 知识体系
 
 INSERT OR IGNORE INTO topics (slug, title, description, modules, status, sort, updated_at)
-VALUES ('mes-knowledge', 'MES 核心知识', 'ERP / MES / PLC 三层架构，从基础术语到质量追溯的完整 MES 知识体系。适合 MES 实施顾问、运维工程师、求职者系统化学习。', '["MES","ERP","PLC","基础知识"]', 'published', 8, 1785647407);
+VALUES ('mes-knowledge', 'MES 核心知识', 'ERP / MES / PLC 三层架构，从基础术语到质量追溯的完整 MES 知识体系。适合 MES 实施顾问、运维工程师、求职者系统化学习。', '["MES","ERP","PLC","基础知识"]', 'published', 8, 1785647610);
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, 'MES 是什么', 1, '# MES 是什么
 
 ## 一句话理解
@@ -53,10 +53,10 @@ MES 解决了"计划与执行之间的断层"，让车间真正实现：
 | 控制层 | PLC / DCS / SCADA | 设备信号、参数 | 设备怎么动、参数对不对 |
 
 ## 下一步
-→ [[02_数据采集|数据采集：协议 vs IO]]', 'published', 1785647407
+→ [[02_数据采集|数据采集：协议 vs IO]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '数据采集：协议 vs IO', 2, '# 数据采集：协议 vs IO
 
 ## 一句话理解
@@ -135,10 +135,10 @@ MES 接收
 | 数控车床 | 金属加工 |
 
 ## 下一步
-→ [[03_生产形态|生产形态分类]]', 'published', 1785647407
+→ [[03_生产形态|生产形态分类]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '生产形态分类', 3, '# 生产形态分类
 
 ## 一句话理解
@@ -228,10 +228,10 @@ graph LR
 | **典型文件** | SOP + SIP + 二维图纸 | SOP + 三维图纸 | SOP + SIP + 三维图纸 |
 
 ## 下一步
-→ [[04_基础术语|基础术语：班组/工位/流水线/产线]]', 'published', 1785647407
+→ [[04_基础术语|基础术语：班组/工位/流水线/产线]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '基础术语：班组/工位/流水线/产线', 4, '# 基础术语：班组/工位/流水线/产线
 
 ## 一句话理解
@@ -301,10 +301,10 @@ employee 员工表：emp_id, name, team_id, station_id
 ```
 
 ## 下一步
-→ [[05_产品与物料|产品与物料]]', 'published', 1785647407
+→ [[05_产品与物料|产品与物料]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '产品与物料', 5, '# 产品与物料
 
 ## 一句话理解
@@ -383,10 +383,10 @@ erDiagram
 > 即"配料表"是产品与物料之间的"配方清单"，告诉系统每个产品要用哪些物料、各用多少。
 
 ## 下一步
-→ [[06_BOM|多层 BOM 结构]]', 'published', 1785647407
+→ [[06_BOM|多层 BOM 结构]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '多层 BOM 结构', 6, '# 多层 BOM 结构
 
 ## 一句话理解
@@ -457,10 +457,10 @@ bom_line:
 ```
 
 ## 下一步
-→ [[07_工艺路线|工艺路线五要素]]', 'published', 1785647407
+→ [[07_工艺路线|工艺路线五要素]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '工艺路线', 7, '# 工艺路线
 
 ## 一句话理解
@@ -545,10 +545,10 @@ routing_line:
 ```
 
 ## 下一步
-→ [[08_工单管理|工单管理]]', 'published', 1785647407
+→ [[08_工单管理|工单管理]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '工单管理', 8, '# 工单管理
 
 ## 一句话理解
@@ -625,10 +625,10 @@ work_order 工单表：
 ```
 
 ## 下一步
-→ [[09_批次与SN码管理|批次与 SN 码管理]]', 'published', 1785647407
+→ [[09_批次与SN码管理|批次与 SN 码管理]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '批次与 SN 码管理', 9, '# 批次与 SN 码管理
 
 ## 一句话理解
@@ -726,10 +726,10 @@ production_record: record_id, sn_id, process_id, start_time, end_time, operator_
 ```
 
 ## 下一步
-→ [[10_文件与安灯|文件发放与安灯呼叫]]', 'published', 1785647407
+→ [[10_文件与安灯|文件发放与安灯呼叫]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '文件发放与安灯呼叫', 10, '# 文件发放与安灯呼叫
 
 ## 一句话理解
@@ -844,10 +844,10 @@ andon_call: call_id, station_id, employee_id,
 ```
 
 ## 下一步
-→ [[11_质量检验|质量检验体系]]', 'published', 1785647407
+→ [[11_质量检验|质量检验体系]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '质量检验体系', 11, '# 质量检验体系
 
 ## 一句话理解
@@ -962,10 +962,10 @@ disposition 不良处理单：
 ```
 
 ## 下一步
-→ [[12_模具与设备管理|模具与设备管理]]', 'published', 1785647407
+→ [[12_模具与设备管理|模具与设备管理]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '模具与设备管理', 12, '# 模具与设备管理
 
 ## 一句话理解
@@ -1081,10 +1081,10 @@ spare_part: sp_id, code, name, spec, material, vendor, price, stock_qty, locatio
 ```
 
 ## 下一步
-→ [[13_计件绩效|计件绩效]]', 'published', 1785647407
+→ [[13_计件绩效|计件绩效]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '计件绩效', 13, '# 计件绩效
 
 ## 一句话理解
@@ -1196,10 +1196,10 @@ payroll_calc: calc_id, employee_id, period, work_type,
 ```
 
 ## 下一步
-→ [[14_看板体系|看板体系]]', 'published', 1785647407
+→ [[14_看板体系|看板体系]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '看板体系', 14, '# 看板体系
 
 ## 一句话理解
@@ -1303,10 +1303,10 @@ graph TB
 | **可下钻** | 总览→明细→原始数据 |
 
 ## 下一步
-→ [[15_稼动率|设备稼动率]]', 'published', 1785647407
+→ [[15_稼动率|设备稼动率]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '设备稼动率', 15, '# 设备稼动率
 
 ## 一句话理解
@@ -1429,10 +1429,10 @@ equipment_runtime 设备运行记录：
 ```
 
 ## 下一步
-→ [[16_质量追溯|质量追溯]]', 'published', 1785647407
+→ [[16_质量追溯|质量追溯]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 
-INSERT OR IGNORE INTO chapters (topic_id, title, sort, md, status, updated_at)
+INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, '质量追溯', 16, '# 质量追溯
 
 ## 一句话理解
@@ -1572,6 +1572,6 @@ trace_query:
 ```
 
 ## 下一步
-→ [[00_MES知识全景图|返回 MES 知识全景图]]', 'published', 1785647407
+→ [[00_MES知识全景图|返回 MES 知识全景图]]', 'published', 1785647610
 FROM topics WHERE slug = 'mes-knowledge';
 

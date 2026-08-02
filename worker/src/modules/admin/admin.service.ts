@@ -59,6 +59,7 @@ export async function createTopicSvc(c: Ctx, b: Record<string, unknown>) {
     sort: asNum(b.sort),
     status: asStr(b.status, 'draft'),
   });
+  await adminRepo.bumpContentVersion(c.db);
   return { ok: true };
 }
 
@@ -71,11 +72,13 @@ export async function updateTopicSvc(c: Ctx, id: number, b: Record<string, unkno
     sort: asNum(b.sort),
     status: asStr(b.status, 'draft'),
   });
+  await adminRepo.bumpContentVersion(c.db);
   return { ok: true };
 }
 
 export async function deleteTopicSvc(c: Ctx, id: number) {
   await adminRepo.deleteTopic(c.db, id);
+  await adminRepo.bumpContentVersion(c.db);
   return { ok: true };
 }
 
@@ -119,6 +122,7 @@ export async function createChapterSvc(c: Ctx, b: Record<string, unknown>) {
     md_text: asStr(b.md),
     schema_version: asNum(b.schemaVersion, 1),
   });
+  await adminRepo.bumpContentVersion(c.db);
   return { ok: true };
 }
 
@@ -131,11 +135,13 @@ export async function updateChapterSvc(c: Ctx, id: number, b: Record<string, unk
     md_text: asStr(b.md),
     schema_version: asNum(b.schemaVersion, 1),
   });
+  await adminRepo.bumpContentVersion(c.db);
   return { ok: true };
 }
 
 export async function deleteChapterSvc(c: Ctx, id: number) {
   await adminRepo.deleteChapter(c.db, id);
+  await adminRepo.bumpContentVersion(c.db);
   return { ok: true };
 }
 
@@ -212,5 +218,6 @@ export async function importContentSvc(c: Ctx, body: Record<string, unknown>) {
     }
   }
 
+  await adminRepo.bumpContentVersion(c.db);
   return { ok: true, topicsCreated, chaptersCreated };
 }

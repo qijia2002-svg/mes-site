@@ -131,6 +131,10 @@ export const adminRepo = {
   getTopicBySlug: (db: DbSession, slug: string) =>
     db.first<{ id: number }>(`SELECT id FROM topics WHERE slug = ?1`, slug),
 
+  /** 内容变更后 bump content_version，L2 缓存自动失效 */
+  bumpContentVersion: (db: DbSession) =>
+    db.run(`UPDATE platform_config SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT), updated_at = strftime('%s','now') WHERE key = 'content_version'`),
+
   // ---- import（两阶段：chunk 落 import_chunks，commit 校验整体到达） ----
   recordChunk: (db: DbSession, importId: string, chunkIndex: number, rows: number) =>
     db.run(
