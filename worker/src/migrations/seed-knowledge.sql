@@ -13,10 +13,26 @@
 -- SKIP: 
 
 -- Topics
-INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (4, 'erp', 'ERP 原理与模块', '从销售订单到财务结算的企业经营全貌', '["theory"]', 4, 'published', 1785648000, 1785648000);
-INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (5, 'mes', 'MES 核心模块', '工单/物料/报工/质量/追溯/设备/看板', '["theory"]', 5, 'published', 1785648000, 1785648000);
-INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (6, 'sql', 'SQL 查询基础', 'SELECT/WHERE/GROUP BY/JOIN', '["theory"]', 6, 'published', 1785648000, 1785648000);
-INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (7, 'plc', 'PLC 可编程逻辑控制器', '基础/梯形图/工业控制/SCADA-MES集成', '["theory"]', 7, 'published', 1785648000, 1785648000);
+INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, prerequisites, difficulty, estimated_hours, created_at, updated_at) VALUES (4, 'erp', 'ERP 原理与模块', '【能力目标】学员能够描述ERP核心模块（销售/采购/生产/财务）的功能与数据流转关系，并解释ERP与MES的接口边界。
+【受众】数字化转型新人、IT业务分析师、跨部门协作人员
+【前置】无
+【评估】理论选择题 + 模块关系图绘制
+【课时】8小时（理论4h + 案例分析2h + 流程图练习2h）', '["theory"]', 4, 'published', '[]', 'beginner', 8, 1785648000, 1785648000);
+INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, prerequisites, difficulty, estimated_hours, created_at, updated_at) VALUES (5, 'mes', 'MES 核心模块', '【能力目标】学员能够说明MES七大核心模块（工单/物料/报工/质量/追溯/设备/看板）的功能与车间数据流，对常见实施场景给出AS-IS→TO-BE方案。
+【受众】MES实施工程师、项目经理
+【前置】ERP原理与模块（课程4）
+【评估】场景分析题 + 方案设计答辩
+【课时】10小时（理论4h + 场景分析3h + 方案设计3h）', '["theory"]', 5, 'published', '[4]', 'intermediate', 10, 1785648000, 1785648000);
+INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, prerequisites, difficulty, estimated_hours, created_at, updated_at) VALUES (6, 'sql', 'SQL 查询基础', '【能力目标】给定MES数据库表结构，学员能够编写SELECT/WHERE/GROUP BY/JOIN查询语句，从工单、物料、报工表中提取并汇总数据。
+【受众】所有学员（通识技能）
+【前置】无
+【评估】SQL实战题 + 在线判题系统
+【课时】6小时（语法讲解2h + 随堂练习2h + 综合实战2h）', '["theory","sql","quiz"]', 6, 'published', '[]', 'beginner', 6, 1785648000, 1785648000);
+INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, prerequisites, difficulty, estimated_hours, created_at, updated_at) VALUES (7, 'plc', 'PLC 可编程逻辑控制器', '【能力目标】学员能够解释PLC工作原理、梯形图基本语法，并说明设备层（PLC/SCADA）与MES层的数据采集链路。
+【受众】自动化工程师、MES集成工程师
+【前置】MES核心模块（课程5）
+【评估】梯形图分析题 + 数采链路设计
+【课时】8小时（PLC原理3h + 梯形图编程2h + 数采集成3h）', '["theory"]', 7, 'published', '[5]', 'intermediate', 8, 1785648000, 1785648000);
 
 -- Chapters
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (4, 'ERP 是什么', 1, 'published', '# ERP 是什么

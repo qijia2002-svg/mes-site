@@ -15,6 +15,9 @@ export interface TopicRow {
   modules: string; // JSON 数组
   sort: number;
   status: string;
+  prerequisites: string;  // JSON: [courseId, ...]
+  difficulty: string;      // beginner / intermediate / advanced
+  estimated_hours: number;
 }
 
 export interface ChapterRow {
@@ -49,7 +52,10 @@ export const chapterRepo = {
 
   listTopics: (db: DbSession, cursor = 0) =>
     db.all<TopicRow>(
-      `SELECT id, slug, title, description, modules, sort, status
+      `SELECT id, slug, title, description, modules, sort, status,
+              COALESCE(prerequisites,'[]') as prerequisites,
+              COALESCE(difficulty,'beginner') as difficulty,
+              COALESCE(estimated_hours,4) as estimated_hours
        FROM topics WHERE status = 'published' AND id > ?1
        ORDER BY id LIMIT 100`,
       cursor,
@@ -57,15 +63,20 @@ export const chapterRepo = {
 
   getTopicById: (db: DbSession, id: number) =>
     db.first<TopicRow>(
-      `SELECT id, slug, title, description, modules, sort, status
+      `SELECT id, slug, title, description, modules, sort, status,
+              COALESCE(prerequisites,'[]') as prerequisites,
+              COALESCE(difficulty,'beginner') as difficulty,
+              COALESCE(estimated_hours,4) as estimated_hours
        FROM topics WHERE id = ?1`,
       id,
     ),
 
-  /** 走 topics.slug UNIQUE 索引 */
   getTopicBySlug: (db: DbSession, slug: string) =>
     db.first<TopicRow>(
-      `SELECT id, slug, title, description, modules, sort, status
+      `SELECT id, slug, title, description, modules, sort, status,
+              COALESCE(prerequisites,'[]') as prerequisites,
+              COALESCE(difficulty,'beginner') as difficulty,
+              COALESCE(estimated_hours,4) as estimated_hours
        FROM topics WHERE slug = ?1`,
       slug,
     ),

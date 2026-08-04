@@ -22,7 +22,10 @@ CREATE TABLE IF NOT EXISTS topics (
   description TEXT NOT NULL DEFAULT '',
   modules     TEXT NOT NULL DEFAULT '[]',     -- JSON 数组，如 ["theory","sql","quiz"]
   sort        INTEGER NOT NULL DEFAULT 0,
-  status      TEXT NOT NULL DEFAULT 'published', -- published | draft
+  status      TEXT NOT NULL DEFAULT 'published',
+  prerequisites TEXT NOT NULL DEFAULT '[]',    -- JSON: [courseId, ...] 前置课程
+  difficulty  TEXT NOT NULL DEFAULT 'beginner', -- beginner | intermediate | advanced
+  estimated_hours INTEGER NOT NULL DEFAULT 4,
   created_at  INTEGER NOT NULL,
   updated_at  INTEGER NOT NULL
 );
@@ -139,6 +142,9 @@ CREATE TABLE IF NOT EXISTS learning_paths (
   title        TEXT NOT NULL,
   description  TEXT NOT NULL DEFAULT '',
   topic_ids    TEXT NOT NULL DEFAULT '[]',  -- 有序主题 id 数组（JSON）
+  stages       TEXT NOT NULL DEFAULT '[]',  -- JSON: [{name, courses:[courseId]}]
+  stage_unlock_type TEXT NOT NULL DEFAULT 'all_prev', -- all_prev | credits
+  stage_unlock_value INTEGER NOT NULL DEFAULT 0,
   sort         INTEGER NOT NULL DEFAULT 0,
   status       TEXT NOT NULL DEFAULT 'published',
   created_at   INTEGER NOT NULL

@@ -39,6 +39,84 @@
   flex: none;
 }
 
+/* ---------- 课程卡片状态指示 ---------- */
+.card-status-bar {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+}
+.card.is-done { border-color: var(--success-border); }
+.card.is-done .card-status-bar { background: var(--success); }
+.card.is-doing { border-color: var(--warn-border); }
+.card.is-doing .card-status-bar { background: var(--warn); }
+.card.is-new { opacity: 0.85; }
+.card.is-new .card-status-bar { background: var(--border-strong); }
+
+/* ---------- 路径阶段步骤 ---------- */
+.path-phases {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.path-phase {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+.path-phase.is-done {
+  border-color: var(--success-border);
+  background: var(--success-soft);
+}
+.path-phase.is-doing {
+  border-color: var(--warn-border);
+  box-shadow: 0 0 0 2px var(--warn-soft);
+}
+.path-phase.is-locked {
+  opacity: 0.6;
+  border-color: var(--border);
+}
+.path-phase-circle {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  font-weight: var(--weight-announce);
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+}
+.path-phase.is-done .path-phase-circle {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+.path-phase.is-doing .path-phase-circle {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: #fff;
+}
+.path-phase-title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-announce-cjk);
+  color: var(--fg);
+}
+.path-phase-sub {
+  font-size: var(--text-xs);
+  color: var(--meta);
+}
+
 /* ---------- 文字链接（区别于 .btn：无边框、无背景） ---------- */
 .text-link {
   display: inline-flex;
@@ -204,10 +282,15 @@ a.card:hover {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-5);
   }
-  /* 窄屏目录移到正文上方，且不再 sticky（sticky 在单列下会挡正文） */
+  /* 窄屏目录移到正文下方，且不再 sticky（sticky 在单列下会挡正文）。
+     目录置于正文之后，保证标题与正文从顶部开始，避免顶部出现空块。 */
   .chapter-aside {
     position: static;
-    order: -1;
+    order: 1;
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--border-soft);
+    padding-top: var(--space-4);
   }
 }
 
@@ -290,6 +373,12 @@ a.card:hover {
   .dash-stats {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* ---------- 技能条动画 ---------- */
+@keyframes skillGrow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 
 /* ---------- 个人中心 ---------- */

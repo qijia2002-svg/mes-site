@@ -9,7 +9,13 @@ import { Icon } from '../components/Icon';
 import { useCrumbTail } from '../components/Breadcrumb';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
 import { QuizDeck } from '../components/QuizDeck';
-import { api } from '../api/endpoints';
+import { api, type CourseState, type PathSummary, type StageSummary } from '../api/endpoints';
+
+const SK_ACTIVE = 'mes.engine.activePath';
+const SK_SELECTED = 'mes.engine.selectedPaths';
+function getStored<T>(key: string, fallback: T): T {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+}
 
 export default function CourseDetailPage() {
   const { topicId } = useParams();
@@ -70,6 +76,9 @@ export default function CourseDetailPage() {
           </div>
         )}
       </header>
+
+      {/* 路径信息栏 */}
+      <PathContextBar topicId={id} />
 
       {/* 学习目标（ABCD 格式） */}
       {chapters.data && chapters.data.length > 0 && (
@@ -192,5 +201,74 @@ export default function CourseDetailPage() {
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * 路径信息栏：显示当前课程在哪些路径中、位置、前置状态。
+ */
+function PathContextBar({ topicId }: { topicId: number }) {
+  const activePath = getStored(SK_ACTIVE, undefined);
+  const selectedPaths = getStored(SK_SELECTED, []);
+
+  const engineQ = useQuery({
+    queryKey: ['engine-status', activePath, selectedPaths],
+    queryFn: () => api.engineStatus({
+      activePath, selectedPaths: selectedPaths.length > 0 ? selectedPaths : undefined,
+    }),
+    staleTime: 60_000,
+    enabled: selectedPaths.length > 0 || !!activePath,
+  });
+
+  if (!engineQ.data || engineQ.data.paths.length === 0) return null;
+
+  // 找到当前课程在哪些路径中出现
+  const pathsWithThisCourse = engineQ.data.paths.filter(p => {
+    return (engineQ.data as any).courses?.some
+      ? false
+      : false; // path summary doesn't have courses, check active courses
+  });
+
+  // 从激活路径的课程列表中找当前课程的上下文
+  const activeCourse = engineQ.data.courses.find(c => c.courseId === topicId);
+  if (!activeCourse) return null;
+
+  const pathNames = engineQ.data.paths
+    .filter(p => p.pathId === activePath)
+    .map(p => p.name);
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap',
+      padding: 'var(--space-3) var(--space-4)',
+      background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)',
+      border: '1px solid var(--border)', marginBottom: 'var(--space-4)',
+    }}>
+      <Icon name="paths" size={16} style={{ color: 'var(--meta)' }} />
+      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--fg-2)' }}>当前路径：</span>
+      <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-announce-cjk)', color: 'var(--fg)' }}>
+        {pathNames.join('、')}
+      </span>
+      {activeCourse.stageName && (
+        <>
+          <span style={{ color: 'var(--meta)' }}>·</span>
+          <span className="tag">{activeCourse.stageName}</span>
+        </>
+      )}
+      {activeCourse.stageIndex !== undefined && (
+        <>
+          <span style={{ color: 'var(--meta)' }}>·</span>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--meta)', fontFamily: 'var(--font-mono)' }}>
+            第 {activeCourse.stageIndex + 1} 阶段
+          </span>
+        </>
+      )}
+      <span style={{ color: 'var(--meta)', marginLeft: 'auto' }}>·</span>
+      <span className={`pill ${activeCourse.status === 'completed' ? 'pill-ok' : activeCourse.status === 'doing' ? 'pill-warn' : activeCourse.status === 'locked' ? '' : ''}`} style={{ fontSize: 10 }}>
+        {activeCourse.status === 'completed' ? '✅ 已完成' : activeCourse.status === 'inherited' ? '⭐ 已继承' :
+         activeCourse.status === 'doing' ? '🔄 进行中' : activeCourse.status === 'locked' ? '🔒 ' + activeCourse.missingPrerequisites.join(',') :
+         activeCourse.status === 'skipped' ? '⊘ 已跳过' : '○ 待学习'}
+      </span>
+    </div>
   );
 }

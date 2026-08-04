@@ -38,6 +38,9 @@ import {
 } from './modules/quiz/quiz.routes';
 import { listLp, getLp } from './modules/learning-paths/lp.routes';
 import { listCert } from './modules/certifications/cert.routes';
+import { engineStatusHandler } from './modules/engine/engine.routes';
+import { listTracks, getTrack, listCareers, getCareer, getRoadmapGraph } from './modules/roadmap/roadmap.routes';
+import { studyTip, explainWord } from './modules/ai/ai.routes';
 
 export interface Route {
   method: string;
@@ -49,6 +52,9 @@ export interface Route {
   /** 无需登录（health / login / whoami） */
   noAuth?: boolean;
 }
+
+/** 可选登录管线：解析会话但不拦截匿名（进度按未登录处理，API §0.2） */
+const optionalAuth: Middleware[] = [trace, security, auth, validate];
 
 export const routes: Route[] = [
   { method: 'GET', path: '/api/v1/health', handler: healthHandler, noAuth: true },
@@ -64,12 +70,12 @@ export const routes: Route[] = [
   { method: 'POST', path: '/api/v1/auth/logout', handler: logoutHandler },
   { method: 'GET', path: '/api/v1/auth/whoami', handler: whoamiHandler },
 
-  // 只读内容链路（走 L2 缓存）
-  { method: 'GET', path: '/api/v1/topics', handler: listTopics },
+  // 只读内容链路（走 L2 缓存，公开目录，未登录也能看结构）
+  { method: 'GET', path: '/api/v1/topics', middlewares: optionalAuth, handler: listTopics },
   // :id 兼容数字 id 与 slug
-  { method: 'GET', path: '/api/v1/topics/:id', handler: getTopic },
-  { method: 'GET', path: '/api/v1/topics/:id/chapters', handler: listChapters },
-  { method: 'GET', path: '/api/v1/chapters/:id', handler: getChapter },
+  { method: 'GET', path: '/api/v1/topics/:id', middlewares: optionalAuth, handler: getTopic },
+  { method: 'GET', path: '/api/v1/topics/:id/chapters', middlewares: optionalAuth, handler: listChapters },
+  { method: 'GET', path: '/api/v1/chapters/:id', middlewares: optionalAuth, handler: getChapter },
 
   // Phase 0.5 进度
   { method: 'POST', path: '/api/v1/progress', handler: recordProgress },
@@ -105,9 +111,26 @@ export const routes: Route[] = [
   { method: 'POST', path: '/api/v1/sql-exercises/:id/submit', handler: submitSql },
 
   // Phase 3 学习路径 / 证书
-  { method: 'GET', path: '/api/v1/learning-paths', handler: listLp },
-  { method: 'GET', path: '/api/v1/learning-paths/:id', handler: getLp },
+  { method: 'GET', path: '/api/v1/learning-paths', middlewares: optionalAuth, handler: listLp },
+  { method: 'GET', path: '/api/v1/learning-paths/:id', middlewares: optionalAuth, handler: getLp },
   { method: 'GET', path: '/api/v1/certifications', handler: listCert },
+
+  // 职业路线图（Phase 4，ADR-012）：可选登录——解析会话但不拦截匿名，
+  // 否则 noAuth 走 [trace, security, validate] 不跑 auth，登录用户拿不到进度（API §0.2）
+  { method: 'GET', path: '/api/v1/tracks', middlewares: optionalAuth, handler: listTracks },
+  { method: 'GET', path: '/api/v1/tracks/:slug', middlewares: optionalAuth, handler: getTrack },
+  { method: 'GET', path: '/api/v1/careers', middlewares: optionalAuth, handler: listCareers },
+  { method: 'GET', path: '/api/v1/careers/:slug', middlewares: optionalAuth, handler: getCareer },
+  { method: 'GET', path: '/api/v1/roadmap/graph', middlewares: optionalAuth, handler: getRoadmapGraph },
+
+  // 学习引擎（可选登录：登录用户拿进度，匿名用户全 o pending）
+  { method: 'POST', path: '/api/v1/engine/status', middlewares: optionalAuth, handler: engineStatusHandler },
+
+  // AI 学习建议（匿名可用，进度摘要由客户端组装，失败兜底）
+  { method: 'POST', path: '/api/v1/ai/study-tip', handler: studyTip, noAuth: true },
+
+  // AI 英文单词翻译/解释（匿名可用，仅发单词，离线词典兜底 + AI 生成，失败兜底）
+  { method: 'POST', path: '/api/v1/ai/explain-word', handler: explainWord, noAuth: true },
 ];
 
 /** 默认中间件管线（§A3.2 固定顺序；鉴权在限流前） */

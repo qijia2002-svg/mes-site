@@ -4,7 +4,7 @@
 > 每个 Phase 开始时，本文件全量复现到工作上下文最前面，逐条判断能否关闭。
 > 已关闭且有长期约束力的项，升格为 `ADR-XXX.md`。
 
-**当前状态：4 未决 / 4 已决**
+**当前状态：5 未决 / 6 已决**
 
 ---
 
@@ -28,6 +28,8 @@
 | OD-002 | 2026-08-02 | 仿真 tick 与动效毫秒的映射比 | **1 tick ≙ 1 标准工时单位；1x 速度下 1 tick = 1500ms（900ms 位移 + 600ms 驻留）；提供 2x / 4x 倍速**。已写入 Spec §10.2 | 2026-08-02 Spec v1 定稿 | — |
 | OD-004 | 2026-08-02 | `DESIGN.md` §2 对比度表写着旧强调色 `#0E7490` | **随视觉升级 v3 一并重写**。v3 把 accent 定为 `#0a61b8`（色相 210°，与 brand-ink 206° 同源），DESIGN.md §2 对比度表按 v3 全表重算，不再单独修 v2 旧值 | 2026-08-02 Spec v1 §8 | — |
 | OD-006 | 2026-08-02 | `chapters` / `topics` 缺 `source_path` 与幂等唯一索引 | **合并进单一迁移文件 `002-simulator.sql` 一次执行**。该文件同时承载三个来源：架构师 5 张 `sim_` 表、PM 的 `kind`/`archived_at`/`practice_link` 增列、本项 `source_path` + 部分唯一索引。不阻塞 A 线，B2 排在第 3 周，DDL 先落 | 2026-08-02 Spec v1 §6 | — |
+| OD-014 | 2026-08-02 | Career Roadmap 的 `design-tokens.json` 与 CSS v3 漂移（roadmap 新增 `--rm-*` Token 只写入 `styles.roadmap.css` + `design-tokens.css`，未回写 `design-tokens.json`） | **以 CSS v3 为准，不回写 json**。`--rm-*` 设计令牌只落地在 `web/src/styles/design-system/design-tokens.css` 与 `styles.roadmap.css`；`design-tokens.json` 保持 v3 不动，避免双源漂移加剧。图标/配色均经 CSS v3 Token 渲染验证无缺陷（QA 门禁 pass，零裸 hex / 零 emoji / 零紫粉渐变） | 2026-08-02 QA 门禁 | — |
+| OD-015 | 2026-08-02 | `track_level_chapters` 关联表建表 DDL 漏列 `content_status` / `target_topic_slug` / `chapter_notes` 三字段 | **不回填，声明为已知边界**。线上实测影响面为 0 —— 嵌入式路线「高级有内容、入门中级空」的倒挂已由前端 `isInverted()` 派生补偿，不依赖三字段。后人若见 DDL 缺列，**不要误判为 bug 去「修」**，以免触发新一轮迁移 + 数据回灌却无收益 | 2026-08-02 QA 门禁 | existing-design-boundary |
 
 ---
 
@@ -37,3 +39,4 @@
 |------|------|
 | 2026-08-02 | 创建登记册，录入 Phase 1 三文档交叉检查产生的 6 条未决项 |
 | 2026-08-02 | 用户确认 Spec 阶段 + 补充约束 → 关闭 OD-001 / OD-002 / OD-004 / OD-006；OD-003 收窄范围（结构已锁，仅缺数值）；新增 OD-012 色盲双编码、OD-013 临时脚本清理 |
+| 2026-08-02 | 能力路线 + 职业路径图功能上线收尾 → 新增 OD-014（`design-tokens.json` 与 CSS v3 漂移，以 CSS v3 为准）、OD-015（`track_level_chapters` 三字段未落库，影响面 0 不回填），均归为已决边界 |

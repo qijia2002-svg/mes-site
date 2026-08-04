@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 # 前端构建产物由 Workers Static Assets 提供（替代 Pages）
 # not_found_handling = "single-page-application" 让嵌套路由（/learn/sql/01）回退到 index.html
-assets = { directory = "./worker/public", binding = "ASSETS", not_found_handling = "single-page-application" }
+assets = { directory = "./worker/dist", binding = "ASSETS", not_found_handling = "single-page-application" }
 
 # D1 数据库绑定（免费版单库单线程）
 [[d1_databases]]

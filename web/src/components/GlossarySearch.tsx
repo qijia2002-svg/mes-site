@@ -4,6 +4,7 @@
  */
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Icon } from './Icon';
+import { WordSpeaker } from './WordSpeaker';
 
 const GLOSSARY: { term: string; aliases: string[]; def: string }[] = [
   { term: 'MES', aliases: ['制造执行系统','mes'], def: 'Manufacturing Execution System，面向车间执行层的生产数字化管理系统。位于 ERP（计划层）与 PLC（控制层）之间，管"怎么做、做了多少"。' },
@@ -115,7 +116,10 @@ export default function GlossarySearch() {
               )}
               {results.map((g) => (
                 <div key={g.term} className="glossary-item">
-                  <div className="glossary-term">{g.term}</div>
+                  <div className="glossary-term">
+                    {g.term}
+                    <WordSpeaker word={g.term} className="glossary-term-speaker" />
+                  </div>
                   <div className="glossary-aliases">{g.aliases.slice(0, 3).join(' · ')}</div>
                   <div className="glossary-def">{g.def}</div>
                 </div>

@@ -124,12 +124,81 @@ export interface SubmitSqlResult {
   progressUpdated?: boolean;
 }
 
+/** POST /api/v1/ai/study-tip 入参：把学习进度摘要发给 Workers AI，换一句个性化建议。 */
+export interface AiStudyTipBody {
+  doneChapters: number;
+  totalChapters: number;
+  currentTopic: string;
+  streakDays: number;
+  needReview: boolean;
+  reviewTopic: string;
+}
+export interface AiStudyTipResult {
+  tip: string;
+}
+
+/** POST /api/v1/ai/explain-word 入参：一个英文单词（如 SELECT）。 */
+export interface ExplainWordBody {
+  word: string;
+}
+/** POST /api/v1/ai/explain-word 出参：结构化翻译/解释卡，全部字段后端已兜底，前端无需再判空。 */
+export interface ExplainWordResult {
+  word: string;
+  pos: string;
+  zh: string;
+  example: string;
+  exampleZh: string;
+  category: string;
+  detail: string;
+}
+
 /** 兼容后端 snake_case / camelCase 两种命名，避免单点字段名不一致导致整页失效。 */
 export function readSchemaHint(e: SqlExercise): string {
   return e.schemaHint ?? e.schema_hint ?? '';
 }
 export function readAnswerHash(e: SqlExercise): string {
   return (e.answerHash ?? e.answer_hash ?? '').trim().toLowerCase();
+}
+
+// ---- 学习引擎 v3 DTO ----
+
+export type CourseStatus = 'completed' | 'inherited' | 'doing' | 'locked' | 'pending' | 'skipped';
+
+export interface CourseState {
+  courseId: number; name: string; slug: string; modules: string[];
+  difficulty: string; estimatedHours: number;
+  status: CourseStatus; sourcePath?: string;
+  chapterDone?: number; totalChapters: number; percent: number;
+  missingPrerequisites: string[];
+  stageName?: string; stageIndex?: number;
+}
+
+export interface StageSummary {
+  name: string; courseCount: number; doneCount: number;
+  unlocked: boolean; pct: number;
+}
+
+export interface PathSummary {
+  pathId: number; name: string; slug: string; description: string;
+  stages: StageSummary[];
+  inheritedCount: number; newCount: number; totalCount: number;
+  completion: number; savedHours: number;
+}
+
+export interface InheritanceBanner {
+  show: boolean; inheritedCount: number; savedHours: number;
+  sourcePathName?: string;
+}
+
+export interface EngineStatus {
+  activePath: number | null; completion: number;
+  nextCourse: CourseState | null; courses: CourseState[]; paths: PathSummary[];
+  banner: InheritanceBanner;
+}
+
+export interface EngineStatusBody {
+  activePath?: number; selectedPaths?: number[];
+  skippedCourseIds?: number[];
 }
 
 export const api = {
@@ -185,9 +254,19 @@ export const api = {
   importContent: (body: unknown) =>
     apiPost<{ ok: boolean; topicsCreated: number; chaptersCreated: number }>('/api/v1/admin/import/content', body),
 
+  // 学习引擎
+  engineStatus: (body: EngineStatusBody) =>
+    apiPost<EngineStatus>('/api/v1/engine/status', body),
+
   // 认证
   whoami: () => apiGet<{ sub: string }>('/api/v1/auth/whoami'),
   login: (body: { username: string; password: string }) =>
     apiPost<{ ok: boolean }>('/api/v1/auth/login', body),
   logout: () => apiPost('/api/v1/auth/logout', {}),
+
+  // AI 学习建议（Workers AI，按需调用，不阻塞首屏）
+  aiStudyTip: (body: AiStudyTipBody) => apiPost<AiStudyTipResult>('/api/v1/ai/study-tip', body),
+
+  // AI 英文单词翻译/解释（离线词典兜底 + Workers AI 生成，按需调用）
+  explainWord: (body: ExplainWordBody) => apiPost<ExplainWordResult>('/api/v1/ai/explain-word', body),
 };

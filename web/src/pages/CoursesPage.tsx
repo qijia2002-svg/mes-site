@@ -41,13 +41,18 @@ function BloomPill({ level }: { level: string }) {
   );
 }
 
-function TopicCard({ topic, done, total, quizCount, sqlCount }: {
-  topic: Topic; done: number; total: number; quizCount: number; sqlCount: number;
+function TopicCard({ topic, done, total }: {
+  topic: Topic; done: number; total: number;
 }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const level = bloomLevel(topic);
+  const isDone = total > 0 && done >= total;
+  const isDoing = done > 0 && done < total;
+  const statusClass = isDone ? 'is-done' : isDoing ? 'is-doing' : 'is-new';
+
   return (
-    <Link className="card" to={`/courses/${topic.id}`}>
+    <Link className={`card ${statusClass}`} to={`/courses/${topic.id}`} style={{ position: 'relative', overflow: 'hidden' }}>
+      <span className="card-status-bar" aria-hidden="true" />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <h3 className="card-title">{topic.title}</h3>
         <BloomPill level={level} />
@@ -55,16 +60,20 @@ function TopicCard({ topic, done, total, quizCount, sqlCount }: {
       <p className="card-desc">{topic.description || '暂无简介。'}</p>
       <div className="card-meta-row">
         {total > 0 && <span className="card-meta"><Icon name="chapter" size={16} />{total} 章</span>}
-        {quizCount > 0 && <span className="card-meta"><Icon name="quiz" size={16} />{quizCount} 题</span>}
-        {sqlCount > 0 && <span className="card-meta"><Icon name="sql" size={16} />{sqlCount} 实训</span>}
       </div>
-      {total > 0 && (
+      {isDone ? (
+        <span className="tag" style={{ background: 'var(--success-soft)', color: 'var(--success)', borderColor: 'var(--success-border)' }}>
+          <Icon name="success" size={16} /> 已完成
+        </span>
+      ) : isDoing ? (
         <div className="card-progress">
           <span className="card-progress-label">{pct}%</span>
           <div className="progress-track" style={{ height: 3 }}>
             <div className="progress-fill" style={{ width: `${pct}%` }} />
           </div>
         </div>
+      ) : (
+        <span className="tag">待学习</span>
       )}
       <div className="tag-row">
         {topic.modules.map((m) => <span key={m} className="tag">{m}</span>)}
@@ -183,7 +192,7 @@ export default function CoursesPage() {
                 const stat = topicStats.get(t.id) ?? { done: 0, total: 0 };
                 return (
                   <li key={t.id}>
-                    <TopicCard topic={t} done={stat.done} total={stat.total} quizCount={0} sqlCount={0} />
+                    <TopicCard topic={t} done={stat.done} total={stat.total} />
                   </li>
                 );
               })}

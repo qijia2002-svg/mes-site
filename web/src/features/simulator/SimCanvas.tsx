@@ -1,15 +1,21 @@
 import { createNode, createEdge } from './simReducer';
 import { straightPath, reworkPath, edgePairs } from './simUtils';
 import SimNodeComp from './SimNodeComp';
+import type { SimNode, SimEdge } from './simTypes';
 
 interface Props {
-  state: { nodes: any[]; edges: any[]; selectedId: string | null; connectingFrom: string | null; connectingPort: 'out' | 'out2' | null };
+  nodes: SimNode[];
+  edges: SimEdge[];
+  selectedId: string | null;
+  connectingFrom: string | null;
+  connectingPort: 'out' | 'out2' | null;
   dispatch: React.Dispatch<any>;
   activeNodeId?: string | null;
 }
 
-export default function SimCanvas({ state, dispatch, activeNodeId }: Props) {
-  const pairs = edgePairs(state);
+export default function SimCanvas({ nodes, edges, selectedId, connectingFrom, connectingPort, dispatch, activeNodeId }: Props) {
+  // edgePairs 需要带节点的边对象，构造临时 state 形状（仅取用到字段）
+  const pairs = edgePairs({ nodes, edges } as any);
 
   return (
     <div
@@ -33,8 +39,8 @@ export default function SimCanvas({ state, dispatch, activeNodeId }: Props) {
         }
       }}
       onKeyDown={(e) => {
-        if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedId) {
-          dispatch({ type: 'DELETE_NODE', id: state.selectedId });
+        if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+          dispatch({ type: 'DELETE_NODE', id: selectedId });
         }
         if (e.key === 'Escape') dispatch({ type: 'CANCEL_CONNECT' });
       }}
@@ -44,7 +50,6 @@ export default function SimCanvas({ state, dispatch, activeNodeId }: Props) {
         {/* SVG 连线层 */}
         <svg className="sim-svg">
           {pairs.map(({ edge, from, to }) => {
-            // 回流线（虚线）用底部折回路径，普通流转线用直连
             const d = edge.dashed ? reworkPath(from, to, 36) : straightPath(from, to);
             return (
               <path
@@ -58,9 +63,9 @@ export default function SimCanvas({ state, dispatch, activeNodeId }: Props) {
         </svg>
 
         {/* 节点层 */}
-        {state.nodes.map((node) => {
-          const isSelected = state.selectedId === node.id;
-          const isConnecting = state.connectingFrom === node.id;
+        {nodes.map((node) => {
+          const isSelected = selectedId === node.id;
+          const isConnecting = connectingFrom === node.id;
           const isActive = activeNodeId === node.id;
           return (
             <SimNodeComp
@@ -72,9 +77,9 @@ export default function SimCanvas({ state, dispatch, activeNodeId }: Props) {
               onSelect={() => dispatch({ type: 'SELECT', id: node.id })}
               onMove={(x, y) => dispatch({ type: 'MOVE_NODE', id: node.id, x, y })}
               onPortClick={(side) => {
-                if (state.connectingFrom) {
-                  if ((side === 'in' || side === 'out2') && state.connectingFrom !== node.id) {
-                    dispatch({ type: 'ADD_EDGE', edge: createEdge(state.connectingFrom, node.id) });
+                if (connectingFrom) {
+                  if ((side === 'in' || side === 'out2') && connectingFrom !== node.id) {
+                    dispatch({ type: 'ADD_EDGE', edge: createEdge(connectingFrom, node.id) });
                   } else {
                     dispatch({ type: 'CANCEL_CONNECT' });
                   }
@@ -86,11 +91,10 @@ export default function SimCanvas({ state, dispatch, activeNodeId }: Props) {
           );
         })}
 
-        {state.nodes.length === 0 && (
+        {nodes.length === 0 && (
           <div className="sim-empty-hint">从左侧拖拽工序到此处开始搭建工艺流程</div>
         )}
       </div>
     </div>
   );
 }
-

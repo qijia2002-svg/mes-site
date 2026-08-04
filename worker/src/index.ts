@@ -1,3 +1,4 @@
+// redeploy: 携带最新前端 assets（修复 #310 条件 hook + 仿真折叠/全屏）— 2026-08-04
 import type { Env } from './env';
 import type { Ctx } from './core/context';
 import type { ExecutionContext } from '@cloudflare/workers-types';

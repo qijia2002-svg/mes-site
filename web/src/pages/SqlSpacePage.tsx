@@ -23,6 +23,13 @@ export default function SqlSpacePage() {
         </Link>
       </header>
 
+      <div className="sandbox-guide">
+        <span className="sandbox-guide-step"><span className="sandbox-guide-num">1</span> 在「挑一个场景练手」里选一题</span>
+        <span className="sandbox-guide-step"><span className="sandbox-guide-num">2</span> 点「载入模板」，SQL 会出现在编辑器</span>
+        <span className="sandbox-guide-step"><span className="sandbox-guide-num">3</span> 在 TODO 处补全，按 运行（Ctrl/⌘ + ↵）</span>
+        <span className="sandbox-guide-step"><span className="sandbox-guide-num">4</span> 看结果，点「看预期」对照思路</span>
+      </div>
+
       <SqlSandbox />
     </section>
   );

@@ -1,5 +1,6 @@
 import type { SimNode, SimShape } from './simTypes';
 import { NODE_LIBRARY } from './simTypes';
+import { Icon } from '../../components/Icon';
 
 interface Props {
   node: SimNode;
@@ -50,7 +51,7 @@ export default function SimNodeComp({ node, isSelected, isConnecting, isActive, 
       {/* 菱形内部文字需反旋转 */}
       <span className={def.shape === 'diamond' ? 'sim-node-label diamond-inner' : 'sim-node-label'}>
         {node.label}
-        {def.critical && <span className="sim-critical-mark">⭐</span>}
+        {def.critical && <Icon name="quality" size={16} className="sim-critical-mark" />}
       </span>
 
       {/* IN ports */}

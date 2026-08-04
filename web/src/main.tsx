@@ -12,18 +12,28 @@ import '@fontsource-variable/jetbrains-mono';
 import '@fontsource-variable/noto-sans-sc';
 
 import App from './App';
+import { ToastProvider } from './components/Toast';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles.css';
 
 const qc = new QueryClient({
-  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
+  // staleTime 30s：从课程/章节页返回首页时优先命中缓存，不再立即重取导致整页"重新加载"闪烁。
+  // refetchOnWindowFocus 关掉：避免切窗口/切回时静默重刷触发偶发报错。
+  defaultOptions: {
+    queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 },
+  },
 });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <QueryClientProvider client={qc}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={qc}>
+        <BrowserRouter>
+          <ToastProvider>
+            <App />
+          </ToastProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 );

@@ -1,9 +1,11 @@
-import type { SimState, SimAction, SimNode, SimEdge, SimProject, SimNodeProps } from './simTypes';
+import type { SimState, SimAction, SimNode, SimEdge, SimProject, SimNodeProps, SimLine, SimFactory } from './simTypes';
 import { NODE_LIBRARY, SHAPE_SIZE } from './simTypes';
 
 let _id = 1;
 function uid(): string { return `n${_id++}`; }
 function eid(): string { return `e${_id++}`; }
+function fid(): string { return `f${_id++}`; }
+function lid(): string { return `l${_id++}`; }
 
 export function createNode(nodeType: string, x: number, y: number): SimNode | null {
   const def = NODE_LIBRARY[nodeType];
@@ -20,17 +22,47 @@ export function createEdge(from: string, to: string): SimEdge {
   return { id: eid(), from, to, dashed: false };
 }
 
+/** 取当前激活产线（单一数据源），找不到返回 null。 */
+export function getActiveLine(state: SimState): SimLine | null {
+  const f = state.factories.find((x) => x.id === state.activeFactoryId);
+  return f?.lines.find((l) => l.id === state.activeLineId) ?? null;
+}
+
+/** 在激活产线上做不可变更新 */
+function updateActiveLine(state: SimState, updater: (line: SimLine) => SimLine): SimState {
+  return {
+    ...state,
+    factories: state.factories.map((f) =>
+      f.id === state.activeFactoryId
+        ? { ...f, lines: f.lines.map((l) => (l.id === state.activeLineId ? updater(l) : l)) }
+        : f,
+    ),
+  };
+}
+
+function emptyLine(name = '产线 1'): SimLine {
+  return { id: lid(), name, nodes: [], edges: [] };
+}
+
 export function initialSimState(): SimState {
-  return { projectName: '未命名方案', nodes: [], edges: [], selectedId: null, connectingFrom: null, connectingPort: null };
+  const f: SimFactory = { id: fid(), name: '工厂 A', lines: [emptyLine('产线 1')] };
+  return {
+    factories: [f],
+    activeFactoryId: f.id,
+    activeLineId: f.lines[0].id,
+    selectedId: null,
+    connectingFrom: null,
+    connectingPort: null,
+  };
 }
 
 /**
  * 默认示例工厂：离散制造工艺路线。
- * 来料 → 来料检验 → 焊接 → 电气检测 → 组装 → 发货，
+ * 来料 → 来料检验 → 焊接 → 过程检验 → 组装 → 发货，
  * 两个检验节点的不合格品回流到「焊接」返工（虚线回流边）。
  * 打开仿真沙盒且无本地存档时自动加载，保证画布非空、开箱即用。
  */
-export function seedExampleProject(): SimProject {
+function seedExampleFactory(): SimFactory {
   const mk = (id: string, nodeType: string, x: number, y: number, props: SimNodeProps = {}): SimNode => {
     const def = NODE_LIBRARY[nodeType];
     const size = SHAPE_SIZE[def.shape];
@@ -40,7 +72,7 @@ export function seedExampleProject(): SimProject {
     mk('seed-material', 'material', 24, 176),
     mk('seed-incoming', 'i_incoming', 150, 150, { defectRate: 8 }),
     mk('seed-weld', 'weld', 272, 172, { hours: 12 }),
-    mk('seed-elec', 'i_elec', 398, 150, { defectRate: 5 }),
+    mk('seed-elec', 'i_process', 398, 150, { defectRate: 5 }),
     mk('seed-assembly', 'assembly', 520, 172, { hours: 20 }),
     mk('seed-ship', 'ship', 642, 176),
   ];
@@ -54,32 +86,58 @@ export function seedExampleProject(): SimProject {
     e('seed-elec', 'seed-weld', true),
     e('seed-assembly', 'seed-ship', false),
   ];
-  return { name: '示例 · 离散制造工艺路线', nodes, edges, version: 1 };
+  const line: SimLine = { id: lid(), name: '产线 1 · 离散制造', nodes, edges };
+  return { id: fid(), name: '示例工厂', lines: [line] };
 }
 
 /** 示例工厂对应的画布状态 */
 export function seedExampleState(): SimState {
-  const p = seedExampleProject();
-  return { ...initialSimState(), projectName: p.name, nodes: p.nodes, edges: p.edges };
+  const f = seedExampleFactory();
+  return {
+    factories: [f],
+    activeFactoryId: f.id,
+    activeLineId: f.lines[0].id,
+    selectedId: null,
+    connectingFrom: null,
+    connectingPort: null,
+  };
 }
 
 export function simReducer(state: SimState, action: SimAction): SimState {
   switch (action.type) {
     case 'ADD_NODE':
-      return { ...state, nodes: [...state.nodes, action.node] };
+      return updateActiveLine(state, (l) => ({ ...l, nodes: [...l.nodes, action.node] }));
     case 'MOVE_NODE':
-      return { ...state, nodes: state.nodes.map((n) => n.id === action.id ? { ...n, x: action.x, y: action.y } : n) };
+      return updateActiveLine(state, (l) => ({
+        ...l,
+        nodes: l.nodes.map((n) => (n.id === action.id ? { ...n, x: action.x, y: action.y } : n)),
+      }));
     case 'UPDATE_PROPS':
-      return { ...state, nodes: state.nodes.map((n) => n.id === action.id ? { ...n, props: { ...n.props, ...action.props } } : n) };
+      return updateActiveLine(state, (l) => ({
+        ...l,
+        nodes: l.nodes.map((n) => (n.id === action.id ? { ...n, props: { ...n.props, ...action.props } } : n)),
+      }));
     case 'UPDATE_LABEL':
-      return { ...state, nodes: state.nodes.map((n) => n.id === action.id ? { ...n, label: action.label } : n) };
+      return updateActiveLine(state, (l) => ({
+        ...l,
+        nodes: l.nodes.map((n) => (n.id === action.id ? { ...n, label: action.label } : n)),
+      }));
     case 'DELETE_NODE':
-      return { ...state, nodes: state.nodes.filter((n) => n.id !== action.id), edges: state.edges.filter((e) => e.from !== action.id && e.to !== action.id), selectedId: state.selectedId === action.id ? null : state.selectedId };
+      return updateActiveLine(state, (l) => ({
+        ...l,
+        nodes: l.nodes.filter((n) => n.id !== action.id),
+        edges: l.edges.filter((e) => e.from !== action.id && e.to !== action.id),
+      }));
     case 'ADD_EDGE':
-      // 从 out2（不合格）端口连出的边默认标记为回流线（虚线）
-      return { ...state, edges: [...state.edges, { ...action.edge, dashed: state.connectingPort === 'out2' }], connectingFrom: null, connectingPort: null };
+      return updateActiveLine(state, (l) => ({
+        ...l,
+        edges: [...l.edges, { ...action.edge, dashed: state.connectingPort === 'out2' }],
+      }));
     case 'TOGGLE_EDGE':
-      return { ...state, edges: state.edges.map((e) => e.id === action.id ? { ...e, dashed: !e.dashed } : e) };
+      return updateActiveLine(state, (l) => ({
+        ...l,
+        edges: l.edges.map((e) => (e.id === action.id ? { ...e, dashed: !e.dashed } : e)),
+      }));
     case 'SELECT':
       return { ...state, selectedId: action.id, connectingFrom: null, connectingPort: null };
     case 'START_CONNECT':
@@ -87,11 +145,98 @@ export function simReducer(state: SimState, action: SimAction): SimState {
     case 'CANCEL_CONNECT':
       return { ...state, connectingFrom: null, connectingPort: null };
     case 'LOAD_PROJECT':
-      return { ...initialSimState(), projectName: action.project.name, nodes: action.project.nodes, edges: action.project.edges };
+      return updateActiveLine(state, (l) => ({
+        ...l,
+        name: action.project.name || l.name,
+        nodes: action.project.nodes,
+        edges: action.project.edges,
+      }));
     case 'CLEAR':
-      return { ...initialSimState(), projectName: state.projectName };
-    case 'SET_NAME':
-      return { ...state, projectName: action.name };
+      return updateActiveLine(state, (l) => ({ ...l, nodes: [], edges: [], name: l.name }));
+    case 'ADD_FACTORY':
+      return (() => {
+        const factory: SimFactory = { id: fid(), name: action.name || '新工厂', lines: [emptyLine()] };
+        return {
+          ...state,
+          factories: [...state.factories, factory],
+          activeFactoryId: factory.id,
+          activeLineId: factory.lines[0].id,
+          selectedId: null,
+          connectingFrom: null,
+          connectingPort: null,
+        };
+      })();
+    case 'RENAME_FACTORY':
+      return {
+        ...state,
+        factories: state.factories.map((f) => (f.id === action.id ? { ...f, name: action.name || f.name } : f)),
+      };
+    case 'DELETE_FACTORY':
+      if (state.factories.length <= 1) return state; // 至少保留一个工厂
+      {
+        const rest = state.factories.filter((f) => f.id !== action.id);
+        const nextActive = rest[0];
+        return {
+          ...state,
+          factories: rest,
+          activeFactoryId: nextActive.id,
+          activeLineId: nextActive.lines[0].id,
+          selectedId: null,
+          connectingFrom: null,
+          connectingPort: null,
+        };
+      }
+    case 'ADD_LINE':
+      return (() => {
+        const line = emptyLine(action.name || '新产线');
+        return {
+          ...state,
+          factories: state.factories.map((f) =>
+            f.id === action.factoryId ? { ...f, lines: [...f.lines, line] } : f,
+          ),
+          activeFactoryId: action.factoryId,
+          activeLineId: line.id,
+          selectedId: null,
+          connectingFrom: null,
+          connectingPort: null,
+        };
+      })();
+    case 'RENAME_LINE':
+      return {
+        ...state,
+        factories: state.factories.map((f) => ({
+          ...f,
+          lines: f.lines.map((l) => (l.id === action.id ? { ...l, name: action.name || l.name } : l)),
+        })),
+      };
+    case 'DELETE_LINE':
+      {
+        const factory = state.factories.find((f) => f.lines.some((l) => l.id === action.id));
+        if (!factory || factory.lines.length <= 1) return state; // 每厂至少保留一条产线
+        const restLines = factory.lines.filter((l) => l.id !== action.id);
+        const factories = state.factories.map((f) =>
+          f.id === factory.id ? { ...f, lines: restLines } : f,
+        );
+        const isActive = state.activeLineId === action.id;
+        return {
+          ...state,
+          factories,
+          activeFactoryId: isActive ? factory.id : state.activeFactoryId,
+          activeLineId: isActive ? restLines[0].id : state.activeLineId,
+          selectedId: null,
+          connectingFrom: null,
+          connectingPort: null,
+        };
+      }
+    case 'SWITCH_LINE':
+      return {
+        ...state,
+        activeFactoryId: action.factoryId,
+        activeLineId: action.lineId,
+        selectedId: null,
+        connectingFrom: null,
+        connectingPort: null,
+      };
     default:
       return state;
   }

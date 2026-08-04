@@ -11,6 +11,22 @@
   box-shadow: var(--elev-card);
 }
 
+/* 会话过期提示：不挡内容，正常渲染 0 进度仪表盘 */
+.dash-login-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  background: color-mix(in srgb, var(--warn) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--border));
+  border-radius: var(--radius-md);
+  color: var(--fg);
+  font-size: var(--text-sm);
+}
+.dash-login-hint svg { color: var(--warn); flex: none; }
+.dash-login-hint .btn { margin-left: auto; }
+
 /* ---------- dash-hero 并排网格 ---------- */
 .dash-hero-row {
   display: grid;
@@ -37,6 +53,14 @@
   transition:
     border-color var(--motion-fast) var(--ease-standard),
     transform var(--motion-fast) var(--ease-standard);
+  animation: kpiFadeUp 0.5s var(--ease-out) both;
+}
+.dash-stat:nth-child(2) { animation-delay: 0.05s; }
+.dash-stat:nth-child(3) { animation-delay: 0.1s; }
+.dash-stat:nth-child(4) { animation-delay: 0.15s; }
+@keyframes kpiFadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .dash-stat:hover {
   border-color: var(--border-strong);
@@ -49,9 +73,9 @@
   height: 3px;
   opacity: 0.8;
 }
-.dash-stat[data-acc='blue']::before,
-.dash-stat[data-acc='cyan']::before,
-.dash-stat[data-acc='teal']::before { background: var(--accent); }
+.dash-stat[data-acc='blue']::before { background: var(--accent); }
+.dash-stat[data-acc='cyan']::before { background: var(--info); }
+.dash-stat[data-acc='teal']::before { background: var(--warn); }
 .dash-stat[data-acc='green']::before { background: var(--success); }
 
 .dash-stat-glyph {
@@ -61,10 +85,14 @@
   place-items: center;
   flex: none;
 }
-.dash-stat[data-acc='blue'] .dash-stat-glyph,
-.dash-stat[data-acc='cyan'] .dash-stat-glyph,
-.dash-stat[data-acc='teal'] .dash-stat-glyph {
+.dash-stat[data-acc='blue'] .dash-stat-glyph {
   background: var(--accent-soft); color: var(--accent);
+}
+.dash-stat[data-acc='cyan'] .dash-stat-glyph {
+  background: var(--info-soft); color: var(--info);
+}
+.dash-stat[data-acc='teal'] .dash-stat-glyph {
+  background: var(--warn-soft); color: var(--warn);
 }
 .dash-stat[data-acc='green'] .dash-stat-glyph {
   background: var(--success-soft); color: var(--success);
@@ -85,6 +113,18 @@
 .dash-stat-label {
   font-size: 11px; color: var(--muted);
   text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
+}
+.dash-stat-delta {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-emph-cjk);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--success-soft);
+  color: var(--success);
+  line-height: 1.6;
 }
 
 /* ---------- 面板（环形图容器）---------- */

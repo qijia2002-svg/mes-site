@@ -37,6 +37,8 @@ const SECTION: Record<string, { label: string; to: string }> = {
   courses: { label: '课程', to: '/courses' },
   chapters: { label: '课程', to: '/courses' },
   'learning-paths': { label: '学习路径', to: '/learning-paths' },
+  roadmap: { label: '职业路径', to: '/roadmap' },
+  tracks: { label: '职业路径', to: '/roadmap' },
   'sql-space': { label: 'SQL 工作台', to: '/sql-space' },
   quiz: { label: '题库', to: '/quiz' },
   login: { label: '登录', to: '/login' },
@@ -47,6 +49,7 @@ const FALLBACK_LEAF: Record<string, string> = {
   courses: '课程详情',
   chapters: '章节正文',
   'learning-paths': '路径详情',
+  tracks: '能力路线',
   'sql-space': '练习',
   quiz: '题目',
 };

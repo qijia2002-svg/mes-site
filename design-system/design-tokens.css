@@ -223,10 +223,10 @@
   /* ======================================================================
      B-slot · 组件插槽（消费上面的语义层，组件只读这一层）
      ====================================================================== */
-  --btn-primary-bg: var(--accent);
+  --btn-primary-bg: var(--ink-solid);
   --btn-primary-fg: #ffffff;
-  --btn-primary-bg-hover: var(--accent-hover);
-  --btn-primary-bg-active: var(--accent-active);
+  --btn-primary-bg-hover: var(--ink-solid-hover);
+  --btn-primary-bg-active: var(--ink-solid-active);
 
   --btn-secondary-bg: var(--surface);
   --btn-secondary-fg: var(--fg-2);
@@ -421,5 +421,97 @@ a.nav-item {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   C-extension · 岗位能力路径图（/roadmap · /tracks/:slug）
+   来源：docs/UIUX-CareerRoadmap-v1.md §2.1
+   铁律：本段零新色相、零新间距值。所有值从 v3 既有 token 派生，
+        改上游色板时本段自动跟随，不需要二次维护。
+   ========================================================================== */
+:root {
+  /* ---- 等级阶梯：中性明度单调递增（空心 → 浅实心 → 深实心）---- */
+  /* 不占 accent 配额；等级用中文「入门/中级/高级」字面（主理人裁决：
+     L{n} 字面已被 CoursesPage 的布鲁姆标签占用，本页不再使用） */
+  --rm-lv1-bg: var(--surface-2);
+  --rm-lv1-fg: var(--muted);
+  --rm-lv1-border: var(--border);
+
+  --rm-lv2-bg: var(--surface-3);
+  --rm-lv2-fg: var(--fg-2);
+  --rm-lv2-border: var(--border-strong);
+
+  --rm-lv3-bg: var(--ink-solid);
+  --rm-lv3-fg: var(--fg-on-ink);
+  --rm-lv3-border: var(--ink-solid);
+
+  /* ---- 重要度：纯形状 / 线型通道，三档颜色完全相同 ---- */
+  --rm-imp-border-color: var(--border-strong);
+  --rm-imp-marker-ink: var(--ink-solid);
+  --rm-imp-marker-line: var(--muted);
+  --rm-edge-color: var(--muted);
+
+  --rm-core-border-w: 2px;
+  --rm-core-border-style: solid;
+  --rm-core-edge-w: 2;
+  --rm-core-edge-dash: 0;
+
+  --rm-important-border-w: 1px;
+  --rm-important-border-style: solid;
+  --rm-important-edge-w: 1.5;
+  --rm-important-edge-dash: 6 4;
+
+  --rm-optional-border-w: 1px;
+  --rm-optional-border-style: dashed;
+  --rm-optional-edge-w: 1;
+  --rm-optional-edge-dash: 2 4;
+
+  /* ---- 完成度：本页唯一动用颜色的通道 ---- */
+  --rm-todo-ring: var(--progress-track);
+  --rm-todo-fg: var(--fg-2);
+  --rm-doing-ring: var(--progress-fill);
+  --rm-doing-fg: var(--accent);
+  --rm-done-ring: var(--progress-fill-done);
+  --rm-done-fg: var(--success);
+
+  /* ---- 规划中（只有 planned_chapters，内容未上线）---- */
+  --rm-planned-bg: var(--surface-2);
+  --rm-planned-border: var(--border-strong);
+  --rm-planned-fg: var(--muted);
+
+  /* ---- 「你在这里」当前位置：全页 accent 块面之一 ---- */
+  --rm-here-border: var(--accent-border);
+  --rm-here-ring: var(--accent-soft);
+  --rm-here-edge: var(--accent);
+
+  /* ---- 矩阵骨架（全部落在 4px 网格上）---- */
+  --rm-stage-label-w: 168px;
+  --rm-node-min-w: 160px;
+  --rm-node-h: 88px;
+  --rm-col-gap: var(--space-4);
+  --rm-row-gap: var(--space-12);
+  --rm-ring-size: 32px;
+  --rm-ring-stroke: 3px;
+  --rm-marker-size: 10px;
+}
+
+/* 平板：压缩骨架，矩阵结构不变 */
+@media (max-width: 1024px) {
+  :root {
+    --rm-stage-label-w: 140px;
+    --rm-node-min-w: 148px;
+    --rm-col-gap: var(--space-3);
+    --rm-row-gap: var(--space-10);
+  }
+}
+
+/* 手机：矩阵解体为纵向阶梯，节点转为全宽行（SVG 连线整段不挂载） */
+@media (max-width: 768px) {
+  :root {
+    --rm-node-h: 64px;
+    --rm-node-min-w: 0;
+    --rm-row-gap: var(--space-2);
+    --rm-ring-size: 28px;
   }
 }

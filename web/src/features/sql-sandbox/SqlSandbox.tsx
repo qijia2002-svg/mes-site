@@ -10,7 +10,7 @@ import { Icon } from '../../components/Icon';
 import { ErrorState } from '../../components/StateBlock';
 import { hashResultSet } from '../../lib/resultHash';
 import { api, readAnswerHash, readSchemaHint, type SqlExercise } from '../../api/endpoints';
-import { SANDBOX_SAMPLE_QUERY, SANDBOX_TABLES } from './dataset';
+import { SANDBOX_SAMPLE_QUERY, SANDBOX_TABLES, TABLE_SCHEMAS, SANDBOX_CHALLENGES, type SandboxChallenge } from './dataset';
 import { useSandboxDb, type QueryOutcome } from './useSandboxDb';
 import { ResultTable } from './ResultTable';
 
@@ -28,7 +28,11 @@ export function SqlSandbox({ exercise }: { exercise?: SqlExercise }) {
   const [runError, setRunError] = useState<string | null>(null);
   const [verdict, setVerdict] = useState<Verdict>({ kind: 'idle' });
   const [submitNote, setSubmitNote] = useState<string | null>(null);
+  const [activeTable, setActiveTable] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('all');
+  const [difficulty, setDifficulty] = useState('all');
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const answerHash = exercise ? readAnswerHash(exercise) : '';
   const schemaHint = exercise ? readSchemaHint(exercise) : '';
@@ -131,8 +135,87 @@ export function SqlSandbox({ exercise }: { exercise?: SqlExercise }) {
     );
   }
 
+  const TABS = ['全部', '基础查询', '关联查询', '聚合统计', '综合实战'];
+  const DIFFICULTIES = ['全部', '入门', '进阶', '高级'];
+
+  // 用分类 / 难度把引导挑战真正筛出来（之前这两个按钮是死的，点了不筛选）。
+  const filteredChallenges = SANDBOX_CHALLENGES.filter(
+    (c) => (activeTab === '全部' || c.category === activeTab) && (difficulty === '全部' || c.difficulty === difficulty),
+  );
+
+  const loadChallenge = (c: SandboxChallenge) => {
+    setSql(c.starterSql);
+    setOutcome(null);
+    setRunError(null);
+  };
+
   return (
     <section className="sandbox" aria-label="SQL 工作台">
+      {/* Pill 分类标签 */}
+      <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap', marginBottom: 'var(--space-3)' }}>
+        {TABS.map(t => (
+          <button key={t} type="button"
+            className="btn btn-sm"
+            style={{
+              background: activeTab === t ? 'var(--accent)' : 'var(--surface-2)',
+              color: activeTab === t ? '#fff' : 'var(--muted)',
+              border: '1px solid ' + (activeTab === t ? 'var(--accent)' : 'var(--border)'),
+              borderRadius: 'var(--radius-pill)',
+            }}
+            onClick={() => setActiveTab(t)}>
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {/* 难度筛选 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--meta)', marginBottom: 'var(--space-3)' }}>
+        <span>难度：</span>
+        {DIFFICULTIES.map(d => (
+          <button key={d} type="button"
+            className="btn btn-xs"
+            style={{
+              background: difficulty === d ? 'var(--accent)' : 'var(--surface-2)',
+              color: difficulty === d ? '#fff' : 'var(--muted)',
+              border: '1px solid ' + (difficulty === d ? 'var(--accent)' : 'var(--border)'),
+              borderRadius: 'var(--radius-pill)',
+            }}
+            onClick={() => setDifficulty(d)}>
+            {d}
+          </button>
+        ))}
+      </div>
+
+      {!exerciseId && SANDBOX_CHALLENGES.length > 0 && (
+        <div className="sandbox-challenges">
+          <div className="sandbox-challenges-head">
+            <Icon name="quiz" size={16} className="inline-glyph" />
+            <span>挑一个场景练手</span>
+            <span className="row-meta">共 {filteredChallenges.length} 个</span>
+          </div>
+          <ul className="challenge-list">
+            {filteredChallenges.map((c) => (
+              <li key={c.id} className={`challenge-item${expanded === c.id ? ' is-open' : ''}`}>
+                <div className="challenge-top">
+                  <div className="challenge-meta">
+                    <span className="challenge-title">{c.title}</span>
+                    <span className={`tag tag-${c.difficulty === '入门' ? 'ok' : c.difficulty === '进阶' ? 'warn' : 'hot'}`}>{c.difficulty}</span>
+                  </div>
+                  <div className="challenge-actions">
+                    <button type="button" className="btn btn-xs btn-primary" onClick={() => loadChallenge(c)}>载入模板</button>
+                    <button type="button" className="btn btn-xs btn-secondary" onClick={() => setExpanded(expanded === c.id ? null : c.id)}>{expanded === c.id ? '收起' : '看预期'}</button>
+                  </div>
+                </div>
+                <p className="challenge-scenario">{c.scenario}</p>
+                {expanded === c.id && (
+                  <p className="challenge-expected"><Icon name="hint" size={16} className="inline-glyph" />{c.expected}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="sandbox-bar">
         <div className="sandbox-bar-left">
           <button type="button" className="btn btn-primary" onClick={() => void execute()}>
@@ -161,6 +244,52 @@ export function SqlSandbox({ exercise }: { exercise?: SqlExercise }) {
           <pre className="hint-pre">{schemaHint}</pre>
         </details>
       )}
+
+      {/* 表结构参考芯片 */}
+      <div className="hint-box">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: activeTable ? 'var(--space-3)' : 0 }}>
+          <Icon name="table" size={16} className="inline-glyph" />
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--fg-2)' }}>表结构参考</span>
+          <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
+            {SANDBOX_TABLES.map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={`pill${activeTable === t ? ' pill-ok' : ''}`}
+                style={{ cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}
+                onClick={() => setActiveTable(activeTable === t ? null : t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+        {activeTable && TABLE_SCHEMAS[activeTable] && (
+          <div style={{ padding: 'var(--space-2) 0 0', borderTop: '1px solid var(--border-soft)' }}>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-announce-cjk)', color: 'var(--fg)', marginBottom: 'var(--space-2)' }}>
+              {TABLE_SCHEMAS[activeTable].name}（{activeTable}）
+            </div>
+            <table className="data-table" style={{ fontSize: 'var(--text-xs)' }}>
+              <thead>
+                <tr>
+                  <th>字段名</th>
+                  <th>类型</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TABLE_SCHEMAS[activeTable].fields.map((f) => (
+                  <tr key={f.name}>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{f.name}</td>
+                    <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{f.type}</td>
+                    <td style={{ color: 'var(--muted)' }}>{f.desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       <label className="editor-label" htmlFor="sql-editor">
         SQL 编辑器

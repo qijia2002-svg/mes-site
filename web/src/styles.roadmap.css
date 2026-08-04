@@ -1,0 +1,491 @@
+/* ==========================================================================
+   岗位能力路径（/roadmap · /tracks/:slug）
+   规范：docs/UIUX-CareerRoadmap-v1.md　变量：design-tokens.css C-extension 段
+   铁律同全站：零裸 hex，颜色/间距/圆角/动效一律 var(--token)。
+   三通道正交：等级=中性明度徽章，重要度=形状与线型，完成度=唯一的颜色通道。
+   ========================================================================== */
+
+/* ---------- 岗位选择器（tablist） ---------- */
+.rm-roles {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-6) 0 var(--space-4);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.rm-roles::-webkit-scrollbar { display: none; }
+.rm-role {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  scroll-snap-align: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-2);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard);
+}
+.rm-role:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.rm-role.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--fg);
+}
+.rm-role-glyph { color: var(--muted); flex: none; }
+.rm-role.is-active .rm-role-glyph { color: var(--accent); }
+.rm-role-text { display: flex; flex-direction: column; align-items: flex-start; }
+.rm-role-title { font-weight: var(--weight-emph-cjk); }
+.rm-role.is-active .rm-role-title { font-weight: var(--weight-announce-cjk); }
+.rm-role-meta { font-size: var(--text-xs); color: var(--meta); }
+
+/* ---------- 摘要条与进度条 ---------- */
+.rm-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+.rm-summary-main { font-weight: var(--weight-emph-cjk); }
+.rm-summary-meta { font-size: var(--text-sm); color: var(--muted); }
+.rm-summary-pct {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--meta);
+}
+.rm-bar {
+  display: block;
+  flex: 1 1 120px;
+  max-width: 200px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--progress-track);
+  overflow: hidden;
+}
+.rm-bar-sm { flex: none; width: 120px; height: 6px; }
+.rm-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--progress-fill);
+  transition: width var(--motion-slow) var(--ease-standard);
+}
+
+/* ---------- 页面两栏：矩阵 + 岗位画像 ---------- */
+.rm-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: var(--space-8);
+  align-items: start;
+  margin-top: var(--space-4);
+}
+.rm-main { min-width: 0; }
+.rm-aside {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--space-4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  border-left: 2px solid var(--border);
+  padding-left: var(--space-3);
+  font-size: var(--text-sm);
+}
+.rm-aside-head { display: flex; gap: var(--space-2); align-items: flex-start; }
+.rm-aside-glyph { color: var(--muted); flex: none; }
+.rm-aside-title { margin: 0; font-weight: var(--weight-announce-cjk); color: var(--fg); }
+.rm-aside-tagline { margin: var(--space-1) 0 0; color: var(--muted); }
+.rm-aside-facts { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; }
+.rm-aside-facts dt {
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-caps);
+  color: var(--meta);
+}
+.rm-aside-facts dd { margin: 0; color: var(--fg-2); }
+.rm-aside-overview { margin: 0; color: var(--muted); }
+
+/* ---------- 矩阵骨架 ---------- */
+.rm-scroll {
+  margin-top: var(--space-4);
+  min-width: 0;
+  overflow-x: auto;
+}
+.rm-matrix { position: relative; display: flex; flex-direction: column; }
+.rm-row {
+  display: grid;
+  grid-template-columns: var(--rm-stage-label-w) repeat(var(--rm-cols, 4), minmax(var(--rm-node-min-w), 1fr));
+  column-gap: var(--rm-col-gap);
+  align-items: start;
+}
+.rm-row-head {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 2;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-2);
+}
+.rm-row-group {
+  margin-top: var(--rm-row-gap);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border-soft);
+}
+.rm-row-group:first-child { border-top: 0; }
+.rm-col-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--fg-2);
+  text-decoration: none;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+.rm-col-head:hover { color: var(--accent); }
+.rm-col-glyph { color: var(--muted); flex: none; }
+.rm-col-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 桌面端也钉住说明列：.rm-scroll 可横向滚动，若不 sticky，滚动时节点(z-index:1)会盖到说明列上 */
+.rm-stage-cell { position: sticky; left: 0; z-index: 2; background: var(--bg); display: flex; flex-direction: column; gap: var(--space-1); padding-right: var(--space-3); }
+.rm-stage-index {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--meta);
+}
+.rm-stage-title {
+  font-size: var(--text-lg);
+  line-height: var(--leading-snug);
+  font-weight: var(--weight-announce-cjk);
+}
+.rm-stage-goal { margin: 0; font-size: var(--text-sm); color: var(--muted); }
+.rm-stage-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--meta);
+}
+/* 空单元格留空：矩阵的空白本身就是信息，不放占位符也不画虚线框 */
+.rm-cell-empty { min-height: var(--space-2); }
+.rm-scroll-hint { display: none; margin: var(--space-2) 0 0; font-size: var(--text-xs); color: var(--meta); }
+.rm-overflow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin: var(--space-6) 0 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+.rm-overflow-glyph { color: var(--meta); flex: none; }
+
+/* ---------- 连线层：只用正交折线，三档共用 --muted 只差宽度虚实 ---------- */
+.rm-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.rm-edge path { stroke: var(--rm-edge-color); }
+.rm-edge polygon { fill: var(--rm-edge-color); }
+.rm-edge.is-core path { stroke-width: var(--rm-core-edge-w); }
+.rm-edge.is-important path {
+  stroke-width: var(--rm-important-edge-w);
+  stroke-dasharray: var(--rm-important-edge-dash);
+}
+.rm-edge.is-optional path {
+  stroke-width: var(--rm-optional-edge-w);
+  stroke-dasharray: var(--rm-optional-edge-dash);
+}
+.rm-edge.is-here path { stroke: var(--rm-here-edge); stroke-width: var(--rm-core-edge-w); }
+.rm-edge.is-here polygon { fill: var(--rm-here-edge); }
+
+/* ---------- 节点 ---------- */
+.rm-node {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: var(--rm-node-h);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--rm-imp-border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elev-card);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+.rm-node.is-core { border-width: var(--rm-core-border-w); border-style: var(--rm-core-border-style); }
+.rm-node.is-important { border-width: var(--rm-important-border-w); border-style: var(--rm-important-border-style); }
+.rm-node.is-optional { border-width: var(--rm-optional-border-w); border-style: var(--rm-optional-border-style); }
+a.rm-node:hover {
+  border-color: var(--card-border-hover);
+  box-shadow: var(--elev-card-hover);
+  transform: translateY(-1px);
+}
+a.rm-node:active {
+  transform: translateY(0);
+  background: var(--surface-2);
+  transition-duration: var(--motion-instant);
+}
+.rm-node.is-here { border-color: var(--rm-here-border); box-shadow: 0 0 0 1px var(--rm-here-ring); }
+.rm-node.is-planned {
+  background: var(--rm-planned-bg);
+  border-style: dashed;
+  border-color: var(--rm-planned-border);
+  cursor: default;
+}
+.rm-node.is-planned .rm-node-track { color: var(--rm-planned-fg); }
+.rm-node-head { display: flex; align-items: center; gap: var(--space-2); }
+.rm-node-icon { color: var(--muted); flex: none; }
+.rm-node-track {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--weight-emph-cjk);
+}
+.rm-node-foot { display: flex; align-items: center; gap: var(--space-2); margin-top: auto; }
+.rm-node-level { flex: 1; min-width: 0; font-size: var(--text-sm); color: var(--muted); }
+.rm-node-imp {
+  flex: none;
+  font-size: var(--text-xs);
+  color: var(--fg-2);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+}
+.rm-node-note {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rm-node-plan { font-size: var(--text-xs); color: var(--rm-planned-fg); }
+.rm-node-here {
+  position: absolute;
+  top: calc(var(--space-2) * -1);
+  right: var(--space-3);
+  padding: 0 var(--space-1);
+  background: var(--bg);
+  font-size: var(--text-xs);
+  color: var(--accent);
+}
+
+/* ---------- 等级徽章（中性明度阶梯，不占 accent 配额） ---------- */
+.rm-level {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 28px;
+  height: 20px;
+  padding: 0 var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-emph);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-caps);
+}
+.rm-level.is-l1 { background: var(--rm-lv1-bg); color: var(--rm-lv1-fg); border-color: var(--rm-lv1-border); }
+.rm-level.is-l2 { background: var(--rm-lv2-bg); color: var(--rm-lv2-fg); border-color: var(--rm-lv2-border); }
+.rm-level.is-l3 { background: var(--rm-lv3-bg); color: var(--rm-lv3-fg); border-color: var(--rm-lv3-border); }
+
+/* ---------- 重要度角标（形状通道，三档同色，黑白打印可辨） ---------- */
+.rm-mark { flex: none; width: var(--rm-marker-size); height: var(--rm-marker-size); }
+.rm-mark.is-core { background: var(--rm-imp-marker-ink); border-radius: 1px; }
+.rm-mark.is-important {
+  background: transparent;
+  border: 1.5px solid var(--rm-imp-marker-line);
+  border-radius: 1px;
+}
+.rm-mark.is-optional {
+  background: transparent;
+  border: 1px dashed var(--rm-imp-marker-line);
+  border-radius: var(--radius-pill);
+}
+
+/* ---------- 进度环（完成度：本页唯一的颜色通道） ---------- */
+.rm-ring { position: relative; flex: none; display: inline-flex; width: var(--rm-ring-size); height: var(--rm-ring-size); }
+.rm-ring svg { display: block; }
+.rm-ring-track { stroke: var(--rm-todo-ring); }
+.rm-ring-fill { transition: stroke-dashoffset var(--motion-slow) var(--ease-standard); }
+.rm-ring-core {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rm-ring-num {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--meta);
+}
+.rm-ring-check { color: var(--success); }
+.rm-ring-planned { align-items: center; justify-content: center; color: var(--meta); }
+
+/* ---------- 手机：阶段 accordion + 纵向阶梯 ---------- */
+.rm-stairs { display: flex; flex-direction: column; margin-top: var(--space-4); }
+.rm-stage { border-bottom: 1px solid var(--border-soft); }
+.rm-stage-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  cursor: pointer;
+  list-style: none;
+}
+.rm-stage-summary::-webkit-details-marker { display: none; }
+.rm-stage-summary .rm-stage-title { flex: 1; min-width: 0; font-size: var(--text-base); }
+.rm-stage-arrow { color: var(--meta); flex: none; }
+.rm-stage-body { display: flex; flex-direction: column; gap: var(--space-3); padding-bottom: var(--space-4); }
+.rm-stair { list-style: none; margin: 0; padding: 0; }
+.rm-stair-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--rm-marker-size) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+  padding-bottom: var(--space-2);
+}
+/* 竖轴：画在行上而不是列表上，最后一行只画到标记为止 */
+.rm-stair-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--rm-marker-size) / 2 - 1px);
+  width: 2px;
+  background: var(--border);
+}
+.rm-stair-item:last-child::before { bottom: 50%; }
+.rm-stair-item > .rm-mark { position: relative; z-index: 1; }
+.rm-stair-item > .rm-mark.is-important,
+.rm-stair-item > .rm-mark.is-optional { background: var(--bg); }
+.rm-node-stair { flex-direction: row; flex-wrap: wrap; align-items: center; }
+.rm-node-stair .rm-node-head { flex: 1 1 100%; }
+.rm-node-stair .rm-node-foot { flex: 1 1 100%; }
+
+/* ---------- 阶段验收（里程碑 / 交付物 / 面试考点） ---------- */
+.rm-detail { margin-top: var(--space-4); }
+.rm-detail-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  font-size: var(--text-sm);
+  color: var(--fg-2);
+  cursor: pointer;
+  list-style: none;
+}
+.rm-detail-summary::-webkit-details-marker { display: none; }
+.rm-detail[open] .rm-detail-arrow { transform: rotate(90deg); }
+.rm-detail-arrow { color: var(--meta); flex: none; transition: transform var(--motion-fast) var(--ease-standard); }
+.rm-detail-count { font-size: var(--text-xs); color: var(--meta); }
+.rm-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) 0 var(--space-2) var(--space-6);
+}
+.rm-detail-block { min-width: 0; }
+.rm-detail-glyph { color: var(--meta); flex: none; }
+.rm-detail-list { margin: 0; padding-left: var(--space-4); font-size: var(--text-sm); color: var(--fg-2); }
+.rm-detail-list li { margin-bottom: var(--space-1); }
+.rm-milestone {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--fg-2);
+}
+.rm-caps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-caps);
+  color: var(--meta);
+}
+
+/* ---------- /tracks/:slug 路线详情 ---------- */
+.rm-track-head { display: flex; align-items: flex-start; gap: var(--space-3); }
+.rm-track-glyph { color: var(--muted); flex: none; margin-top: var(--space-1); }
+.rm-track-progress { display: flex; align-items: center; gap: var(--space-2); flex: none; }
+.rm-level-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--border-soft);
+  /* 从路径图带 #level-l2 跳进来时，别被 sticky 顶栏盖住 */
+  scroll-margin-top: calc(var(--topbar-h) + var(--space-4));
+}
+.rm-level-section:first-child { border-top: 0; padding-top: var(--space-4); }
+.rm-level-head { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.rm-level-name {
+  margin: 0;
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  font-weight: var(--weight-announce-cjk);
+}
+.rm-level-hours,
+.rm-level-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--meta);
+}
+.rm-level-count { margin-left: auto; }
+.rm-level-goal { margin: 0; color: var(--fg-2); }
+.rm-outcome-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.rm-outcome-list li { display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--text-sm); }
+.rm-outcome-list svg { flex: none; margin-top: 2px; }
+.rm-outcome-done { color: var(--success); }
+.rm-outcome-todo { color: var(--meta); }
+.rm-planned-group { margin-top: var(--space-2); }
+.rm-planned-caps { padding-top: var(--space-3); border-top: 1px dashed var(--border); }
+/* 规划中的行不是链接：没有 hover 底色，指针保持默认 */
+.row-link.is-static { cursor: default; color: var(--rm-planned-fg); }
+.row-link.is-static:hover { background: transparent; }
+.rm-toc-count { margin-left: var(--space-2); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--meta); }
+.rm-related { margin-top: var(--space-5); }
+.rm-related .toc-list a { display: flex; align-items: center; gap: var(--space-1); }
+.rm-related-glyph { flex: none; }
+
+/* ---------- 平板 768–1023px：矩阵横向滚动，阶段标签列钉住 ---------- */
+@media (max-width: 1024px) {
+  .rm-layout { grid-template-columns: minmax(0, 1fr); }
+  .rm-aside { position: static; order: -1; }
+  .rm-scroll { overflow-x: auto; }
+  .rm-scroll-hint { display: block; }
+  .rm-stage-cell { position: sticky; left: 0; z-index: 1; background: var(--bg); }
+  .rm-row-head { position: static; }
+}
+
+/* ---------- 手机 <768px：矩阵不渲染，节点转全宽行 ---------- */
+@media (max-width: 768px) {
+  .rm-role { min-height: 44px; }
+  .rm-node-stair { padding: var(--space-3); }
+  .rm-summary { gap: var(--space-2); }
+  .rm-bar { max-width: none; }
+  .rm-detail-body { padding-left: var(--space-4); }
+}

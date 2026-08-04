@@ -6,6 +6,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { renderChapterMarkdown } from '../lib/markdown';
 import { Icon } from './Icon';
+import { VoiceButton } from './VoiceButton';
 import './FlashCardDeck.css';
 
 interface Card {
@@ -91,6 +92,7 @@ export function FlashCardDeck({ mdText, chapterTitle }: FlashCardDeckProps) {
   }
 
   const card = cards[current];
+  const cardText = `${card.title}。${card.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`;
   const masteredCount = statuses.filter((s) => s === 'mastered').length;
   const reviewCount = statuses.filter((s) => s === 'review').length;
   const pct = Math.round(((current + 1) / cards.length) * 100);
@@ -124,6 +126,7 @@ export function FlashCardDeck({ mdText, chapterTitle }: FlashCardDeckProps) {
         <div className="flash-card-head">
           <span className="flash-card-index">卡片 {current + 1}</span>
           <h3 className="flash-card-title">{card.title}</h3>
+          <VoiceButton text={cardText} className="flash-card-voice" lang="auto" />
         </div>
         <div
           className="flash-card-body prose"

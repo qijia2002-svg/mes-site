@@ -11,10 +11,13 @@
  * 下一章」，并按最近的学习节奏（完成章节数 / 跨度天数）自动估算完成日期。
  */
 import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
-import { EmptyState, LoadingState } from './StateBlock';
+import { ModuleNav } from './ModuleNav';
+import { EmptyState, LoadingState, ErrorState } from './StateBlock';
+import { toApiError } from '../api/client';
+import { getProfile } from '../lib/profileStore';
 import { api, type Chapter, type LearningPath, type Topic } from '../api/endpoints';
 import './ProgressDashboard.css';
 
@@ -27,7 +30,7 @@ interface TopicStat {
   total: number;
   done: number;
 }
-interface PathStat {
+export interface PathStat {
   path: LearningPath;
   topics: TopicStat[];
   total: number;
@@ -47,6 +50,7 @@ interface Plan {
   daysToFinish: number;
   etaDate: string;
   remaining: number;
+  goalPace: number;
 }
 
 /** 内联 SVG 进度环：用 --accent 描边，--border 做轨道，中心显示百分比。 */
@@ -94,12 +98,19 @@ export default function ProgressDashboard() {
     queryKey: ['learning-paths'],
     queryFn: api.learningPaths,
     retry: 1,
+    staleTime: 60_000,
   });
-  const topicsQ = useQuery({ queryKey: ['topics'], queryFn: api.topics, retry: 1 });
+  const topicsQ = useQuery({
+    queryKey: ['topics'],
+    queryFn: api.topics,
+    retry: 1,
+    staleTime: 60_000,
+  });
   const progressQ = useQuery({
     queryKey: ['progress'],
     queryFn: api.progress,
     retry: 1,
+    staleTime: 60_000,
   });
 
   // 收集所有路径引用的去重 topicId，并行拉各阶段章节（用于总数与里程碑推算）。
@@ -114,8 +125,14 @@ export default function ProgressDashboard() {
       queryKey: ['chapters', id] as const,
       queryFn: () => api.chapters(id),
       retry: 1,
+      staleTime: 60_000,
     })),
   });
+
+  // 导航与查询客户端必须在任何提前 return 之前调用，否则 hook 数量在
+  // 「loading → 数据就绪」切换时会变化，触发 React #310（rendered more hooks）。
+  const nav = useNavigate();
+  const qc = useQueryClient();
 
   const { pathStats, globalDone, globalTotal, nextStep, plan, completedSet } = useMemo(() => {
     const completedSet = new Set(
@@ -170,7 +187,7 @@ export default function ProgressDashboard() {
     }
 
     // 计划估算：按最近节奏（完成章节数 / 跨度天数）推算剩余天数
-    let plan: Plan = { perDay: 0, daysToFinish: 0, etaDate: '', remaining: 0 };
+    let plan: Plan = { perDay: 0, daysToFinish: 0, etaDate: '', remaining: 0, goalPace: 0 };
     if (nextStep) {
       const events = (progressQ.data?.events ?? []).filter(
         (e) => e.itemType === 'chapter' && typeof e.createdAt === 'number',
@@ -188,14 +205,26 @@ export default function ProgressDashboard() {
       if (!(perDay > 0)) perDay = 1; // 没有历史则保守按每天 1 章估算
       const remaining = nextStep.remaining;
       const daysToFinish = Math.ceil(remaining / perDay);
-      plan = { perDay, daysToFinish, etaDate: fmtDate(Date.now() + daysToFinish * DAY_MS), remaining };
+      const goalPace = getProfile().dailyGoal || 3;
+      plan = {
+        perDay,
+        daysToFinish,
+        etaDate: fmtDate(Date.now() + daysToFinish * DAY_MS),
+        remaining,
+        goalPace,
+      };
     }
 
     return { pathStats, globalDone, globalTotal, nextStep, plan, completedSet };
   }, [pathsQ.data, topicsQ.data, progressQ.data, chapterQs, topicIds]);
 
   if (pathsQ.isLoading) return <LoadingState label="正在加载学习路线图…" />;
-  if (pathsQ.isError || !pathsQ.data || pathStats.length === 0) {
+  if (pathsQ.isError) {
+    // 路线图本身加载失败绝不能伪装成「还没有路线图」——明确报错 + 重试，
+    // 避免用户以为数据丢了或被清空（首页报错的主要来源之一）。
+    return <ErrorState error={pathsQ.error} onRetry={() => pathsQ.refetch()} />;
+  }
+  if (!pathsQ.data || pathStats.length === 0) {
     return (
       <EmptyState
         title="还没有学习路线图"
@@ -205,13 +234,33 @@ export default function ProgressDashboard() {
     );
   }
 
+  // 进度接口需登录：会话过期时不再整页报错，而是提示重新登录，
+  // 仪表盘其余部分按 0 进度正常渲染。
+  const progressUnauthorized =
+    progressQ.isError && toApiError(progressQ.error).isUnauthorized;
+
   // 进度是辅助信息：取不到不致命，降级为 0 进度展示，不阻断首页。
   const loadingProgress = progressQ.isLoading;
   const chaptersLoading = chapterQs.some((q) => q.isLoading);
   const globalPct = globalTotal > 0 ? (globalDone / globalTotal) * 100 : 0;
 
+  const reLogin = () => {
+    // 清掉失效的 whoami 缓存，触发 RequireAuth 跳登录页
+    qc.setQueryData(['whoami'], null);
+    nav('/login');
+  };
+
   return (
     <section className="dash" aria-label="学习进度仪表盘">
+      {progressUnauthorized && (
+        <div className="dash-login-hint" role="status">
+          <Icon name="warn" size={16} />
+          <span>登录已失效，进度未同步。请重新登录以查看你的学习数据。</span>
+          <button type="button" className="btn btn-primary btn-sm" onClick={reLogin}>
+            重新登录
+          </button>
+        </div>
+      )}
       {/* 统计卡行：深色主题 KPI 卡，只用平台实际有的数据 */}
       <div className="dash-stats">
         <div className="dash-stat" data-acc="blue">
@@ -246,16 +295,8 @@ export default function ProgressDashboard() {
 
       {/* 环形图 + 下一站学习 并排 */}
       <div className="dash-hero-row">
-        {/* 各模块章节分布环形图 */}
-        <div className="dash-panel">
-          <div className="dash-panel-head">
-            <div>
-              <div className="dash-panel-title">知识模块分布</div>
-              <div className="dash-panel-sub">各模块章节数</div>
-            </div>
-          </div>
-          <ModuleDonut pathStats={pathStats} />
-        </div>
+        {/* 知识模块：紧凑可点击导航（替代冗长环形图，点击进入对应课程） */}
+        <ModuleNav pathStats={pathStats} />
 
         {/* 下一站学习 */}
         <div className="panel dash-hero">
@@ -289,6 +330,14 @@ export default function ProgressDashboard() {
                   按你最近每天约 {plan.perDay.toFixed(1)} 章的节奏，预计{' '}
                   <strong>{plan.etaDate}</strong> 学完《{nextStep.path.title}》（剩{' '}
                   {plan.remaining} 章）
+                      {plan.goalPace > 0 && (
+                    <>
+                      {' '}· 你设定的目标是每天 {plan.goalPace} 章
+                      {plan.perDay >= plan.goalPace
+                        ? '，当前节奏已达标'
+                        : `，还差 ${(plan.goalPace - plan.perDay).toFixed(1)} 章/天`}
+                    </>
+                  )}
                 </p>
               ) : null}
             </>
@@ -369,85 +418,3 @@ export default function ProgressDashboard() {
   );
 }
 
-/** 各模块章节分布环形图（纯 SVG，用 pathStats 数据） */
-const DONUT_COLORS = [
-  'var(--accent-on-ink)',
-  'var(--syn-keyword)',
-  'var(--syn-string)',
-  'var(--syn-number)',
-  'var(--fg-2-on-ink)',
-  'var(--meta-on-ink)',
-];
-
-function ModuleDonut({ pathStats }: { pathStats: PathStat[] }) {
-  // 从 pathStats 展平所有 TopicStat，按模块聚合
-  const moduleMap = new Map<number, { name: string; chapters: number; done: number }>();
-  for (const p of pathStats) {
-    for (const t of p.topics) {
-      const existing = moduleMap.get(t.topicId) ?? {
-        name: t.topic?.title ?? `模块 ${t.topicId}`,
-        chapters: 0,
-        done: 0,
-      };
-      existing.chapters += t.total;
-      existing.done += t.done;
-      moduleMap.set(t.topicId, existing);
-    }
-  }
-
-  const modules = Array.from(moduleMap.entries())
-    .map(([id, data]) => ({ id, ...data }))
-    .filter((m) => m.chapters > 0)
-    .sort((a, b) => b.chapters - a.chapters);
-
-  const total = modules.reduce((sum, m) => sum + m.chapters, 0);
-
-  if (total === 0) return <p style={{ color: 'var(--d-text-faint)' }}>暂无数据</p>;
-
-  // 计算环形图各段的角度
-  let rotation = -90;
-  const segments = modules.map((m, i) => {
-    const pct = (m.chapters / total) * 100;
-    const seg = {
-      ...m,
-      color: DONUT_COLORS[i % DONUT_COLORS.length],
-      pct,
-      rotation,
-    };
-    rotation += (pct / 100) * 360;
-    return seg;
-  });
-
-  return (
-    <div className="donut-wrap">
-      <svg className="donut-svg" viewBox="0 0 200 200">
-        <circle className="donut-track" cx="100" cy="100" r="80" />
-        {segments.map((s, i) => (
-          <circle
-            key={s.id}
-            className="donut-seg"
-            cx="100"
-            cy="100"
-            r="80"
-            pathLength={100}
-            stroke={s.color}
-            style={{ ['--len' as string]: s.pct, ['--d' as string]: `${0.1 + i * 0.3}s` }}
-            transform={`rotate(${s.rotation} 100 100)`}
-          />
-        ))}
-        <text className="donut-center" x="100" y="96">{total}</text>
-        <text className="donut-center-sub" x="100" y="114">章节</text>
-      </svg>
-      <div className="donut-legend">
-        {segments.map((s) => (
-          <div key={s.id} className="legend-row">
-            <span className="legend-dot" style={{ background: s.color }} />
-            <span className="legend-name">{s.name}</span>
-            <span className="legend-val">{s.chapters}</span>
-            <span className="legend-pct">{s.pct.toFixed(0)}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}

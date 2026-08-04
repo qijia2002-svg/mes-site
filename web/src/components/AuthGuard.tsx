@@ -12,7 +12,9 @@ export function useAuth() {
   return useQuery({
     queryKey: ['whoami'],
     queryFn: api.whoami,
-    retry: 0,
+    // 冷启动 / D1 慢查询偶发超时不能把已登录用户踢回登录页，retry 2 次覆盖瞬时抖动。
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
     staleTime: 5 * 60 * 1000,
   });
 }

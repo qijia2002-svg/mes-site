@@ -10,11 +10,15 @@
  */
 import type { SVGProps } from 'react';
 import {
+  Activity,
   ArrowLeft,
   ArrowRight,
   ArrowUpDown,
+  Blocks,
   BookOpen,
   Boxes,
+  Briefcase,
+  Building2,
   CalendarClock,
   Check,
   ChevronDown,
@@ -25,12 +29,16 @@ import {
   CircleQuestionMark,
   CircleUser,
   CircleX,
+  CircuitBoard,
   ClipboardCheck,
   ClipboardList,
   ClockArrowLeft,
+  Code,
   Cog,
   Columns3,
+  Compass,
   Copy,
+  Cpu,
   Database,
   Download,
   Ellipsis,
@@ -38,12 +46,15 @@ import {
   Eye,
   EyeOff,
   Factory,
+  Flame,
   FileText,
   Gauge,
   GitBranch,
+  HardHat,
   Inbox,
   Info,
   LayoutDashboard,
+  Languages,
   Lightbulb,
   List,
   ListChecks,
@@ -51,21 +62,28 @@ import {
   LoaderCircle,
   LogIn,
   LogOut,
+  Maximize2,
+  Minimize2,
   Menu,
   Milestone,
+  Network,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
+  Pause,
   Pencil,
   Play,
   Plus,
   RotateCcw,
   Route,
+  ScanLine,
   Search,
   SearchX,
   Settings2,
   ShieldCheck,
   Table2,
+  Target,
+  Terminal,
   Trash2,
   TriangleAlert,
   Upload,
@@ -89,6 +107,7 @@ const REGISTRY = {
   logout: LogOut,
   user: CircleUser,
   search: Search,
+  dictionary: Languages,
   'sidebar-close': PanelLeftClose,
   'sidebar-open': PanelLeftOpen,
   menu: Menu,
@@ -115,6 +134,8 @@ const REGISTRY = {
 
   // SQL 工作台
   run: Play,
+  play: Play,
+  pause: Pause,
   reset: RotateCcw,
   copy: Copy,
   download: Download,
@@ -143,19 +164,52 @@ const REGISTRY = {
   warehouse: Warehouse,
   oee: Gauge,
 
+  // 能力路线（/roadmap · /tracks/:slug）——UIUX-CareerRoadmap-v1 §6.2
+  // sql 已存在（Database），复用不重复登记；mes 用 Blocks 而非 Factory（workshop 已占 Factory）
+  erp: Building2,
+  mes: Blocks,
+  plc: Cpu,
+  embedded: CircuitBoard,
+  network: Network,
+  linux: Terminal,
+  barcode: ScanLine,
+
+  // 岗位与成长阶段（/roadmap）——UIUX-CareerRoadmap-v1 §6.3
+  // 二开岗用 Code：lucide-react@1.28.0 无 Code2，写了直接构建失败
+  'role-mes-impl': HardHat,
+  'role-erp-consultant': Briefcase,
+  'role-mes-dev': Code,
+  'role-scada': Activity,
+  'role-owner-digital': Compass,
+  stage: Target,
+
   // 后台 / 表格
   add: Plus,
   edit: Pencil,
   delete: Trash2,
+  portfolio: Briefcase,
   confirm: Check,
   filter: ListFilter,
   more: Ellipsis,
   show: Eye,
   hide: EyeOff,
   upload: Upload,
+  expand: Maximize2,
+  minimize: Minimize2,
+
+  // 首页
+  streak: Flame,
 } as const;
 
 export type IconName = keyof typeof REGISTRY;
+
+/**
+ * 运行时校验语义名。后端返回的 icon 字段是字符串，进 <Icon> 前必须过这一关，
+ * 未注册的名字退化成 `paths`（Route），**绝不 fallback 成 emoji**（API 契约 §0.6）。
+ */
+export function isIconName(value: string): value is IconName {
+  return Object.prototype.hasOwnProperty.call(REGISTRY, value);
+}
 
 /** 三档尺寸：16 行内 · 20 按钮/导航 · 24 独立图标。 */
 export type IconSize = 16 | 20 | 24;
@@ -169,6 +223,12 @@ export interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name' | 'ref'>
 
 export function Icon({ name, size = 16, label, className, ...rest }: IconProps) {
   const Glyph = REGISTRY[name];
+  // 兜底守卫：未注册的语义名绝不渲染 undefined（否则 React #130 整页崩溃）。
+  // 开发环境打印告警便于早发现，生产环境静默降级为无图标，不阻断页面。
+  if (!Glyph) {
+    if (import.meta.env?.DEV) console.warn(`[Icon] 未注册的图标名：${String(name)}`);
+    return null;
+  }
   return (
     <Glyph
       width={size}

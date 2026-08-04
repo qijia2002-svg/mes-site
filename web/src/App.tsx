@@ -7,6 +7,8 @@ import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import ChapterPage from './pages/ChapterPage';
 import LearningPathsPage from './pages/LearningPathsPage';
+import RoadmapPage from './pages/RoadmapPage';
+import TrackDetailPage from './pages/TrackDetailPage';
 import SqlSpacePage from './pages/SqlSpacePage';
 import ExercisePage from './pages/ExercisePage';
 import SimulatorPage from './pages/SimulatorPage';
@@ -14,6 +16,8 @@ import QuizPage from './pages/QuizPage';
 import AdminPage from './pages/AdminPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
+import EnginePage from './pages/EnginePage';
+import DictionaryPage from './pages/DictionaryPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
@@ -35,11 +39,15 @@ export default function App() {
                   <Route path="/courses/:topicId" element={<CourseDetailPage />} />
                   <Route path="/chapters/:chapterId" element={<ChapterPage />} />
                   <Route path="/learning-paths" element={<LearningPathsPage />} />
+                  <Route path="/roadmap" element={<RoadmapPage />} />
+                  <Route path="/tracks/:slug" element={<TrackDetailPage />} />
                   <Route path="/sql-space" element={<SqlSpacePage />} />
                   <Route path="/sql-space/:exerciseId" element={<ExercisePage />} />
                   <Route path="/simulator" element={<SimulatorPage />} />
                   <Route path="/quiz" element={<QuizPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/engine" element={<EnginePage />} />
+                  <Route path="/dictionary" element={<DictionaryPage />} />
                   <Route path="/admin" element={<AdminPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>

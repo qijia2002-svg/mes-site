@@ -3,9 +3,21 @@
 PRAGMA foreign_keys = ON;
 
 -- topics
-INSERT INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (1, 'work-order', '工单管理与生产执行', '工单是 MES 的核心单据。掌握工单的状态流转、主表结构与现场高频查询，是实施与运维的第一道门槛。', '["theory","sql","quiz"]', 1, 'published', strftime('%s','now'), strftime('%s','now'));
-INSERT INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (2, 'bom-material', 'BOM 与物料管理', 'BOM 决定了一件成品要消耗什么、消耗多少。看懂 BOM 结构与损耗率，才能解释车间的领料与齐套问题。', '["theory","sql","quiz"]', 2, 'published', strftime('%s','now'), strftime('%s','now'));
-INSERT INTO topics (id, slug, title, description, modules, sort, status, created_at, updated_at) VALUES (3, 'production-report', '报工与完工入库', '报工数据是产量、合格率、工时的唯一来源。理解报工模型，才能定位数量对不上、工单关不掉这类现场问题。', '["theory","sql","quiz"]', 3, 'published', strftime('%s','now'), strftime('%s','now'));
+INSERT INTO topics (id, slug, title, description, modules, sort, status, prerequisites, difficulty, estimated_hours, created_at, updated_at) VALUES (1, 'work-order', '工单管理与生产执行', '【能力目标】学员能够在MES系统中独立完成工单创建、状态流转、现场数据核查与异常定位。
+【受众】MES实施工程师、车间班组长、运维人员
+【前置】SQL查询基础（课程6）
+【评估】SQL实战题2道 + 模块考试12题
+【课时】6小时（理论2h + SQL实操3h + 考试1h）', '["theory","sql","quiz"]', 1, 'published', '[6]', 'intermediate', 6, strftime('%s','now'), strftime('%s','now'));
+INSERT INTO topics (id, slug, title, description, modules, sort, status, prerequisites, difficulty, estimated_hours, created_at, updated_at) VALUES (2, 'bom-material', 'BOM 与物料管理', '【能力目标】给定一张工单及其BOM结构，学员能计算物料需求量与损耗率，并解释齐套性检查结果。
+【受众】MES实施工程师、物料计划员
+【前置】工单管理与生产执行（课程1）
+【评估】SQL实战题 + 数据分析练习
+【课时】5小时（理论2h + SQL实操2h + 案例分析1h）', '["theory","sql","quiz"]', 2, 'published', '[1]', 'intermediate', 5, strftime('%s','now'), strftime('%s','now'));
+INSERT INTO topics (id, slug, title, description, modules, sort, status, prerequisites, difficulty, estimated_hours, created_at, updated_at) VALUES (3, 'production-report', '报工与完工入库', '【能力目标】学员能根据生产记录还原产量、合格率、工时数据，并诊断"数量对不上"、"工单关不掉"两类现场问题。
+【受众】MES实施工程师、质量工程师
+【前置】工单管理与生产执行（课程1）
+【评估】SQL实战题2道 + 场景诊断题
+【课时】4小时（理论1.5h + SQL实操2h + 诊断0.5h）', '["theory","sql","quiz"]', 3, 'published', '[1]', 'intermediate', 4, strftime('%s','now'), strftime('%s','now'));
 
 -- chapters
 INSERT INTO chapters (id, topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (1, 1, '工单的生命周期与状态流转', 1, 'published', '# 工单的生命周期与状态流转
@@ -407,6 +419,9 @@ production_records(rec_id, wo_id, equip_id, operator, qty_ok, qty_ng, report_tim
 -- 提示：WHERE 过滤行，HAVING 过滤组', 2, strftime('%s','now'));
 
 -- learning_paths
-INSERT INTO learning_paths (slug, title, description, topic_ids, sort, status, created_at) VALUES ('mes-implementation-newbie', 'MES 实施新人入门', '面向刚入职的 MES 实施工程师，按工单、物料、报工三大核心域依次推进，学完可独立看懂现场业务单据并完成基础数据核查。', '[1,2,3]', 1, 'published', strftime('%s','now'));
-INSERT INTO learning_paths (slug, title, description, topic_ids, sort, status, created_at) VALUES ('onsite-sql-troubleshoot', '现场 SQL 排查专项', '面向运维岗，聚焦数量对不上、合格率异常这类高频报障，训练用 SQL 分段比对定位问题边界的能力。', '[1,3]', 2, 'published', strftime('%s','now'));
+INSERT INTO learning_paths (slug, title, description, topic_ids, stages, stage_unlock_type, sort, status, created_at) VALUES ('mes-implementation-newbie', 'MES 实施新人入门', '面向刚入职的 MES 实施工程师，按工单、物料、报工三大核心域依次推进，学完可独立看懂现场业务单据并完成基础数据核查。', '[6,4,1,2,3,5]', '[{"name":"阶段一 基础入门","courses":[6,4]},{"name":"阶段二 核心实战","courses":[1,2]},{"name":"阶段三 综合应用","courses":[3,5]}]', 'all_prev', 1, 'published', strftime('%s','now'));
+INSERT INTO learning_paths (slug, title, description, topic_ids, stages, stage_unlock_type, sort, status, created_at) VALUES ('onsite-sql-troubleshoot', '现场 SQL 排查专项', '面向运维岗，聚焦数量对不上、合格率异常这类高频报障，训练用 SQL 分段比对定位问题边界（含 BOM 用料核对）的能力。', '[6,1,2,3]', '[{"name":"阶段一 SQL基础","courses":[6]},{"name":"阶段二 业务排查","courses":[1,2,3]}]', 'all_prev', 2, 'published', strftime('%s','now'));
+INSERT INTO learning_paths (slug, title, description, topic_ids, stages, stage_unlock_type, sort, status, created_at) VALUES ('mes-erp-overview', 'MES+ERP 全景通识', '先建立 ERP 经营全局视角，再深入 MES 车间执行层，形成"上接计划、下接设备"的完整知识链。适合转行新人或跨部门协作人员。', '[4,5]', '[{"name":"阶段一 企业经营","courses":[4]},{"name":"阶段二 车间执行","courses":[5]}]', 'all_prev', 3, 'published', strftime('%s','now'));
+INSERT INTO learning_paths (slug, title, description, topic_ids, stages, stage_unlock_type, sort, status, created_at) VALUES ('sql-practical', 'SQL 从基础到实战', '从零学 SQL 查询语法，用 MES 工单报工资数据练手，最后到综合实战场景。纯动手路径，每门课都带 SQL 练习。', '[6,1,3]', '[{"name":"阶段一 SQL语法","courses":[6]},{"name":"阶段二 MES实战","courses":[1,3]}]', 'all_prev', 4, 'published', strftime('%s','now'));
+INSERT INTO learning_paths (slug, title, description, topic_ids, stages, stage_unlock_type, sort, status, created_at) VALUES ('smart-manufacturing', '智能制造基础', 'PLC 工业控制入门 → ERP 企业资源规划，从设备层到管理层打通智能制造认知链路。', '[7,4]', '[{"name":"阶段一 设备层","courses":[7]},{"name":"阶段二 管理层","courses":[4]}]', 'all_prev', 5, 'published', strftime('%s','now'));
 

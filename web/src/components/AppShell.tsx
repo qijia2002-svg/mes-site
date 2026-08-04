@@ -1,47 +1,25 @@
 /**
- * App Shell：深色侧栏 + Topbar 52 + 面包屑。
- * v3.1：侧栏改深色（--surface-ink），导航精简为四项（首页/学习中心/模拟台/工厂模拟）。
- * 底部加学习进度条（复用 api.progress + api.topics，不新增后端端点）。
+ * App Shell v4 — 智造学院风格重设计。
+ * 白侧栏 + 分组标签 + 更新圆点 + 用户卡片 + 玻璃顶栏搜索/通知/头像。
  */
-import { useCallback, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { Icon, type IconName } from './Icon';
 import { Breadcrumb } from './Breadcrumb';
-import GlossarySearch from './GlossarySearch';
 import { api } from '../api/endpoints';
-
-interface NavEntry {
-  label: string;
-  icon: IconName;
-  to: string;
-  end?: boolean;
-}
-
-// 学习中心子模块（可展开的二级导航）
-const LEARN_SUB: NavEntry[] = [
-  { to: '/courses/4', label: 'ERP', icon: 'report' },
-  { to: '/courses/5', label: 'MES', icon: 'workshop' },
-  { to: '/courses/6', label: 'SQL', icon: 'sql' },
-  { to: '/courses/7', label: 'PLC', icon: 'equipment' },
-];
+import { ScrollProgress } from './ScrollProgress';
+import { getNickname } from './GreetingBar';
 
 const COLLAPSE_KEY = 'mes.sidebar_collapsed';
 
 function readCollapsed(): boolean {
-  try {
-    return localStorage.getItem(COLLAPSE_KEY) === '1';
-  } catch {
-    return false;
-  }
+  try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
 }
 
-/** 侧栏底部学习进度条：复用 React Query 缓存（与 ProgressDashboard 共享），不重复请求。 */
 function SidebarProgress() {
   const progressQ = useQuery({ queryKey: ['progress'], queryFn: api.progress, staleTime: 60_000 });
   const topicsQ = useQuery({ queryKey: ['topics'], queryFn: api.topics, staleTime: 60_000 });
-
-  // 拉每个 topic 的 chapters 算总数——数据会被首页 ProgressDashboard 复用缓存
   const chapterQs = useQueries({
     queries: (topicsQ.data ?? []).map((t) => ({
       queryKey: ['chapters', t.id],
@@ -49,15 +27,11 @@ function SidebarProgress() {
       staleTime: 5 * 60_000,
     })),
   });
-
   const { doneChapters, totalChapters, pct } = useMemo(() => {
-    const completedSet = new Set(
-      (progressQ.data?.completedChapterIds ?? []).map((s) => String(s)),
-    );
+    const completedSet = new Set((progressQ.data?.completedChapterIds ?? []).map(String));
     const total = chapterQs.reduce((sum, q) => sum + (q.data?.length ?? 0), 0);
     const done = completedSet.size;
-    const p = total > 0 ? Math.round((done / total) * 100) : 0;
-    return { doneChapters: done, totalChapters: total, pct: p };
+    return { doneChapters: done, totalChapters: total, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
   }, [progressQ.data, chapterQs]);
 
   return (
@@ -69,41 +43,18 @@ function SidebarProgress() {
       <div className="sidebar-progress-track">
         <div className="sidebar-progress-fill" style={{ width: `${pct}%` }} />
       </div>
-      <div className="sidebar-progress-meta">
-        已读 {doneChapters} / {totalChapters} 章
-      </div>
+      <div className="sidebar-progress-meta">已读 {doneChapters} / {totalChapters} 章</div>
       <Link className="sidebar-progress-cta" to="/courses">
-        继续学习
-        <Icon name="run" size={16} />
+        继续学习 <Icon name="run" size={16} />
       </Link>
     </div>
   );
 }
 
 function HealthPill() {
-  const health = useQuery({
-    queryKey: ['health'],
-    queryFn: api.health,
-    refetchInterval: 60_000,
-    retry: 1,
-  });
-
-  if (health.isLoading) {
-    return (
-      <span className="pill pill-idle">
-        <Icon name="loading" size={16} className="spin" />
-        连接中
-      </span>
-    );
-  }
-  if (health.isError || !health.data) {
-    return (
-      <span className="pill pill-danger">
-        <Icon name="error" size={16} />
-        API 不可用
-      </span>
-    );
-  }
+  const health = useQuery({ queryKey: ['health'], queryFn: api.health, refetchInterval: 60_000, retry: 1 });
+  if (health.isLoading) return <span className="pill pill-idle"><Icon name="loading" size={16} className="spin" /> 连接中</span>;
+  if (health.isError || !health.data) return <span className="pill pill-danger"><Icon name="error" size={16} /> API 不可用</span>;
   const degraded = health.data.degrade && health.data.degrade !== 'L0';
   return (
     <span className={degraded ? 'pill pill-warn' : 'pill pill-ok'}>
@@ -115,116 +66,163 @@ function HealthPill() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(readCollapsed);
-  const [learnOpen, setLearnOpen] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const nickname = getNickname();
+  const userInitial = nickname ? nickname.charAt(0) : '学';
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {
       const next = !prev;
-      try {
-        localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
-      } catch {
-        // 存储不可用时只影响记忆，不影响本次交互
-      }
+      try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch { /* */ }
       return next;
     });
   }, []);
 
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+
+  useEffect(() => {
+    if (mobileOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
   return (
     <div className={`shell${collapsed ? ' is-collapsed' : ''}`}>
-      <a className="skip-link" href="#main">
-        跳到主内容
-      </a>
+      <ScrollProgress />
+      <a className="skip-link" href="#main">跳到主内容</a>
 
-      <aside className="sidebar" aria-label="主导航">
+      {/* 移动端遮罩 */}
+      <div className={`drawer-scrim${mobileOpen ? ' show' : ''}`} aria-hidden="true" onClick={closeMobile} />
+
+      {/* ═══ SIDEBAR ═══ */}
+      <aside className={`sidebar${mobileOpen ? ' open' : ''}`} aria-label="主导航">
+        {/* Logo */}
         <div className="sidebar-brand">
-          <Icon name="workshop" size={20} className="brand-glyph" />
-          <span className="brand-text">MES 实训平台</span>
+          <div className="sidebar-brand-logo">
+            <Icon name="workshop" size={20} />
+          </div>
+          <div className="sidebar-brand-text">
+            <span className="sidebar-brand-title">MES 实训平台</span>
+            <span className="sidebar-brand-sub">Manufacturing Academy</span>
+          </div>
         </div>
 
-        {/* 主导航：首页 + 职业路径 + 模拟台 + 工厂模拟（学习中心单独渲染为可展开分组） */}
-        <ul className="nav-list">
-          <li>
-            <NavLink to="/" end className={({ isActive }) => (isActive ? 'nav-item is-active' : 'nav-item')}>
-              <Icon name="dashboard" size={20} className="nav-glyph" />
-              <span className="nav-label">首页</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/roadmap" className={({ isActive }) => (isActive ? 'nav-item is-active' : 'nav-item')}>
-              <Icon name="stage" size={20} className="nav-glyph" />
-              <span className="nav-label">职业路径</span>
-            </NavLink>
-          </li>
-        </ul>
+        {/* 导航滚动区 */}
+        <div className="sidebar-nav">
+          <div className="nav-section-label">学习</div>
+          <ul className="nav-list">
+            <li>
+              <NavLink to="/" end className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeMobile}>
+                <Icon name="dashboard" size={20} className="nav-glyph" />
+                <span className="nav-label">首页</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/engine" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeMobile}>
+                <Icon name="courses" size={20} className="nav-glyph" />
+                <span className="nav-label">学习中心</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/courses" end className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeMobile}>
+                <Icon name="chapter" size={20} className="nav-glyph" />
+                <span className="nav-label">课程体系</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/learning-paths" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeMobile}>
+                <Icon name="paths" size={20} className="nav-glyph" />
+                <span className="nav-label">学习路径</span>
+              </NavLink>
+            </li>
+          </ul>
 
-        {/* 学习中心：可展开的分组导航 */}
-        <div className="nav-group">
-          <button
-            type="button"
-            className="nav-group-head"
-            onClick={() => setLearnOpen((v) => !v)}
-            aria-expanded={learnOpen}
-          >
-            <Icon name="courses" size={20} className="nav-glyph" />
-            <span className="nav-label">课程体系</span>
-            <Icon name={learnOpen ? 'close' : 'menu'} size={16} className="nav-group-arrow" />
-          </button>
-          {learnOpen && (
-            <ul className="nav-sublist">
-              {LEARN_SUB.map((item) => (
-                <li key={item.to}>
-                  <NavLink
-                    to={item.to}
-                    className={({ isActive }) => (isActive ? 'nav-subitem is-active' : 'nav-subitem')}
-                  >
-                    <Icon name={item.icon} size={16} className="nav-subglyph" />
-                    <span>{item.label}</span>
-                  </NavLink>
-                </li>
-              ))}
-              <li>
-                <NavLink to="/courses" end className={({ isActive }) => (isActive ? 'nav-subitem is-active' : 'nav-subitem')}>
-                  <Icon name="paths" size={16} className="nav-subglyph" />
-                  <span>全部课程</span>
-                </NavLink>
-              </li>
-            </ul>
-          )}
+          <div className="nav-section-label">工具</div>
+          <ul className="nav-list">
+            <li>
+              <NavLink to="/sql-space" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeMobile}>
+                <Icon name="sql" size={20} className="nav-glyph" />
+                <span className="nav-label">SQL 沙盒</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/simulator" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeMobile}>
+                <Icon name="routing" size={20} className="nav-glyph" />
+                <span className="nav-label">工厂仿真</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/dictionary" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeMobile}>
+                <Icon name="dictionary" size={20} className="nav-glyph" />
+                <span className="nav-label">英文词典</span>
+              </NavLink>
+            </li>
+          </ul>
+
+          <div className="nav-section-label">成长</div>
+          <ul className="nav-list">
+            <li>
+              <NavLink to="/roadmap" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeMobile}>
+                <Icon name="stage" size={20} className="nav-glyph" />
+                <span className="nav-label">职业路径</span>
+              </NavLink>
+            </li>
+          </ul>
         </div>
 
-        <ul className="nav-list">
-          <li>
-            <NavLink to="/sql-space" className={({ isActive }) => (isActive ? 'nav-item is-active' : 'nav-item')}>
-              <Icon name="sql" size={20} className="nav-glyph" />
-              <span className="nav-label">SQL 工作台</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/simulator" className={({ isActive }) => (isActive ? 'nav-item is-active' : 'nav-item')}>
-              <Icon name="routing" size={20} className="nav-glyph" />
-              <span className="nav-label">仿真沙盒</span>
-            </NavLink>
-          </li>
-        </ul>
-
+        {/* 底部：用户 + 进度 */}
         <div className="sidebar-foot">
+          <div className="sidebar-user">
+            <Link to="/profile" className="sidebar-user-avatar" aria-label="个人中心">
+              <span>{userInitial}</span>
+            </Link>
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-name">{nickname || '学习者'}</span>
+              <span className="sidebar-user-role">MES 学员</span>
+            </div>
+            <Link to="/profile" className="icon-btn" aria-label="设置">
+              <Icon name="admin" size={16} />
+            </Link>
+          </div>
           <SidebarProgress />
         </div>
       </aside>
 
+      {/* ═══ MAIN ═══ */}
       <div className="shell-main">
+        {/* TOPBAR */}
         <header className="topbar">
-          <button
-            type="button"
-            className="icon-btn only-desktop"
-            aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
-            onClick={toggleCollapsed}
-          >
+          <button type="button" className="icon-btn only-mobile" aria-label="菜单" onClick={() => setMobileOpen(true)}>
+            <Icon name="menu" size={20} />
+          </button>
+
+          <button type="button" className="icon-btn only-desktop" aria-label={collapsed ? '展开侧栏' : '收起侧栏'} onClick={toggleCollapsed}>
             <Icon name={collapsed ? 'sidebar-open' : 'sidebar-close'} size={20} />
           </button>
+
           <Breadcrumb />
+
+          {/* 搜索框 */}
+          <div className="topbar-search">
+            <div className="topbar-search-wrap">
+              <span className="topbar-search-icon"><Icon name="search" size={16} /></span>
+              <input type="text" placeholder="搜索课程、章节…" />
+            </div>
+          </div>
+
           <div className="topbar-right">
-            <GlossarySearch />
+            {/* 通知铃铛 */}
+            <button className="topbar-notify" aria-label="通知">
+              <Icon name="warn" size={20} />
+              <span className="topbar-notify-dot" />
+            </button>
+
+            {/* 头像 */}
+            <Link to="/profile" className="topbar-avatar" aria-label="个人中心">
+              <span>{userInitial}</span>
+            </Link>
+
             <HealthPill />
           </div>
         </header>
@@ -234,23 +232,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* 移动端底部 Tab（框架范式，≤768px 显示） */}
+      {/* ═══ MOBILE TAB BAR ═══ */}
       <nav className="mobile-tabbar only-mobile" aria-label="主导航">
         {[
           { to: '/', label: '首页', icon: 'dashboard' as IconName, end: true },
-          { to: '/courses', label: '课程', icon: 'courses' as IconName },
-          // 手机上侧栏整段不渲染，职业路径必须在底栏留入口，否则移动端进不去
-          { to: '/roadmap', label: '路径', icon: 'stage' as IconName },
+          { to: '/engine', label: '学习', icon: 'courses' as IconName },
           { to: '/sql-space', label: 'SQL', icon: 'sql' as IconName },
-          { to: '/simulator', label: '沙盒', icon: 'routing' as IconName },
+          { to: '/simulator', label: '工厂', icon: 'routing' as IconName },
+          { to: '/profile', label: '我的', icon: 'user' as IconName },
         ].map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) => (isActive ? 'tab-item is-active' : 'tab-item')}
-          >
-            <Icon name={item.icon} size={20} className="tab-glyph" />
+          <NavLink key={item.to} to={item.to} end={item.end}
+            className={({ isActive }) => `tab-item${isActive ? ' is-active' : ''}`}>
+            <Icon name={item.icon} size={20} />
             <span className="tab-label">{item.label}</span>
           </NavLink>
         ))}
