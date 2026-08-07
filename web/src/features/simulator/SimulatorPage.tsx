@@ -7,12 +7,13 @@
 import { useReducer, useState, useCallback, useRef, useEffect } from 'react';
 import { simReducer, initialSimState, seedExampleState, getActiveLine, createNode } from './simReducer';
 import { loadFromStorage } from './simStorage';
-import { planSimulation, computeStep, startLog, DEFAULT_BATCH, type SimMetrics, type SimLogEntry } from './simEngine';
+import { simulate, startLog, DEFAULT_BATCH, type SimLogEntry } from './simEngine';
 import SimToolbar from './SimToolbar';
 import SimFactoryPanel from './SimFactoryPanel';
 import SimPalette from './SimPalette';
 import SimCanvas from './SimCanvas';
 import SimProps from './SimProps';
+import SimEdgeEditor from './SimEdgeEditor';
 import SimLog from './SimLog';
 import type { SimRunState, SimNodeDef } from './simTypes';
 import { NODE_LIBRARY } from './simTypes';
@@ -67,6 +68,7 @@ export default function SimulatorPage() {
   }, []);
 
   const selectedNode = nodes.find((n) => n.id === state.selectedId) ?? null;
+  const selectedEdge = edges.find((e) => e.id === state.selectedEdgeId) ?? null;
 
   // 点击左侧工序库 → 在画布左上角区域级联摆放，避免堆叠，用户可再拖拽调整
   const handleAddNode = useCallback((type: string) => {
@@ -87,55 +89,67 @@ export default function SimulatorPage() {
   }, []);
 
   const runSim = useCallback(async () => {
-    const plan = planSimulation(nodes, edges, DEFAULT_BATCH);
+    const result = simulate(nodes, edges, DEFAULT_BATCH);
     stopRef.current = false;
 
-    if (plan.errors.length > 0) {
-      setRun({ active: false, activeNodeId: null, progress: 0, metrics: null, logs: plan.errors.map<SimLogEntry>((m) => ({
-        ts: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
-        type: 'fail',
-        msg: m,
-      })) });
+    if (!result.ok) {
+      setRun({
+        active: false,
+        activeNodeId: null,
+        progress: 0,
+        metrics: null,
+        logs: result.errors.map<SimLogEntry>((m) => ({
+          ts: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+          type: 'fail',
+          msg: m,
+        })),
+      });
       return;
     }
 
-    const initMetrics: SimMetrics = { total: plan.batch, passed: 0, defective: 0, reworked: 0, scrapped: 0, leadTimeMin: 0 };
-    setRun({ active: true, activeNodeId: null, progress: 0, metrics: { ...initMetrics }, logs: [startLog(plan.batch)] });
+    const initLogs = [startLog(DEFAULT_BATCH)];
+    setRun({
+      active: true,
+      activeNodeId: null,
+      progress: 0,
+      metrics: { ...result.metrics },
+      logs: initLogs,
+      edgeFlow: result.edgeFlow,
+      nodeInflow: result.nodeInflow,
+      nodeOutflow: result.nodeOutflow,
+      bottleneckId: result.bottleneckId,
+      bottleneck: result.bottleneck,
+    });
 
-    let good = plan.batch;
-    let metrics = { ...initMetrics };
-
-    for (let i = 0; i < plan.order.length; i++) {
+    for (let i = 0; i < result.order.length; i++) {
       if (stopRef.current) return;
-      const node = plan.order[i];
-      const step = computeStep(node, good, plan, new Date());
-      good = step.outGood;
-      metrics = {
-        ...metrics,
-        passed: good,
-        defective: metrics.defective + step.defective,
-        reworked: metrics.reworked + step.reworked,
-        scrapped: metrics.scrapped + step.scrapped,
-        leadTimeMin: metrics.leadTimeMin + step.leadMin,
-      };
+      const node = result.order[i];
       await new Promise((res) => setTimeout(res, BASE_DELAY / speed));
       if (stopRef.current) return;
       setRun((r) => ({
         ...r,
         activeNodeId: node.id,
-        progress: (i + 1) / plan.order.length,
-        metrics: { ...metrics },
-        logs: [...r.logs, step.log],
+        progress: (i + 1) / result.order.length,
+        metrics: { ...result.metrics },
+        logs: [...initLogs, ...result.logs.slice(0, i + 1)],
       }));
     }
 
     if (stopRef.current) return;
+    const m = result.metrics;
     const done: SimLogEntry = {
       ts: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
       type: 'ok',
-      msg: `仿真结束：投产 ${metrics.total} 件 → 合格发货 ${metrics.passed} 件，良率 ${((metrics.passed / metrics.total) * 100).toFixed(1)}%`,
+      msg: `仿真结束：投产 ${m.total} 件 → 合格发货 ${m.passed} 件，良率 ${m.total > 0 ? ((m.passed / m.total) * 100).toFixed(1) : '0'}%`,
     };
-    setRun((r) => ({ ...r, active: false, activeNodeId: null, progress: 1, metrics: { ...metrics }, logs: [...r.logs, done] }));
+    setRun((r) => ({
+      ...r,
+      active: false,
+      activeNodeId: null,
+      progress: 1,
+      metrics: { ...m },
+      logs: [...initLogs, ...result.logs, done],
+    }));
   }, [nodes, edges]);
 
   return (
@@ -153,23 +167,37 @@ export default function SimulatorPage() {
       />
       <div className="sim-body">
         <SimFactoryPanel state={state} dispatch={dispatch} />
-        <SimPalette onCreate={handleAddNode} onCustomNode={addCustomNodeDef} scene={scene} />
+        <SimPalette onCreate={handleAddNode} onCustomNode={addCustomNodeDef} scene={scene} onSceneChange={setScene} />
         <div className="sim-main">
           <SimCanvas
             nodes={nodes}
             edges={edges}
             selectedId={state.selectedId}
+            selectedEdgeId={state.selectedEdgeId}
             connectingFrom={state.connectingFrom}
             connectingPort={state.connectingPort}
             dispatch={dispatch}
             activeNodeId={run.activeNodeId}
+            bottleneckId={run.bottleneckId}
+            edgeFlow={run.edgeFlow}
           />
-          <SimProps
-            node={selectedNode}
-            onChange={(props) => { if (state.selectedId) dispatch({ type: 'UPDATE_PROPS', id: state.selectedId, props }); }}
-            onLabelChange={(label) => { if (state.selectedId) dispatch({ type: 'UPDATE_LABEL', id: state.selectedId, label }); }}
-            onDelete={handleDeleteNode}
-          />
+          {state.selectedEdgeId && selectedEdge ? (
+            <SimEdgeEditor
+              edge={selectedEdge}
+              fromLabel={nodes.find((n) => n.id === selectedEdge.from)?.label ?? '起点'}
+              toLabel={nodes.find((n) => n.id === selectedEdge.to)?.label ?? '终点'}
+              onChange={(patch) => dispatch({ type: 'UPDATE_EDGE', id: selectedEdge.id, patch })}
+              onDelete={() => dispatch({ type: 'DELETE_EDGE', id: selectedEdge.id })}
+              onClose={() => dispatch({ type: 'SELECT_EDGE', id: null })}
+            />
+          ) : (
+            <SimProps
+              node={selectedNode}
+              onChange={(props) => { if (state.selectedId) dispatch({ type: 'UPDATE_PROPS', id: state.selectedId, props }); }}
+              onLabelChange={(label) => { if (state.selectedId) dispatch({ type: 'UPDATE_LABEL', id: state.selectedId, label }); }}
+              onDelete={handleDeleteNode}
+            />
+          )}
         </div>
         <SimLog
           nodes={nodes.map((n) => ({ id: n.id, label: n.label, nodeType: n.nodeType }))}
@@ -206,6 +234,15 @@ export default function SimulatorPage() {
           <div className="sim-kpi">
             <span className="sim-kpi-value">{run.metrics.leadTimeMin.toFixed(1)}</span>
             <span className="sim-kpi-label">生产工时 (min)</span>
+          </div>
+          <div className="sim-kpi">
+            <span className="sim-kpi-value" style={{ color: 'var(--warn)' }}>{run.bottleneck?.label ?? '—'}</span>
+            <span className="sim-kpi-label">
+              瓶颈工序
+              {run.bottleneck && (
+                <span className="sim-kpi-sub">产能 {run.bottleneck.perShift} 件/班</span>
+              )}
+            </span>
           </div>
         </div>
       )}

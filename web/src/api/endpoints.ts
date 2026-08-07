@@ -152,6 +152,65 @@ export interface ExplainWordResult {
   detail: string;
 }
 
+/** 字典类型（dict_type 表的 API 视图，camelCase）。 */
+export interface DictType {
+  id: number;
+  typeKey: string;
+  name: string;
+  sort: number;
+  status: number;
+  remark: string | null;
+}
+/** 字典数据（dict_data 表的 API 视图）。 */
+export interface DictData {
+  id: number;
+  typeKey: string;
+  value: string;
+  pos: string;
+  zh: string;
+  example: string;
+  exampleZh: string;
+  category: string;
+  detail: string;
+  sort: number;
+  status: number;
+}
+/** GET /api/v1/dict 返回：类型 + 数据全量。 */
+export interface DictBundle {
+  types: DictType[];
+  data: DictData[];
+}
+
+/** 工厂流程图（factory-first 导航主干）。 */
+export interface FlowNodeDTO {
+  id: number;
+  key: string;
+  label: string;
+  kind: string;
+  icon: string;
+  x: number;
+  y: number;
+  description: string;
+}
+export interface FlowEdgeDTO {
+  from: string;
+  to: string;
+  label: string;
+}
+export interface NodeResourceDTO {
+  id: number;
+  nodeId: number;
+  type: string;
+  refId: number;
+  title: string;
+}
+export interface FlowchartBundle {
+  flow: { id: number; slug: string; title: string; description: string; status: string };
+  nodes: FlowNodeDTO[];
+  edges: FlowEdgeDTO[];
+  resources: NodeResourceDTO[];
+}
+
 /** 兼容后端 snake_case / camelCase 两种命名，避免单点字段名不一致导致整页失效。 */
 export function readSchemaHint(e: SqlExercise): string {
   return e.schemaHint ?? e.schema_hint ?? '';
@@ -171,6 +230,7 @@ export interface CourseState {
   chapterDone?: number; totalChapters: number; percent: number;
   missingPrerequisites: string[];
   stageName?: string; stageIndex?: number;
+  currentChapterId?: number; // 续学锚点：第一个未完成章；全完成时为空
 }
 
 export interface StageSummary {
@@ -249,6 +309,7 @@ export const api = {
     apiGet<Chapter[]>(`/api/v1/admin/chapters?topicId=${topicId}`),
   createChapter: (body: unknown) => apiPost('/api/v1/admin/chapters', body),
   updateChapter: (id: number, body: unknown) => apiPut(`/api/v1/admin/chapters/${id}`, body),
+  deleteChapter: (id: number) => apiDelete(`/api/v1/admin/chapters/${id}`),
 
   // 导入内容
   importContent: (body: unknown) =>
@@ -257,6 +318,10 @@ export const api = {
   // 学习引擎
   engineStatus: (body: EngineStatusBody) =>
     apiPost<EngineStatus>('/api/v1/engine/status', body),
+
+  // 工厂流程图（factory-first 导航主干；公开读）
+  flowchart: (slug: string) =>
+    apiGet<FlowchartBundle>(`/api/v1/flowchart/${encodeURIComponent(slug)}`),
 
   // 认证
   whoami: () => apiGet<{ sub: string }>('/api/v1/auth/whoami'),
@@ -269,4 +334,19 @@ export const api = {
 
   // AI 英文单词翻译/解释（离线词典兜底 + Workers AI 生成，按需调用）
   explainWord: (body: ExplainWordBody) => apiPost<ExplainWordResult>('/api/v1/ai/explain-word', body),
+
+  // 跨设备用户数据 KV（云端为主、本地兜底，按登录账号隔离）
+  userDataGet: (key: string) =>
+    apiGet<{ value: unknown | null }>(`/api/v1/user/data/${encodeURIComponent(key)}`),
+  userDataPut: (key: string, value: unknown) =>
+    apiPut(`/api/v1/user/data/${encodeURIComponent(key)}`, { value }),
+
+  // 名称翻译 / 专业词典（读取公开；后台管理需管理员）
+  dictGet: () => apiGet<DictBundle>('/api/v1/dict'),
+  dictTypeCreate: (body: unknown) => apiPost<{ id: number }>('/api/v1/admin/dict/type', body),
+  dictTypeUpdate: (id: number, body: unknown) => apiPut(`/api/v1/admin/dict/type/${id}`, body),
+  dictTypeDelete: (id: number) => apiDelete(`/api/v1/admin/dict/type/${id}`),
+  dictDataCreate: (body: unknown) => apiPost<{ id: number }>('/api/v1/admin/dict/data', body),
+  dictDataUpdate: (id: number, body: unknown) => apiPut(`/api/v1/admin/dict/data/${id}`, body),
+  dictDataDelete: (id: number) => apiDelete(`/api/v1/admin/dict/data/${id}`),
 };

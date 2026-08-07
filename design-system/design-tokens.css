@@ -220,6 +220,18 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   /* 禁止 bounce / elastic 缓动 */
 
+  /* ── UIX-Redesign v1 新增 · 交互态 Token（§B.1）── */
+  --state-hover-bg: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  --state-active-bg: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  --state-focus-ring: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  --state-disabled-opacity: 0.45;
+
+  /* ── UIX-Redesign v1 新增 · 动效语义别名（§B.2）── */
+  --ease-enter: var(--ease-out);
+  --ease-settle: var(--ease-standard);
+  --dur-micro: var(--motion-fast);
+  --dur-state: var(--motion-base);
+
   /* ======================================================================
      B-slot · 组件插槽（消费上面的语义层，组件只读这一层）
      ====================================================================== */

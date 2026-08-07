@@ -171,9 +171,12 @@ export async function commitImportSvc(c: Ctx, b: Record<string, unknown>) {
 }
 
 /** 一步导入：接收 { topics: [{ slug, title, description, modules, chapters: [{ title, sort, md }] }] } */
+interface ImportChapter { title?: unknown; sort?: unknown; md?: unknown; }
+interface ImportTopic { slug?: unknown; title?: unknown; description?: unknown; modules?: unknown; chapters?: ImportChapter[]; }
+
 export async function importContentSvc(c: Ctx, body: Record<string, unknown>) {
-  const topics = body.topics as any[];
-  if (!Array.isArray(topics) || topics.length === 0) throw Err.paramMissing();
+  const topics = Array.isArray(body.topics) ? (body.topics as ImportTopic[]) : [];
+  if (topics.length === 0) throw Err.paramMissing();
 
   let topicsCreated = 0;
   let chaptersCreated = 0;

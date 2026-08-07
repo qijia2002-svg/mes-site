@@ -3,6 +3,7 @@ import type { SimState, SimRunState } from './simTypes';
 import { getActiveLine } from './simReducer';
 import { Icon } from '../../components/Icon';
 import { saveToStorage, exportJSON, importJSON } from './simStorage';
+import { addPortfolioItem } from '../../lib/portfolioStore';
 
 interface Props {
   state: SimState;
@@ -59,13 +60,20 @@ export default function SimToolbar({ state, dispatch, run, speed, onSpeedChange,
             <span className="sim-toolbar-label">运行仿真</span>
           </button>
         )}
-        <button className="sim-toolbar-btn" title="保存到本地" onClick={() => saveToStorage(state)}>
+        <button className="sim-toolbar-btn" title="保存到本地" onClick={() => {
+          saveToStorage(state);
+          const el = document.getElementById('sim-save-hint');
+          if (el) { el.style.opacity = '1'; setTimeout(() => { el.style.opacity = '0'; }, 1500); }
+        }}>
           <Icon name="confirm" size={16} />
           <span className="sim-toolbar-label">保存</span>
         </button>
         <button className="sim-toolbar-btn" title="清空当前产线画布" onClick={() => { if ((activeLine?.nodes.length ?? 0) === 0 || confirm('确定清空当前产线？此操作不可撤销')) dispatch({ type: 'CLEAR' }); }}>
           <Icon name="delete" size={16} />
           <span className="sim-toolbar-label">清空</span>
+        </button>
+        <button className="sim-toolbar-btn" title="自动分层布局" onClick={() => dispatch({ type: 'AUTO_LAYOUT' })} disabled={run.active}>
+          <span className="sim-toolbar-label">整理布局</span>
         </button>
         <button className="sim-toolbar-btn" title="导出 JSON" onClick={() => {
           const json = exportJSON(state);
@@ -77,6 +85,18 @@ export default function SimToolbar({ state, dispatch, run, speed, onSpeedChange,
         }}>
           <Icon name="copy" size={16} />
           <span className="sim-toolbar-label">导出</span>
+        </button>
+        <button className="sim-toolbar-btn" title="保存到作品集" onClick={() => {
+          const r = addPortfolioItem({
+            title: `${activeLine?.name ?? '工艺路线'} — 仿真方案`,
+            category: '方案',
+            note: `${activeLine?.nodes.length ?? 0} 节点 · ${activeLine?.edges.length ?? 0} 连线 · ${new Date().toLocaleDateString('zh-CN')}`,
+            date: new Date().toISOString().slice(0, 10),
+          });
+          if (!r.ok) alert('保存失败：浏览器存储不可用');
+        }}>
+          <Icon name="chapter" size={16} />
+          <span className="sim-toolbar-label">作品集</span>
         </button>
         <button className="sim-toolbar-btn" title="导入 JSON" onClick={() => fileRef.current?.click()}>
           <Icon name="arrow-right" size={16} />
@@ -93,6 +113,9 @@ export default function SimToolbar({ state, dispatch, run, speed, onSpeedChange,
           rd.readAsText(f); e.target.value = '';
         }} />
       </div>
+      <span id="sim-save-hint" style={{ fontSize: 'var(--text-xs)', color: 'var(--success)', opacity: 0, transition: 'opacity 0.3s', marginLeft: 'auto' }}>
+        <Icon name="success" size={16} /> 已保存
+      </span>
     </div>
   );
 }

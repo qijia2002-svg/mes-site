@@ -114,6 +114,24 @@
   cursor: pointer; pointer-events: stroke;
 }
 .sim-edge.is-dashed { stroke: var(--warn); stroke-dasharray: 6 4; }
+.sim-edge.is-selected { stroke-width: 3.5; filter: drop-shadow(0 0 4px rgba(84,124,112,0.55)); }
+.sim-edge-label {
+  font-size: 11px; fill: var(--fg); pointer-events: auto; cursor: pointer;
+  font-family: var(--font-sans); paint-order: stroke;
+  stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round;
+}
+
+/* 边编辑器（复用属性面板视觉） */
+.sim-edge-editor {
+  border-top: 1px solid var(--border); padding: var(--space-3) var(--space-4); flex: none;
+  animation: propsSlideUp 0.15s var(--ease-standard) both;
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.sim-edge-route { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--fg); }
+.sim-chip { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 2px 8px; }
+.sim-chip-arrow { color: var(--meta); }
+.sim-edge-del { margin-top: var(--space-1); }
+.sim-check { display: flex; align-items: center; gap: 6px; font-size: var(--text-sm); color: var(--fg); }
 
 .sim-empty-hint {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
@@ -131,6 +149,7 @@
 .sim-node-oval.is-selected { border-color: var(--muted); border-width: 2.5px; }
 .sim-node-storage { border: 1.5px solid var(--success-border); border-radius: var(--radius-lg); background: var(--surface); }
 .sim-node-storage.is-selected { border-color: var(--success); border-width: 2.5px; box-shadow: 0 0 12px -4px rgba(16,185,129,0.2); }
+.sim-node.is-bottleneck { border-color: var(--warn); box-shadow: 0 0 0 2px rgba(245,158,11,0.25), 0 0 12px -2px rgba(245,158,11,0.45); }
 .sim-node-label { font-size: var(--text-sm); font-weight: var(--weight-announce-cjk); color: var(--fg); text-align: center; line-height: 1.2; padding: 2px; }
 .diamond-inner { max-width: 60%; font-size: var(--text-xs); }
 .sim-critical-mark { font-size: 10px; margin-left: 2px; }

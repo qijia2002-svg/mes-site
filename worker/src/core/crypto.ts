@@ -19,6 +19,9 @@ function toArrayBuffer(u: Uint8Array): ArrayBuffer {
 }
 
 export async function hmacSign(msg: string, secret: string): Promise<string> {
+  if (!secret || secret.length < 16) {
+    throw new Error('SESSION_SECRET 缺失或长度不足（<16字节），拒绝签名');
+  }
   const key = await crypto.subtle.importKey(
     'raw',
     toArrayBuffer(enc.encode(secret)),

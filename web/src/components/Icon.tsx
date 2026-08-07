@@ -58,6 +58,7 @@ import {
   Lightbulb,
   List,
   ListChecks,
+  Lock,
   ListFilter,
   LoaderCircle,
   LogIn,
@@ -65,6 +66,7 @@ import {
   Maximize2,
   Minimize2,
   Menu,
+  Minus,
   Milestone,
   Network,
   Package,
@@ -91,6 +93,11 @@ import {
   Warehouse,
   Workflow,
   X,
+  Calendar,
+  Calculator,
+  Truck,
+  Send,
+  ShoppingCart,
 } from 'lucide-react';
 
 /** 语义名 → lucide 组件。新增图标只在这张表里加，页面永远用语义名。 */
@@ -196,9 +203,27 @@ const REGISTRY = {
   upload: Upload,
   expand: Maximize2,
   minimize: Minimize2,
+  minus: Minus,
+  plus: Plus,
 
   // 首页
   streak: Flame,
+
+  // UIX-Redesign v1
+  lock: Lock,
+
+  // 工厂流程图节点图标（factory-first；复用已导入的 lucide 组件，不与既有语义名冲突）
+  'shopping-cart': ShoppingCart,
+  'clipboard-check': ClipboardCheck,
+  calendar: Calendar,
+  calculator: Calculator,
+  truck: Truck,
+  'git-branch': GitBranch,
+  package: Package,
+  send: Send,
+  factory: Factory,
+  'check-circle': CircleCheck,
+  'log-out': LogOut,
 } as const;
 
 export type IconName = keyof typeof REGISTRY;

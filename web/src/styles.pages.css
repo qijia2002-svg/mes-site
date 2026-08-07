@@ -406,3 +406,30 @@ a.card:hover {
   font-size: var(--text-sm);
   color: var(--success);
 }
+
+/* ── 个人中心响应式 ── */
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 300px;
+  gap: var(--space-5);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .profile-grid { grid-template-columns: minmax(0,1fr); }
+  .profile-layout { padding: 0 var(--space-4); }
+}
+
+/* ── 仿真器横屏提示 ── */
+@media (max-width: 768px) and (orientation: portrait) {
+  .sim-landscape-hint { display: flex; }
+}
+@media (max-width: 768px) and (orientation: landscape) {
+  .sim-landscape-hint { display: none; }
+}
+.sim-landscape-hint {
+  display: none;
+  align-items: center; justify-content: center;
+  padding: var(--space-4); font-size: var(--text-sm); color: var(--muted);
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--surface-2);
+}

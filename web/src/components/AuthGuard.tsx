@@ -4,9 +4,11 @@
  * 通过 React Query 缓存 whoami 结果，避免每次路由切换都发请求。
  */
 import { Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/endpoints';
 import { LoadingState } from './StateBlock';
+import { bootstrapUserData } from '../lib/userData';
 
 export function useAuth() {
   return useQuery({
@@ -36,9 +38,21 @@ export function useLogout() {
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isLoading, isError, data } = useAuth();
+  const [booting, setBooting] = useState(true);
+
+  useEffect(() => {
+    if (data?.sub) {
+      // 登录确认后先把跨设备数据（作品集/昵称/引擎状态/仿真状态）从云端拉到本地镜像，
+      // 并做一次本地→云端迁移；带超时兜底，绝不长期阻塞首屏。
+      bootstrapUserData().finally(() => setBooting(false));
+    } else {
+      setBooting(false);
+    }
+  }, [data?.sub]);
 
   if (isLoading) return <LoadingState label="验证身份…" />;
   if (isError || !data?.sub) return <Navigate to="/login" replace />;
+  if (booting) return <LoadingState label="同步数据…" />;
 
   return <>{children}</>;
 }

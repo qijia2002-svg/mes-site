@@ -16,8 +16,8 @@ export function WordSpeaker({
   showText?: boolean;
   className?: string;
 }) {
-  const { supported, speaking, speak, stop } = useSpeech();
-  if (!supported || !word.trim()) return null;
+  const { speaking, speak, stop } = useSpeech();
+  if (!word.trim()) return null;
   return (
     <button
       type="button"

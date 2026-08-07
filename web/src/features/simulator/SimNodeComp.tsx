@@ -7,6 +7,7 @@ interface Props {
   isSelected: boolean;
   isConnecting: boolean;
   isActive: boolean;
+  isBottleneck?: boolean;
   onSelect: () => void;
   onMove: (x: number, y: number) => void;
   onPortClick: (side: 'in' | 'out' | 'out2') => void;
@@ -19,8 +20,8 @@ const SHAPE_CLS: Record<SimShape, string> = {
   storage: 'sim-node-storage',
 };
 
-export default function SimNodeComp({ node, isSelected, isConnecting, isActive, onSelect, onMove, onPortClick }: Props) {
-  const def = NODE_LIBRARY[node.nodeType];
+export default function SimNodeComp({ node, isSelected, isConnecting, isActive, isBottleneck, onSelect, onMove, onPortClick }: Props) {
+  const def = node.def ?? NODE_LIBRARY[node.nodeType];
   if (!def) return null;
 
   const cls = [
@@ -29,6 +30,7 @@ export default function SimNodeComp({ node, isSelected, isConnecting, isActive, 
     isSelected && 'is-selected',
     isConnecting && 'is-connecting',
     isActive && 'is-active',
+    isBottleneck && 'is-bottleneck',
   ].filter(Boolean).join(' ');
 
   const dragRef = { ox: 0, oy: 0 };

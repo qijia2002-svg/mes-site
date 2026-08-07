@@ -34,6 +34,7 @@ export function useCrumbTail(label: string | null | undefined) {
 }
 
 const SECTION: Record<string, { label: string; to: string }> = {
+  engine: { label: '学习', to: '/engine' },
   courses: { label: '课程', to: '/courses' },
   chapters: { label: '课程', to: '/courses' },
   'learning-paths': { label: '学习路径', to: '/learning-paths' },
@@ -41,17 +42,23 @@ const SECTION: Record<string, { label: string; to: string }> = {
   tracks: { label: '职业路径', to: '/roadmap' },
   'sql-space': { label: 'SQL 工作台', to: '/sql-space' },
   quiz: { label: '题库', to: '/quiz' },
+  simulator: { label: '工厂仿真', to: '/simulator' },
+  profile: { label: '个人中心', to: '/profile' },
+  portfolio: { label: '作品集', to: '/portfolio' },
+  dictionary: { label: '名称翻译', to: '/dictionary' },
   login: { label: '登录', to: '/login' },
   admin: { label: '后台', to: '/admin' },
 };
 
 const FALLBACK_LEAF: Record<string, string> = {
+  engine: '学习中心',
   courses: '课程详情',
   chapters: '章节正文',
   'learning-paths': '路径详情',
   tracks: '能力路线',
   'sql-space': '练习',
   quiz: '题目',
+  simulator: '仿真编辑',
 };
 
 export function Breadcrumb() {

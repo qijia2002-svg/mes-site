@@ -1,20 +1,22 @@
 /**
- * 浏览器端语音朗读（Web Speech API，零服务端成本）。
+ * 浏览器端语音朗读（Web Speech API 为主，服务端 TTS 兜底）。
  * 用于卡片「朗读」按钮与英文单词发音按钮。
  *
- * v2 改进（用户反馈"语音太机械化"）：
- *  - 自动挑选该语种下更自然的音色（Google / Microsoft Natural / Samantha 等），
- *    避开各系统默认的机械音。
- *  - 英文默认放慢到 0.9 倍速、语气平稳，更接近真人朗读；中文保持 1.0。
- *  - 支持显式 lang（'en-US' 念英文 / 'zh-CN' 念中文 / 'auto' 按字符比例自动判断）。
+ * v3 改动（修手机端"语音不能用"）：
+ *  - iOS Safari 兼容：避免 cancel() 后立即 speak()（iOS 会丢弃这次朗读），改用短延时；
+ *    onend/onerror 在 iOS 经常不回调 → 加 watchdog 定时器强制收尾，避免按钮卡在"暂停"。
+ *  - 服务端兜底：Web Speech 不可用或失败时，调 /api/v1/tts（Workers AI MeloTTS）
+ *    拿到 base64 MP3，用 <audio> 播放，iPhone 也能稳定出声。
+ *  - 不再因 !supported 隐藏按钮：只要浏览器环境就渲染，失败走服务端或提示。
  *
  * 设计要点：
- *  - 仅在浏览器环境且 speechSynthesis 可用时启用（supported=false 时调用方应隐藏按钮）。
- *  - 朗读前 cancel 旧任务，避免排队叠加。
- *  - 监听 utterance 的 onend 同步 speaking 状态；卸载时 cancel，防止离开页面后还在念。
- *  - 音色列表异步加载（voiceschanged），首次可能为空，下一句会自动用上。
+ *  - supported 指浏览器 Web Speech 是否可用；即使为 false，服务端兜底仍可发声。
+ *  - 朗读前 finish() 收尾，避免排队叠加（跨 tick 处理以兼容 iOS）。
+ *  - 卸载时 cancel，防止离开页面后还在念。
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { apiPost } from '../api/client';
+import { useToast } from '../components/Toast';
 
 export type SpeechLang = 'auto' | 'en-US' | 'zh-CN';
 
@@ -50,14 +52,24 @@ function detectLang(text: string): 'en-US' | 'zh-CN' {
   return ascii >= cjk ? 'en-US' : 'zh-CN';
 }
 
+/** iOS Safari 检测：其 Web Speech 行为异常，需要跨 tick 的 speak 与 watchdog 兜底。 */
+function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !('MSStream' in window);
+}
+
 export function useSpeech() {
   const [speaking, setSpeaking] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const supported =
-    typeof window !== 'undefined' && typeof window.speechSynthesis !== 'undefined';
+  const webSpeechSupported =
+    typeof window !== 'undefined' && 'speechSynthesis' in window;
+  const { showToast } = useToast();
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const watchdogRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!supported) return;
+    if (!webSpeechSupported) return;
     const load = () => setVoices(window.speechSynthesis.getVoices());
     load();
     window.speechSynthesis.addEventListener('voiceschanged', load);
@@ -65,7 +77,35 @@ export function useSpeech() {
       window.speechSynthesis.removeEventListener('voiceschanged', load);
       window.speechSynthesis.cancel();
     };
-  }, [supported]);
+  }, [webSpeechSupported]);
+
+  const clearWatchdog = useCallback(() => {
+    if (watchdogRef.current != null) {
+      window.clearTimeout(watchdogRef.current);
+      watchdogRef.current = null;
+    }
+  }, []);
+
+  /** 收尾：清 watchdog、停 Web Speech、停 <audio>。 */
+  const finish = useCallback(() => {
+    clearWatchdog();
+    setSpeaking(false);
+    if (webSpeechSupported) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        /* ignore */
+      }
+    }
+    if (audioRef.current) {
+      try {
+        audioRef.current.pause();
+      } catch {
+        /* ignore */
+      }
+      audioRef.current = null;
+    }
+  }, [webSpeechSupported, clearWatchdog]);
 
   const pickVoice = useCallback(
     (lang: 'en-US' | 'zh-CN'): SpeechSynthesisVoice | undefined => {
@@ -82,31 +122,91 @@ export function useSpeech() {
     [voices],
   );
 
-  const speak = useCallback(
-    (text: string, opts: SpeakOptions = {}) => {
-      if (!supported || !text.trim()) return;
-      window.speechSynthesis.cancel();
-      const lang = opts.lang && opts.lang !== 'auto' ? opts.lang : detectLang(text);
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = lang;
-      const v = pickVoice(lang);
-      if (v) u.voice = v;
-      // 去机械化：英文略放慢、语气自然；中文保持平稳。
-      u.rate = opts.rate ?? (lang === 'en-US' ? 0.9 : 1.0);
-      u.pitch = opts.pitch ?? 1.0;
-      u.onend = () => setSpeaking(false);
-      u.onerror = () => setSpeaking(false);
+  /** 服务端 TTS 兜底：fetch /api/v1/tts → base64 MP3 → <audio> 播放。 */
+  const playServer = useCallback(
+    async (text: string, lang: 'en-US' | 'zh-CN') => {
+      const res = await apiPost<{ audio: string }>('/api/v1/tts', { text, lang }, 10000);
+      if (!res.audio) throw new Error('empty-audio');
+      const bin = atob(res.audio);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
       setSpeaking(true);
-      window.speechSynthesis.speak(u);
+      try {
+        await new Promise<void>((resolve, reject) => {
+          audio.onended = () => {
+            URL.revokeObjectURL(url);
+            resolve();
+          };
+          audio.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('audio-error'));
+          };
+          audio.play().catch(reject);
+        });
+      } finally {
+        setSpeaking(false);
+        audioRef.current = null;
+      }
     },
-    [supported, pickVoice],
+    [],
+  );
+
+  const speak = useCallback(
+    async (text: string, opts: SpeakOptions = {}) => {
+      if (!text.trim()) return;
+      finish();
+      const lang = opts.lang && opts.lang !== 'auto' ? opts.lang : detectLang(text);
+
+      // 优先：浏览器 Web Speech API
+      if (webSpeechSupported) {
+        try {
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = lang;
+          const v = pickVoice(lang);
+          if (v) u.voice = v;
+          // 去机械化：英文略放慢、语气自然；中文保持平稳。
+          u.rate = opts.rate ?? (lang === 'en-US' ? 0.9 : 1.0);
+          u.pitch = opts.pitch ?? 1.0;
+          u.onend = finish;
+          u.onerror = finish;
+          setSpeaking(true);
+          // iOS 经常不回调 onend → watchdog 兜底（长文本 15s+ 截断也覆盖）
+          clearWatchdog();
+          watchdogRef.current = window.setTimeout(finish, Math.min(30000, text.length * 80 + 2500));
+          // iOS：cancel 后需跨 tick 再 speak，否则本次朗读被丢弃
+          const fire = () => {
+            try {
+              window.speechSynthesis.speak(u);
+            } catch {
+              /* ignore */
+            }
+          };
+          if (isIOS()) window.setTimeout(fire, 60);
+          else fire();
+          return;
+        } catch {
+          // 落到服务端兜底
+        }
+      }
+
+      // 兜底：服务端 TTS
+      try {
+        await playServer(text, lang);
+      } catch {
+        setSpeaking(false);
+        showToast('语音暂不可用，请检查网络后重试', 'error');
+      }
+    },
+    [webSpeechSupported, pickVoice, playServer, finish, clearWatchdog, showToast],
   );
 
   const stop = useCallback(() => {
-    if (!supported) return;
-    window.speechSynthesis.cancel();
-    setSpeaking(false);
-  }, [supported]);
+    finish();
+  }, [finish]);
 
-  return { supported, speaking, speak, stop };
+  return { supported: webSpeechSupported, speaking, speak, stop };
 }

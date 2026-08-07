@@ -31,6 +31,7 @@ export interface CourseState {
   chapterDone?: number; totalChapters: number; percent: number;
   missingPrerequisites: string[];
   stageName?: string; stageIndex?: number; // 所在阶段
+  currentChapterId?: number; // 续学锚点：第一个未完成章（按 sort）；全完成时为空
 }
 
 export interface StageSummary {
@@ -113,7 +114,7 @@ function computeCourseState(
   allTopics: Map<number, TopicInfo>,
   topicDoneMap: TopicDoneMap,
   stageUnlocked: boolean,
-): { status: CourseStatus; sourcePath?: string; chapterDone: number; percent: number; missingPrerequisites: string[] } {
+): { status: CourseStatus; sourcePath?: string; chapterDone: number; percent: number; missingPrerequisites: string[]; currentChapterId?: number } {
 
   let chapterDone = 0;
   for (const ch of chapters) {
@@ -124,26 +125,34 @@ function computeCourseState(
   const isDoing = chapterDone > 0 && chapterDone < totalChapters;
   const percent = totalChapters > 0 ? Math.round((chapterDone / totalChapters) * 100) : 0;
 
+  // 续学锚点：按 sort 升序取第一个未完成章；全完成时置空（无需续学）
+  let currentChapterId: number | undefined;
+  if (!allDone && totalChapters > 0) {
+    const ordered = [...chapters].sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+    const first = ordered.find(ch => !completedChapterIds.has(String(ch.id)));
+    currentChapterId = first?.id;
+  }
+
   // 1. 已完成（本路径）
   if (allDone) {
     if (firstPathName && firstPathName !== currentPathName) {
       // 在其他路径完成的 → 检查是否已跳过
       if (skippedIds.has(topic.id)) {
-        return { status: 'skipped', sourcePath: firstPathName, chapterDone, percent, missingPrerequisites: [] };
+        return { status: 'skipped', sourcePath: firstPathName, chapterDone, percent, missingPrerequisites: [], currentChapterId };
       }
-      return { status: 'inherited', sourcePath: firstPathName, chapterDone, percent, missingPrerequisites: [] };
+      return { status: 'inherited', sourcePath: firstPathName, chapterDone, percent, missingPrerequisites: [], currentChapterId };
     }
-    return { status: 'completed', chapterDone, percent, missingPrerequisites: [] };
+    return { status: 'completed', chapterDone, percent, missingPrerequisites: [], currentChapterId };
   }
 
   // 2. 进行中
   if (isDoing) {
-    return { status: 'doing', chapterDone, percent, missingPrerequisites: [] };
+    return { status: 'doing', chapterDone, percent, missingPrerequisites: [], currentChapterId };
   }
 
   // 3. 阶段未解锁
   if (!stageUnlocked) {
-    return { status: 'locked', chapterDone, percent, missingPrerequisites: ['当前阶段未解锁'] };
+    return { status: 'locked', chapterDone, percent, missingPrerequisites: ['当前阶段未解锁'], currentChapterId };
   }
 
   // 4. 课程级前置依赖检查
@@ -157,11 +166,11 @@ function computeCourseState(
     }
   }
   if (missing.length > 0) {
-    return { status: 'locked', chapterDone, percent, missingPrerequisites: missing };
+    return { status: 'locked', chapterDone, percent, missingPrerequisites: missing, currentChapterId };
   }
 
   // 5. 待学习
-  return { status: 'pending', chapterDone, percent, missingPrerequisites: [] };
+  return { status: 'pending', chapterDone, percent, missingPrerequisites: [], currentChapterId };
 }
 
 // ─── 主计算入口 ─────────────────────────────────────────────
@@ -308,6 +317,7 @@ export async function computeEngineStatus(c: Ctx, body: EngineStatusBody): Promi
         chapterDone: result.chapterDone, totalChapters: chapters.length, percent: result.percent,
         missingPrerequisites: result.missingPrerequisites,
         stageName: stageInfo.name, stageIndex: stageInfo.index,
+        currentChapterId: result.currentChapterId,
       });
     }
 
@@ -367,6 +377,7 @@ export async function computeEngineStatus(c: Ctx, body: EngineStatusBody): Promi
         chapterDone: result.chapterDone, totalChapters: chapters.length, percent: result.percent,
         missingPrerequisites: result.missingPrerequisites,
         stageName: stageInfo.name, stageIndex: stageInfo.index,
+        currentChapterId: result.currentChapterId,
       });
     }
     activeCompletion = activePathSummary?.completion ?? 0;

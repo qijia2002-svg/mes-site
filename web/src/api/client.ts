@@ -88,8 +88,11 @@ async function unwrap<T>(res: Response): Promise<T> {
   return body.data as T;
 }
 
-async function request<T>(method: Method, path: string, payload?: unknown): Promise<T> {
+async function request<T>(method: Method, path: string, payload?: unknown, timeoutMs = 0): Promise<T> {
   const hasBody = payload !== undefined;
+  const controller = timeoutMs > 0 ? new AbortController() : undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  if (controller) timer = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
   try {
     res = await fetch(path, {
@@ -97,15 +100,22 @@ async function request<T>(method: Method, path: string, payload?: unknown): Prom
       credentials: 'include',
       headers: buildHeaders(hasBody),
       body: hasBody ? JSON.stringify(payload) : undefined,
+      signal: controller?.signal,
     });
   } catch (e) {
+    if (controller?.signal.aborted) {
+      throw new ApiError(-1, '请求超时，请检查网络后重试', undefined, 0);
+    }
     throw new ApiError(-1, e instanceof Error ? `网络不可达：${e.message}` : '网络不可达', undefined, 0);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
   return unwrap<T>(res);
 }
 
 export const apiGet = <T>(path: string) => request<T>('GET', path);
-export const apiPost = <T>(path: string, payload: unknown = {}) => request<T>('POST', path, payload);
+export const apiPost = <T>(path: string, payload: unknown = {}, timeoutMs = 0) =>
+  request<T>('POST', path, payload, timeoutMs);
 export const apiPut = <T>(path: string, payload: unknown = {}) => request<T>('PUT', path, payload);
 export const apiDelete = <T>(path: string) => request<T>('DELETE', path);
 

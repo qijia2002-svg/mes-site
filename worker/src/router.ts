@@ -5,7 +5,7 @@ import { trace } from './middleware/trace';
 import { security } from './middleware/security';
 import { auth, guardAdmin, guardAll } from './middleware/auth';
 import { validate } from './middleware/validate';
-import { loginRateLimit } from './middleware/ratelimit';
+import { loginRateLimit, ratelimit } from './middleware/ratelimit';
 
 import { healthHandler } from './modules/health';
 import { listTopics, getTopic, listChapters, getChapter } from './modules/content/content.routes';
@@ -40,7 +40,18 @@ import { listLp, getLp } from './modules/learning-paths/lp.routes';
 import { listCert } from './modules/certifications/cert.routes';
 import { engineStatusHandler } from './modules/engine/engine.routes';
 import { listTracks, getTrack, listCareers, getCareer, getRoadmapGraph } from './modules/roadmap/roadmap.routes';
-import { studyTip, explainWord } from './modules/ai/ai.routes';
+import { studyTip, explainWord, tts } from './modules/ai/ai.routes';
+import { getUserData, putUserData } from './modules/userdata/userdata.routes';
+import {
+  getDict,
+  createDictType,
+  updateDictType,
+  deleteDictType,
+  createDictData,
+  updateDictData,
+  deleteDictData,
+} from './modules/dict/dict.routes';
+import { getFlowchart } from './modules/flowchart/flowchart.routes';
 
 export interface Route {
   method: string;
@@ -55,6 +66,11 @@ export interface Route {
 
 /** 可选登录管线：解析会话但不拦截匿名（进度按未登录处理，API §0.2） */
 const optionalAuth: Middleware[] = [trace, security, auth, validate];
+
+/** 通用写接口限流：每 IP 5/s，桶容量 10 */
+const writeLimit = ratelimit({ key: (c) => c.req.headers.get('cf-connecting-ip') ?? 'unknown', capacity: 10, refillPerSec: 5 });
+/** AI 接口限流：每 IP 1/s，桶容量 3 */
+const aiLimit = ratelimit({ key: (c) => c.req.headers.get('cf-connecting-ip') ?? 'unknown', capacity: 3, refillPerSec: 1 });
 
 export const routes: Route[] = [
   { method: 'GET', path: '/api/v1/health', handler: healthHandler, noAuth: true },
@@ -77,10 +93,10 @@ export const routes: Route[] = [
   { method: 'GET', path: '/api/v1/topics/:id/chapters', middlewares: optionalAuth, handler: listChapters },
   { method: 'GET', path: '/api/v1/chapters/:id', middlewares: optionalAuth, handler: getChapter },
 
-  // Phase 0.5 进度
-  { method: 'POST', path: '/api/v1/progress', handler: recordProgress },
-  { method: 'GET', path: '/api/v1/progress', handler: listProgress },
-  { method: 'GET', path: '/api/v1/progress/today', handler: todayProgress },
+  // Phase 0.5 进度（写挂限流，读可选登录）
+  { method: 'POST', path: '/api/v1/progress', middlewares: [trace, security, auth, writeLimit(), validate], handler: recordProgress },
+  { method: 'GET', path: '/api/v1/progress', middlewares: optionalAuth, handler: listProgress },
+  { method: 'GET', path: '/api/v1/progress/today', middlewares: optionalAuth, handler: todayProgress },
 
   // Phase 1 后台（admin 管线：auth + guardAdmin）
   { method: 'GET', path: '/api/v1/admin/topics', admin: true, handler: adminListTopics },
@@ -104,11 +120,11 @@ export const routes: Route[] = [
   // Phase 2 题库 / SQL 实训（题面与答案分离，防缓存泄露 R6）
   { method: 'GET', path: '/api/v1/quiz/questions', handler: listQuestions },
   { method: 'GET', path: '/api/v1/quiz/topic-questions', handler: listTopicQuestions },
-  { method: 'POST', path: '/api/v1/quiz/grade', handler: gradeAnswer, noAuth: true },
-  { method: 'POST', path: '/api/v1/quiz/ai-grade', handler: aiGrade, noAuth: true },
+  { method: 'POST', path: '/api/v1/quiz/grade', middlewares: [trace, security, writeLimit(), validate], handler: gradeAnswer, noAuth: true },
+  { method: 'POST', path: '/api/v1/quiz/ai-grade', middlewares: [trace, security, aiLimit(), validate], handler: aiGrade, noAuth: true },
   { method: 'GET', path: '/api/v1/sql-exercises', handler: listSqlExercises },
   { method: 'GET', path: '/api/v1/sql-exercises/:id', handler: getSqlExercise },
-  { method: 'POST', path: '/api/v1/sql-exercises/:id/submit', handler: submitSql },
+  { method: 'POST', path: '/api/v1/sql-exercises/:id/submit', middlewares: [trace, security, writeLimit(), validate], handler: submitSql },
 
   // Phase 3 学习路径 / 证书
   { method: 'GET', path: '/api/v1/learning-paths', middlewares: optionalAuth, handler: listLp },
@@ -126,11 +142,31 @@ export const routes: Route[] = [
   // 学习引擎（可选登录：登录用户拿进度，匿名用户全 o pending）
   { method: 'POST', path: '/api/v1/engine/status', middlewares: optionalAuth, handler: engineStatusHandler },
 
+  // 跨设备用户数据 KV（登录隔离：默认管线 auth + guardAll，未登录 401）
+  // Issue #2 修复：作品集 / 个人资料 / 引擎状态 / 仿真状态 从 localStorage 迁云端。
+  { method: 'GET', path: '/api/v1/user/data/:key', handler: getUserData },
+  { method: 'PUT', path: '/api/v1/user/data/:key', handler: putUserData },
+
+  // 工厂流程图（factory-first 导航主干；读取公开）
+  { method: 'GET', path: '/api/v1/flowchart/:slug', handler: getFlowchart, noAuth: true },
+
+  // 名称翻译 / 专业词典（读取公开，供「名称翻译」页与选中翻译缓存；后台管理 admin）
+  { method: 'GET', path: '/api/v1/dict', handler: getDict, noAuth: true },
+  { method: 'POST', path: '/api/v1/admin/dict/type', admin: true, handler: createDictType },
+  { method: 'PUT', path: '/api/v1/admin/dict/type/:id', admin: true, handler: updateDictType },
+  { method: 'DELETE', path: '/api/v1/admin/dict/type/:id', admin: true, handler: deleteDictType },
+  { method: 'POST', path: '/api/v1/admin/dict/data', admin: true, handler: createDictData },
+  { method: 'PUT', path: '/api/v1/admin/dict/data/:id', admin: true, handler: updateDictData },
+  { method: 'DELETE', path: '/api/v1/admin/dict/data/:id', admin: true, handler: deleteDictData },
+
   // AI 学习建议（匿名可用，进度摘要由客户端组装，失败兜底）
   { method: 'POST', path: '/api/v1/ai/study-tip', handler: studyTip, noAuth: true },
 
   // AI 英文单词翻译/解释（匿名可用，仅发单词，离线词典兜底 + AI 生成，失败兜底）
   { method: 'POST', path: '/api/v1/ai/explain-word', handler: explainWord, noAuth: true },
+
+  // AI 语音合成兜底（匿名可用）：Web Speech 不可用时前端降级到服务端 TTS
+  { method: 'POST', path: '/api/v1/tts', handler: tts, noAuth: true, middlewares: [trace, security, aiLimit(), validate] },
 ];
 
 /** 默认中间件管线（§A3.2 固定顺序；鉴权在限流前） */

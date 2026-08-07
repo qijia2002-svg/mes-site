@@ -1,440 +1,287 @@
 /**
- * 个人中心 v2 — 智造学院风格：头像 + 等级 + 统计 + 技能条 + 课程列表 + 设置项。
+ * 个人中心 v3 — 基于 profile-center-preview.html 重设计。
+ * 左栏：身份卡 + 继续学习 + 我的课程 + 技能 + 账户设置
+ * 右栏：学习热力图 + 账号快捷 + 作品集入口
+ * 作品集已独立为 /portfolio 页。
  */
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useQuery, useQueries } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { getProfile, setProfile } from '../lib/profileStore';
-import { getPortfolio, addPortfolioItem, removePortfolioItem, type PortfolioItem, type PortfolioCategory } from '../lib/portfolioStore';
 import { api } from '../api/endpoints';
 
 const DAY_MS = 86_400_000;
 
-function computeLevel(done: number): { name: string; lv: number; nextLv: number } {
-  if (done < 10) return { name: '初学者', lv: 1, nextLv: 10 };
-  if (done < 30) return { name: '探索者', lv: 2, nextLv: 30 };
-  if (done < 60) return { name: '实践者', lv: 3, nextLv: 60 };
-  if (done < 100) return { name: '专家', lv: 4, nextLv: 100 };
-  return { name: '大师', lv: 5, nextLv: 200 };
+function computeLevel(d: number) {
+  if (d < 10) return { n: '初学者', l: 1, next: 10 };
+  if (d < 30) return { n: '探索者', l: 2, next: 30 };
+  if (d < 60) return { n: '实践者', l: 3, next: 60 };
+  if (d < 100) return { n: '专家', l: 4, next: 100 };
+  return { n: '大师', l: 5, next: 200 };
 }
 
-/** 技能条组件 */
-function SkillBar({ name, pct, color }: { name: string; pct: number; color: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)' }}>
-        <span style={{ color: 'var(--fg-2)' }}>{name}</span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 'var(--weight-announce)', color }}>{pct}%</span>
-      </div>
-      <div style={{ height: 4, background: 'var(--surface-3)', borderRadius: 'var(--radius-pill)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 'var(--radius-pill)', transition: 'width 1.2s var(--ease-out)', transformOrigin: 'left', animation: 'skillGrow 1.2s var(--ease-out) forwards' }} />
-      </div>
-    </div>
-  );
+function calcStreak(events: any[]): number {
+  const s = new Set<string>();
+  for (const e of events) {
+    if (typeof e.createdAt === 'number') {
+      const d = new Date(e.createdAt);
+      s.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+    }
+  }
+  let st = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(Date.now() - (i + 1) * DAY_MS);
+    if (s.has(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)) st++; else break;
+  }
+  return st;
 }
 
 export default function ProfilePage() {
-  const initial = getProfile();
-  const [nickname, setNicknameState] = useState(initial.nickname);
-  const [dailyGoal, setDailyGoal] = useState(initial.dailyGoal);
-  const [reminderTime, setReminderTime] = useState(initial.reminderTime);
+  const nav = useNavigate(); const qc = useQueryClient();
+  const init = getProfile();
+  const [nickname, setNick] = useState(init.nickname);
+  const [dailyGoal, setGoal] = useState(init.dailyGoal);
+  const [reminder, setReminder] = useState(init.reminderTime);
   const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState(false);
-
-  // 作品集 / 求职素材（本地存储，Manufacturing OS P1）
-  const [portfolio, setPortfolio] = useState<PortfolioItem[]>(() => getPortfolio());
-  const [pfTitle, setPfTitle] = useState('');
-  const [pfCategory, setPfCategory] = useState<PortfolioCategory>('需求文档');
-  const [pfDate, setPfDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [pfNote, setPfNote] = useState('');
-  const [pfError, setPfError] = useState(false);
+  const [tab, setTab] = useState('profile');
 
   const progressQ = useQuery({ queryKey: ['progress'], queryFn: api.progress, staleTime: 60_000 });
   const topicsQ = useQuery({ queryKey: ['topics'], queryFn: api.topics, staleTime: 60_000 });
   const chapterQs = useQueries({
-    queries: (topicsQ.data ?? []).map((t) => ({
-      queryKey: ['chapters', t.id],
-      queryFn: () => api.chapters(t.id),
-      staleTime: 5 * 60_000,
-    })),
+    queries: (topicsQ.data ?? []).map(t => ({ queryKey: ['chapters', t.id], queryFn: () => api.chapters(t.id), staleTime: 5 * 60_000 })),
   });
 
-  const completedSet = useMemo(
-    () => new Set((progressQ.data?.completedChapterIds ?? []).map(String)),
-    [progressQ.data],
-  );
-  const totalChapters = chapterQs.reduce((sum, q) => sum + (q.data?.length ?? 0), 0);
-  const doneChapters = completedSet.size;
-  const passedSql = progressQ.data?.passedExerciseIds?.length ?? 0;
-  const pct = totalChapters > 0 ? Math.round((doneChapters / totalChapters) * 100) : 0;
-  const level = computeLevel(doneChapters);
-  const levelProgress = Math.min(100, Math.round((Math.min(doneChapters, level.nextLv) / level.nextLv) * 100));
+  const cs = useMemo(() => new Set((progressQ.data?.completedChapterIds ?? []).map(String)), [progressQ.data]);
+  const done = cs.size;
+  const total = chapterQs.reduce((s, q) => s + (q.data?.length ?? 0), 0);
+  const sqlPassed = progressQ.data?.passedExerciseIds?.length ?? 0;
+  const streak = calcStreak((progressQ.data as any)?.events ?? []);
 
-  // 计算连续学习天数
-  const streak = useMemo(() => {
+  // 真实学习热力图：按 createdAt 聚合到「天」，不依赖随机数据；用 useMemo 避免每次渲染抖动。
+  const heatmap = useMemo(() => {
     const events = (progressQ.data as any)?.events ?? [];
-    const daySet = new Set<string>();
+    const counts = new Map<string, number>();
     for (const e of events) {
       if (typeof e.createdAt === 'number') {
         const d = new Date(e.createdAt);
-        daySet.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
       }
     }
-    let s = 0;
-    const today = new Date();
-    for (let i = 0; i < 365; i++) {
-      const d = new Date(today.getTime() - (i + 1) * DAY_MS);
-      if (daySet.has(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)) s++;
-      else break;
+    const cells: number[] = [];
+    for (let i = 363; i >= 0; i--) {
+      const d = new Date(Date.now() - i * DAY_MS);
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      const c = counts.get(key) ?? 0;
+      cells.push(c >= 4 ? 3 : c >= 2 ? 2 : c >= 1 ? 1 : 0);
     }
-    return s;
+    return cells;
   }, [progressQ.data]);
+  const level = computeLevel(done);
+  const lvPct = Math.min(100, Math.round((Math.min(done, level.next) / level.next) * 100));
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const initial = (nickname || '学').charAt(0);
 
-  // 模块技能百分比
-  const moduleStats = useMemo(() => {
-    return (topicsQ.data ?? [])
-      .map((t, i) => {
-        const chs = chapterQs[i]?.data ?? [];
-        const done = chs.filter((c) => completedSet.has(String(c.id))).length;
-        return { id: t.id, name: t.title, done, total: chs.length, pct: chs.length > 0 ? Math.round((done / chs.length) * 100) : 0 };
-      });
-  }, [topicsQ.data, chapterQs, completedSet]);
+  const moduleStats = useMemo(() => (topicsQ.data ?? []).map((t, i) => {
+    const chs = chapterQs[i]?.data ?? [];
+    const d = chs.filter(c => cs.has(String(c.id))).length;
+    return { id: t.id, name: t.title, done: d, total: chs.length, pct: chs.length > 0 ? Math.round((d / chs.length) * 100) : 0 };
+  }), [topicsQ.data, chapterQs, cs]);
 
-  const userInitial = nickname ? nickname.charAt(0) : '学';
+  const doingCourses = moduleStats.filter(m => m.total > 0 && m.done > 0 && m.done < m.total).slice(0, 4);
+  const allCourses = moduleStats.slice(0, 6);
 
   const handleSave = () => {
-    const res = setProfile({
-      nickname: nickname.trim(),
-      dailyGoal: Number.isFinite(dailyGoal) && dailyGoal > 0 ? Math.round(dailyGoal) : 3,
-      reminderTime,
-    });
-    if (!res.ok) {
-      // 浏览器存储不可用（无痕模式 / 站点权限禁用）——明确告知用户，而非静默"已保存"。
-      setSaveError(true);
-      return;
-    }
-    setSaveError(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setProfile({ nickname: nickname.trim(), dailyGoal: Number.isFinite(dailyGoal) && dailyGoal > 0 ? Math.round(dailyGoal) : 3, reminderTime: reminder });
+    setSaved(true); setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleAddPortfolio = () => {
-    if (!pfTitle.trim()) return;
-    const res = addPortfolioItem({
-      title: pfTitle.trim(),
-      category: pfCategory,
-      note: pfNote.trim(),
-      date: pfDate || new Date().toISOString().slice(0, 10),
-    });
-    if (!res.ok) {
-      // 存储禁用（无痕 / 站点权限）——明确报错，不静默。
-      setPfError(true);
-      return;
-    }
-    setPfError(false);
-    setPortfolio(res.items);
-    setPfTitle('');
-    setPfNote('');
-    setPfCategory('需求文档');
-    setPfDate(new Date().toISOString().slice(0, 10));
-  };
-
-  const handleDeletePortfolio = (id: string) => {
-    const res = removePortfolioItem(id);
-    if (!res.ok) {
-      setPfError(true);
-      return;
-    }
-    setPfError(false);
-    setPortfolio(res.items);
+  const handleLogout = async () => {
+    await api.logout().catch(() => {});
+    qc.setQueryData(['whoami'], null);
+    nav('/login');
   };
 
   return (
-    <section style={{ maxWidth: 760 }}>
-      {/* ═══ 个人卡片 ═══ */}
-      <div className="panel" style={{ padding: 'var(--space-6)', gap: 'var(--space-5)' }}>
-        <div style={{ display: 'flex', gap: 'var(--space-5)', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* 头像 */}
-          <div style={{
-            width: 80, height: 80, borderRadius: '50%', background: 'var(--accent)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 28, fontWeight: 700, color: '#fff', flex: 'none',
-          }}>
-            {userInitial}
-          </div>
+    <section style={{ maxWidth: 1120, margin: '0 auto' }} className="profile-layout">
+      <div className="page-head" style={{ marginBottom: 'var(--space-6)' }}>
+        <div><h1 className="page-title">个人中心</h1><p className="page-sub">MES 实施方向 · {level.n} Lv.{level.l}</p></div>
+        <Link to="/portfolio" className="btn btn-secondary btn-sm"><Icon name="chapter" size={16} /> 作品集</Link>
+      </div>
 
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-2)', marginBottom: 4 }}>
-              <span style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--fg)' }}>
-                {nickname || '学习者'}
-              </span>
-              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--meta)' }}>
-                {level.name} Lv.{level.lv}
-              </span>
+      <div className="profile-grid">
+        {/* ═══ LEFT ═══ */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', minWidth: 0 }}>
+          {/* Identity */}
+          <div className="panel">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-5)', flexWrap: 'wrap' }}>
+              <div style={{ width: 96, height: 96, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 36, fontWeight: 700, flex: 'none' }}>{initial}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                  <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, margin: 0 }}>{nickname || '学习者'}</h2>
+                  <span className="tag">{level.n} Lv.{level.l}</span>
+                </div>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', marginTop: 4 }}>
+                {level.l >= 5
+                  ? `已学习 ${streak} 天 · 已达最高等级`
+                  : `已学习 ${streak} 天 · 距 Lv.${level.l + 1} 还需 ${level.next - Math.min(done, level.next)} 章`}
+              </p>
+              </div>
             </div>
-
-            {/* 4 统计数字 */}
-            <div style={{ display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap', marginTop: 'var(--space-3)' }}>
-              {[
-                { icon: 'schedule' as const, value: `${doneChapters}h`, label: '学习章节' },
-                { icon: 'success' as const, value: `${passedSql}`, label: 'SQL 通过' },
-                { icon: 'streak' as const, value: `${streak}`, label: '连续学习(天)' },
-                { icon: 'stage' as const, value: `${topicsQ.data?.length ?? 0}`, label: '课程数' },
-              ].map((s) => (
-                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Icon name={s.icon} size={16} style={{ color: 'var(--meta)' }} />
-                  <div>
-                    <span style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--fg)' }}>{s.value}</span>
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--meta)', marginLeft: 4 }}>{s.label}</span>
-                  </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: '1px solid var(--border-soft)', marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)' }}>
+              {[{ icon: 'chapter', v: `${done}`, l: '学习章节' }, { icon: 'sql', v: `${sqlPassed}`, l: 'SQL 通过' }, { icon: 'streak', v: `${streak}`, l: '连续学习(天)' }, { icon: 'courses', v: `${total}`, l: '总章节' }].map(s => (
+                <div key={s.l} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) var(--space-3)' }}>
+                  <Icon name={s.icon as any} size={16} style={{ color: 'var(--meta)' }} />
+                  <div><span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xl)', fontWeight: 700 }}>{s.v}</span><span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--meta)' }}>{s.l}</span></div>
                 </div>
               ))}
             </div>
+            {/* XP bar */}
+            <div className="progress-track" style={{ height: 6, marginTop: 'var(--space-3)' }}><div className="progress-fill" style={{ width: `${lvPct}%` }} /></div>
           </div>
 
-          {/* 等级进度 */}
-          <div style={{ textAlign: 'center', flex: 'none' }}>
-            <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
-              {doneChapters}
+          {/* Continue Learning */}
+          {doingCourses.length > 0 && (
+            <div className="panel">
+              <h3 className="card-title">继续学习</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-4)' }}>
+                {doingCourses.slice(0, 2).map(m => (
+                  <div key={m.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: 'var(--surface-2)', display: 'grid', placeItems: 'center', color: 'var(--muted)' }}><Icon name="courses" size={16} /></div>
+                      <span style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-announce-cjk)' }}>{m.name}</span>
+                    </div>
+                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>下一节：继续完成剩余 {m.total - m.done} 章</div>
+                    <div className="progress-track" style={{ height: 4 }}><div className="progress-fill" style={{ width: `${m.pct}%` }} /></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--meta)', fontFamily: 'var(--font-mono)' }}>{m.done}/{m.total} 章</span>
+                      <Link className="btn btn-primary btn-sm" to={`/courses/${m.id}`}>继续</Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--meta)' }}>已学章节</div>
-          </div>
-        </div>
+          )}
 
-        {/* XP 进度条 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', color: 'var(--meta)' }}>
-            <span>{level.name} Lv.{level.lv}</span>
-            <span>距 Lv.{level.lv + 1} 还需 {level.nextLv - Math.min(doneChapters, level.nextLv)} 章</span>
-          </div>
-          <div className="dash-goal-bar" style={{ height: 6 }}>
-            <div className="dash-goal-fill" style={{ width: `${levelProgress}%` }} />
-          </div>
-        </div>
-
-      </div>
-
-      {/* ═══ 技能雷达 ═══ */}
-      {moduleStats.length > 0 && (
-        <div className="panel" style={{ marginTop: 'var(--space-5)' }}>
-          <h2 className="card-title" style={{ marginBottom: 'var(--space-3)' }}>学习技能</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-4)' }}>
-            {moduleStats.map((m) => {
-              const color = m.pct >= 80 ? 'var(--success)' : m.pct >= 40 ? 'var(--accent)' : m.pct > 0 ? 'var(--warn)' : 'var(--meta)';
-              return <SkillBar key={m.id} name={m.name} pct={m.pct} color={color} />;
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ═══ 我的课程 ═══ */}
-      {moduleStats.length > 0 && (
-        <div className="panel" style={{ marginTop: 'var(--space-5)' }}>
-          <h2 className="card-title" style={{ marginBottom: 'var(--space-3)' }}>我的课程</h2>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {moduleStats.slice(0, 5).map((m) => {
+          {/* My Courses */}
+          <div className="panel">
+            <h3 className="card-title">我的课程</h3>
+            {allCourses.map(m => {
               const isDone = m.total > 0 && m.done >= m.total;
               const isDoing = m.done > 0 && m.done < m.total;
-              const barColor = isDone ? 'var(--success)' : isDoing ? 'var(--warn)' : 'var(--border)';
               return (
-                <div key={m.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
-                  padding: 'var(--space-3) 0', borderBottom: '1px solid var(--border-soft)',
-                }}>
-                  <div style={{ width: 3, height: 36, borderRadius: 2, background: barColor, flex: 'none' }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Link to={`/courses/${m.id}`} style={{
-                      fontSize: 'var(--text-base)', fontWeight: 'var(--weight-announce-cjk)', color: 'var(--fg)',
-                      textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                      {m.name}
-                    </Link>
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--meta)' }}>
-                      {m.done}/{m.total} 章 · {m.pct}%
-                    </span>
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3) 0', borderBottom: '1px solid var(--border-soft)' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)', background: 'var(--surface-2)', display: 'grid', placeItems: 'center', color: 'var(--muted)', flex: 'none' }}><Icon name="courses" size={16} /></div>
+                  <div style={{ flex: 1 }}><Link to={`/courses/${m.id}`} style={{ fontWeight: 'var(--weight-announce-cjk)', color: 'var(--fg)', textDecoration: 'none' }}>{m.name}</Link><span style={{ fontSize: 'var(--text-xs)', color: 'var(--meta)', display: 'block' }}>{m.done}/{m.total} 章 · {m.pct}%</span></div>
+                  <div style={{ width: 120, flex: 'none' }}>
+                    <div className="progress-track" style={{ height: 4 }}><div className="progress-fill" style={{ width: `${m.pct}%`, background: isDone ? 'var(--success)' : isDoing ? 'var(--accent)' : 'var(--border)' }} /></div>
+                    <span style={{ fontSize: 11, color: 'var(--meta)', display: 'block', marginTop: 4, textAlign: 'right' }}>{isDone ? '已完成' : isDoing ? '进行中' : '未开始'}</span>
                   </div>
-                  <Link className={`btn btn-sm ${isDone ? 'btn-secondary' : isDoing ? 'btn-primary' : 'btn-ghost'}`} to={`/courses/${m.id}`}>
-                    {isDone ? '复习' : isDoing ? '继续' : '开始'}
-                  </Link>
+                  <Link className={`btn btn-sm ${isDone ? 'btn-secondary' : isDoing ? 'btn-primary' : 'btn-ghost'}`} to={`/courses/${m.id}`}>{isDone ? '复习' : isDoing ? '继续' : '开始'}</Link>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
 
-      {/* ═══ 设置（可编辑并保存） ═══ */}
-      <div className="panel" style={{ marginTop: 'var(--space-5)' }}>
-        <h2 className="card-title" style={{ marginBottom: 'var(--space-3)' }}>设置</h2>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <label className="field" style={{ margin: 0 }}>
-            <span>昵称</span>
-            <input
-              className="input"
-              type="text"
-              value={nickname}
-              onChange={(e) => setNicknameState(e.target.value)}
-              placeholder="输入你的昵称"
-              maxLength={20}
-            />
-          </label>
-
-          <label className="field" style={{ margin: 0 }}>
-            <span>每日学习目标（章/天）</span>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              max={20}
-              value={dailyGoal}
-              onChange={(e) => setDailyGoal(Number(e.target.value))}
-            />
-          </label>
-
-          <label className="field" style={{ margin: 0 }}>
-            <span>学习提醒时间</span>
-            <input
-              className="input"
-              type="time"
-              value={reminderTime}
-              onChange={(e) => setReminderTime(e.target.value)}
-            />
-          </label>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <button type="button" className="btn btn-primary btn-sm" onClick={handleSave}>
-              <Icon name="success" size={16} /> 保存设置
-            </button>
-            {saved && (
-              <span className="profile-saved" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="success" size={16} /> 已保存
-              </span>
-            )}
-            {saveError && (
-              <span className="profile-error" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="error" size={16} /> 保存失败：浏览器存储不可用（请关闭无痕模式或允许本站存储）
-              </span>
-            )}
-          </div>
-        </div>
-
-        <Link className="btn btn-secondary btn-sm" to="/admin" style={{ marginTop: 'var(--space-4)' }}>
-          <Icon name="admin" size={16} /> 管理后台
-        </Link>
-      </div>
-
-      {/* ═══ 作品集 / 求职素材（Manufacturing OS P1） ═══ */}
-      <div className="panel" style={{ marginTop: 'var(--space-5)' }}>
-        <h2 className="card-title" style={{ marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Icon name="portfolio" size={20} /> 作品集 / 求职素材
-        </h2>
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--meta)', marginBottom: 'var(--space-4)' }}>
-          沉淀 MES 需求文档、实施笔记、方案设计，作为求职作品集。数据仅存于本机浏览器。
-        </p>
-
-        {/* 添加表单 */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: 'var(--space-3)',
-          background: 'var(--surface-2)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', marginBottom: 'var(--space-4)',
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 'var(--space-3)' }}>
-            <input
-              className="input"
-              type="text"
-              placeholder="作品标题，如：XX 工厂 MES 需求调研"
-              value={pfTitle}
-              onChange={(e) => setPfTitle(e.target.value)}
-              maxLength={60}
-            />
-            <select
-              className="input"
-              value={pfCategory}
-              onChange={(e) => setPfCategory(e.target.value as PortfolioCategory)}
-            >
-              {(['需求文档', '实施笔记', '方案', '其他'] as PortfolioCategory[]).map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-          <input
-            className="input"
-            type="date"
-            value={pfDate}
-            onChange={(e) => setPfDate(e.target.value)}
-            style={{ maxWidth: 220 }}
-          />
-          <textarea
-            className="input"
-            placeholder="备注 / 亮点 / 技术栈（可选）"
-            value={pfNote}
-            onChange={(e) => setPfNote(e.target.value)}
-            rows={2}
-            maxLength={500}
-          />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={handleAddPortfolio}
-              disabled={!pfTitle.trim()}
-            >
-              <Icon name="add" size={16} /> 添加作品
-            </button>
-            {pfError && (
-              <span className="profile-error" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="error" size={16} /> 保存失败：浏览器存储不可用（请关闭无痕模式或允许本站存储）
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* 列表 */}
-        {portfolio.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--meta)' }}>
-            <Icon name="empty" size={24} style={{ opacity: 0.5, marginBottom: 8 }} />
-            <p style={{ fontSize: 'var(--text-sm)' }}>还没有作品，添加第一条开始沉淀你的求职素材吧。</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            {portfolio.map((item) => (
-              <div key={item.id} style={{
-                display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start',
-                padding: 'var(--space-3)', border: '1px solid var(--border-soft)', borderRadius: 'var(--radius-md)',
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 'var(--weight-announce-cjk)', color: 'var(--fg)', fontSize: 'var(--text-base)' }}>
-                      {item.title}
-                    </span>
-                    <span style={{
-                      fontSize: 'var(--text-xs)', padding: '2px 8px', borderRadius: 'var(--radius-pill)',
-                      background: 'var(--surface-3)', color: 'var(--accent)',
-                    }}>
-                      {item.category}
-                    </span>
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--meta)' }}>{item.date}</span>
+          {/* Skills */}
+          <div className="panel">
+            <h3 className="card-title">技能掌握</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
+              {moduleStats.slice(0, 6).map(m => {
+                const c = m.pct >= 80 ? 'var(--success)' : m.pct >= 40 ? 'var(--accent)' : m.pct > 0 ? 'var(--warn)' : 'var(--meta)';
+                return (
+                  <div key={m.id}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
+                      <span style={{ color: 'var(--fg-2)' }}>{m.name}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 'var(--weight-announce)', color: c }}>{m.pct}%</span>
+                    </div>
+                    <div className="progress-track" style={{ height: 6 }}><div className="progress-fill" style={{ width: `${m.pct}%`, background: c }} /></div>
                   </div>
-                  {item.note && (
-                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--fg-2)', marginTop: 4, whiteSpace: 'pre-wrap' }}>
-                      {item.note}
-                    </p>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => handleDeletePortfolio(item.id)}
-                  aria-label="删除作品"
-                  title="删除作品"
-                >
-                  <Icon name="delete" size={16} />
-                </button>
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
-        )}
+
+          {/* Account Settings */}
+          <div className="panel">
+            <h3 className="card-title">账户设置</h3>
+            <div className="tabs" style={{ display: 'flex', gap: 'var(--space-5)', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-5)' }}>
+              {[{ k: 'profile', l: '资料' }, { k: 'goal', l: '学习目标' }, { k: 'notify', l: '通知' }].map(t => (
+                <button key={t.k} onClick={() => setTab(t.k)} style={{ background: 'none', border: 0, padding: 'var(--space-3) 0', font: 'inherit', fontSize: 'var(--text-base)', color: tab === t.k ? 'var(--fg)' : 'var(--muted)', cursor: 'pointer', fontWeight: 'var(--weight-emph-cjk)', position: 'relative' }}>
+                  {t.l}
+                  {tab === t.k && <span style={{ position: 'absolute', left: 0, right: 0, bottom: -1, height: 2, background: 'var(--accent)', borderRadius: 2 }} />}
+                </button>
+              ))}
+            </div>
+            {tab === 'profile' && (
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)', maxWidth: 560 }}>
+                  <label className="field"><span>昵称</span><input className="input" value={nickname} onChange={e => setNick(e.target.value)} maxLength={20} /></label>
+                  <label className="field"><span>学习方向</span><select className="input"><option>MES 实施工程师</option><option>MES 开发</option><option>生产管理</option><option>质量工程师</option></select></label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginTop: 'var(--space-5)' }}>
+                  <button className="btn btn-primary btn-sm" onClick={handleSave}><Icon name="success" size={16} /> 保存设置</button>
+                  {saved && <span style={{ color: 'var(--success)', fontSize: 'var(--text-sm)', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="success" size={16} /> 已保存</span>}
+                </div>
+              </div>
+            )}
+            {tab === 'goal' && (
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)', maxWidth: 560 }}>
+                  <label className="field"><span>每日学习目标（章/天）</span><input className="input" type="number" min={1} max={20} value={dailyGoal} onChange={e => setGoal(Number(e.target.value))} /></label>
+                  <label className="field"><span>学习提醒时间</span><input className="input" type="time" value={reminder} onChange={e => setReminder(e.target.value)} /></label>
+                </div>
+                <div style={{ marginTop: 'var(--space-5)' }}><button className="btn btn-primary btn-sm" onClick={handleSave}><Icon name="success" size={16} /> 保存设置</button></div>
+              </div>
+            )}
+            {tab === 'notify' && (
+              <div>
+                {[{ l: '学习提醒', s: '按设定时间推送每日学习目标提醒', on: true }, { l: '课程更新', s: '已选课程新增章节时通知', on: true }, { l: '产品动态', s: '平台功能与活动资讯', on: false }].map((r, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-3) 0', borderBottom: '1px solid var(--border-soft)' }}>
+                    <div><span style={{ fontSize: 'var(--text-base)', color: 'var(--fg-2)' }}>{r.l}</span><span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--meta)', marginTop: 2 }}>{r.s}</span></div>
+                    <div style={{ width: 40, height: 24, borderRadius: 'var(--radius-pill)', background: r.on ? 'var(--accent)' : 'var(--surface-3)', border: '1px solid var(--border-strong)', position: 'relative', cursor: 'pointer', flex: 'none', transition: 'background var(--motion-fast)' }}>
+                      <div style={{ position: 'absolute', top: 2, left: r.on ? 18 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,.2)', transition: 'left var(--motion-fast) var(--ease-out)' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ═══ RIGHT RAIL ═══ */}
+        <aside style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          {/* Goal + Streak */}
+          <div className="panel">
+            <h3 className="card-title">学习目标 & 连续学习</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--fg-2)', marginBottom: 'var(--space-4)' }}>
+              <span>每日目标 <b style={{ fontFamily: 'var(--font-mono)', fontWeight: 'var(--weight-announce)', color: 'var(--fg)' }}>{dailyGoal}</b> 章/天</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--warn)' }}><Icon name="streak" size={16} /> 连续 <b style={{ fontFamily: 'var(--font-mono)', fontWeight: 'var(--weight-announce)', color: 'var(--fg)' }}>{streak}</b> 天</span>
+            </div>
+            <div style={{ display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'repeat(7, 11px)', gap: 3, overflowX: 'auto', paddingBottom: 'var(--space-2)' }}>
+              {heatmap.map((lvl, i) => (
+                <div key={i} style={{ width: 11, height: 11, borderRadius: 2, background: lvl === 3 ? 'var(--accent-active)' : lvl === 2 ? 'color-mix(in srgb, var(--accent) 80%, transparent)' : lvl === 1 ? 'color-mix(in srgb, var(--accent) 50%, transparent)' : 'var(--surface-3)' }} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--meta)', marginTop: 'var(--space-2)' }}>少 <span style={{ display: 'inline-flex', gap: 3 }}><i style={{ width: 11, height: 11, borderRadius: 2, background: 'var(--surface-3)' }} /><i style={{ width: 11, height: 11, borderRadius: 2, background: 'color-mix(in srgb, var(--accent) 50%, transparent)' }} /><i style={{ width: 11, height: 11, borderRadius: 2, background: 'color-mix(in srgb, var(--accent) 80%, transparent)' }} /><i style={{ width: 11, height: 11, borderRadius: 2, background: 'var(--accent-active)' }} /></span> 多</div>
+          </div>
+
+          {/* Quick links */}
+          <div className="panel">
+            <h3 className="card-title">快捷入口</h3>
+            <Link to="/admin" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3) var(--space-2)', borderRadius: 'var(--radius-sm)', color: 'var(--fg)', textDecoration: 'none' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)', background: 'var(--surface-2)', color: 'var(--muted)', display: 'grid', placeItems: 'center', flex: 'none' }}><Icon name="admin" size={16} /></div>
+              <div style={{ flex: 1 }}><span style={{ fontSize: 'var(--text-base)' }}>后台管理</span></div>
+              <Icon name="chevron-right" size={16} style={{ color: 'var(--meta)' }} />
+            </Link>
+            <div onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3) var(--space-2)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--danger)', marginTop: 4 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)', background: 'var(--danger-soft)', color: 'var(--danger)', display: 'grid', placeItems: 'center', flex: 'none' }}><Icon name="logout" size={16} /></div>
+              <div style={{ flex: 1 }}><span style={{ fontSize: 'var(--text-base)' }}>退出登录</span></div>
+              <Icon name="chevron-right" size={16} style={{ color: 'var(--meta)' }} />
+            </div>
+          </div>
+        </aside>
       </div>
     </section>
   );

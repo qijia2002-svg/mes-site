@@ -15,6 +15,7 @@ export function createNode(nodeType: string, x: number, y: number): SimNode | nu
     id: uid(), nodeType, label: def.label,
     x: x - size.w / 2, y: y - size.h / 2,
     w: size.w, h: size.h, props: {},
+    def: def.custom ? def : undefined, // 仅自定义工序把定义带在节点上，刷新后仍可见
   };
 }
 
@@ -51,6 +52,7 @@ export function initialSimState(): SimState {
     activeFactoryId: f.id,
     activeLineId: f.lines[0].id,
     selectedId: null,
+    selectedEdgeId: null,
     connectingFrom: null,
     connectingPort: null,
   };
@@ -98,6 +100,7 @@ export function seedExampleState(): SimState {
     activeFactoryId: f.id,
     activeLineId: f.lines[0].id,
     selectedId: null,
+    selectedEdgeId: null,
     connectingFrom: null,
     connectingPort: null,
   };
@@ -133,13 +136,25 @@ export function simReducer(state: SimState, action: SimAction): SimState {
         ...l,
         edges: [...l.edges, { ...action.edge, dashed: state.connectingPort === 'out2' }],
       }));
+    case 'UPDATE_EDGE':
+      return updateActiveLine(state, (l) => ({
+        ...l,
+        edges: l.edges.map((e) => (e.id === action.id ? { ...e, ...action.patch } : e)),
+      }));
+    case 'DELETE_EDGE':
+      return {
+        ...updateActiveLine(state, (l) => ({ ...l, edges: l.edges.filter((e) => e.id !== action.id) })),
+        selectedEdgeId: null,
+      };
     case 'TOGGLE_EDGE':
       return updateActiveLine(state, (l) => ({
         ...l,
         edges: l.edges.map((e) => (e.id === action.id ? { ...e, dashed: !e.dashed } : e)),
       }));
     case 'SELECT':
-      return { ...state, selectedId: action.id, connectingFrom: null, connectingPort: null };
+      return { ...state, selectedId: action.id, selectedEdgeId: null, connectingFrom: null, connectingPort: null };
+    case 'SELECT_EDGE':
+      return { ...state, selectedEdgeId: action.id, selectedId: null, connectingFrom: null, connectingPort: null };
     case 'START_CONNECT':
       return { ...state, connectingFrom: action.fromId, connectingPort: action.port, selectedId: null };
     case 'CANCEL_CONNECT':
@@ -237,6 +252,47 @@ export function simReducer(state: SimState, action: SimAction): SimState {
         connectingFrom: null,
         connectingPort: null,
       };
+    case 'AUTO_LAYOUT':
+      return updateActiveLine(state, (l) => {
+        const { nodes, edges } = l;
+        const indeg = new Map(nodes.map((n) => [n.id, 0]));
+        edges.forEach((e) => {
+          if (!e.dashed && indeg.has(e.to)) indeg.set(e.to, (indeg.get(e.to) ?? 0) + 1);
+        });
+        const adj = new Map<string, string[]>();
+        nodes.forEach((n) => adj.set(n.id, []));
+        edges.forEach((e) => {
+          if (!e.dashed && adj.has(e.from)) adj.get(e.from)!.push(e.to);
+        });
+        const depth = new Map<string, number>(nodes.map((n) => [n.id, 0]));
+        const q = nodes.filter((n) => (indeg.get(n.id) ?? 0) === 0).map((n) => n.id);
+        const seen = new Set(q);
+        while (q.length) {
+          const id = q.shift()!;
+          const d = depth.get(id) ?? 0;
+          for (const nx of adj.get(id) ?? []) {
+            depth.set(nx, Math.max(depth.get(nx) ?? 0, d + 1));
+            if (!seen.has(nx)) {
+              seen.add(nx);
+              q.push(nx);
+            }
+          }
+        }
+        const byDepth = new Map<number, string[]>();
+        nodes.forEach((n) => {
+          const d = depth.get(n.id) ?? 0;
+          if (!byDepth.has(d)) byDepth.set(d, []);
+          byDepth.get(d)!.push(n.id);
+        });
+        const newNodes = nodes.map((n) => {
+          const d = depth.get(n.id) ?? 0;
+          const idx = byDepth.get(d)!.indexOf(n.id);
+          const def = n.def ?? NODE_LIBRARY[n.nodeType];
+          const s = SHAPE_SIZE[def?.shape ?? 'rect'];
+          return { ...n, x: 40 + d * 190, y: 40 + idx * 120, w: s.w, h: s.h };
+        });
+        return { ...l, nodes: newNodes };
+      });
     default:
       return state;
   }

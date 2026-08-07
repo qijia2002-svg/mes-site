@@ -7,6 +7,7 @@ interface Props {
   onCreate: (type: string) => void;
   onCustomNode?: (def: SimNodeDef) => void;
   scene?: string;
+  onSceneChange?: (key: string) => void;
 }
 
 interface CatGroup { cat: SimCategory; label: string; items: SimNodeDef[] }
@@ -26,6 +27,14 @@ const SCENE_KEYS: Record<string, { label: string; keys: string[] }> = {
   food: { label: '食品饮料', keys: ['raw_mat','blending','pasteur','capping','labeling','i_metal','i_seal'] },
 };
 
+// 场景切换顺序（激活原先写死、无法切换的死功能）
+const SCENE_ORDER: { key: string; label: string }[] = [
+  { key: 'auto', label: '汽车零部件' },
+  { key: 'electronics', label: '电子产品' },
+  { key: 'pharma', label: '医药制剂' },
+  { key: 'food', label: '食品饮料' },
+];
+
 // 初始：只填通用节点
 for (const def of Object.values(NODE_LIBRARY)) {
   const g = GROUPS.find((g2) => g2.cat === def.category);
@@ -42,7 +51,7 @@ const SHAPES: { key: SimShape; label: string }[] = [
   { key: 'oval', label: '椭圆(起止)' }, { key: 'storage', label: '圆角(仓储)' },
 ];
 
-export default function SimPalette({ onCreate, onCustomNode, scene }: Props) {
+export default function SimPalette({ onCreate, onCustomNode, scene, onSceneChange }: Props) {
   const [showCustom, setShowCustom] = useState(false);
   const [customLabel, setCustomLabel] = useState('');
   const [customShape, setCustomShape] = useState<SimShape>('rect');
@@ -60,6 +69,7 @@ export default function SimPalette({ onCreate, onCustomNode, scene }: Props) {
       shape: customShape,
       category: customShape === 'diamond' ? 'inspect' : customShape === 'storage' ? 'storage' : customShape === 'oval' ? 'endpoint' : 'process',
       ports: { in: 1, out: customShape === 'diamond' ? 2 : 1 },
+      custom: true, // 标记为自定义，createNode 会把它随节点一起持久化
     };
     onCustomNode?.(def);
     onCreate(def.type);
@@ -71,6 +81,24 @@ export default function SimPalette({ onCreate, onCustomNode, scene }: Props) {
     <aside className="sim-palette">
       <div className="sim-palette-title">工序库</div>
       <p className="sim-palette-hint">点击或拖拽到画布添加工序</p>
+
+      {/* 行业场景切换：激活原先无法切换的死功能 */}
+      <select
+        className="sim-scene-select"
+        value={scene}
+        onChange={(e) => onSceneChange?.(e.target.value)}
+        aria-label="选择行业场景"
+        style={{
+          width: '100%', marginTop: 'var(--space-2)', marginBottom: 'var(--space-3)',
+          padding: '6px 8px', fontSize: 'var(--text-sm)', borderRadius: 'var(--radius-sm)',
+          border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--fg)',
+          cursor: 'pointer',
+        }}
+      >
+        {SCENE_ORDER.map((s) => (
+          <option key={s.key} value={s.key}>{s.label}</option>
+        ))}
+      </select>
 
       {/* 场景专属工序 */}
       {sceneDefs.length > 0 && (

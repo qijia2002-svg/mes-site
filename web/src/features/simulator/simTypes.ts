@@ -12,6 +12,7 @@ export interface SimNodeDef {
   category: SimCategory;
   critical?: boolean; // 关键工序 ⭐
   ports: { in: number; out: number };
+  custom?: boolean; // 用户自定义工序，需随节点一起持久化
 }
 
 export const NODE_LIBRARY: Record<string, SimNodeDef> = {
@@ -76,12 +77,14 @@ export interface SimNode {
   w: number;
   h: number;
   props: SimNodeProps;
+  def?: SimNodeDef; // 自定义工序的自我描述，随节点持久化，刷新后不丢
 }
 
 export interface SimNodeProps {
   hours?: number;
   defectRate?: number;
   forceInspect?: boolean;
+  capacity?: number; // 产能（件/小时），C 档瓶颈分析用；缺省按工时估算
 }
 
 /** 连线 */
@@ -89,7 +92,9 @@ export interface SimEdge {
   id: string;
   from: string;
   to: string;
-  dashed: boolean; // 实线/虚线
+  dashed: boolean; // 实线/虚线（回流返工）
+  ratio?: number; // 分流比率（出边多条时按比率分配，默认等权）
+  label?: string; // 边标签（如「良率 95%」），B 档可视化用
 }
 
 /** 完整项目（单条产线导出/导入用） */
@@ -121,6 +126,7 @@ export interface SimState {
   activeFactoryId: string;
   activeLineId: string;
   selectedId: string | null;
+  selectedEdgeId: string | null;
   connectingFrom: string | null;
   connectingPort: 'out' | 'out2' | null;
 }
@@ -132,6 +138,13 @@ export interface SimRunState {
   logs: import('./simEngine').SimLogEntry[];
   metrics: import('./simEngine').SimMetrics | null;
   progress: number; // 0~1
+  /** A 档起：仿真终态的流量分布，供连线可视化 / 瓶颈分析使用 */
+  edgeFlow?: Record<string, number>;
+  nodeInflow?: Record<string, number>;
+  nodeOutflow?: Record<string, number>;
+  bottleneckId?: string | null;
+  /** C 档：瓶颈工序分析结果（产能最低的在制工序），供 KPI 卡片展示 */
+  bottleneck?: import('./simEngine').SimBottleneck | null;
 }
 
 /** Action */
@@ -142,10 +155,14 @@ export type SimAction =
   | { type: 'UPDATE_LABEL'; id: string; label: string }
   | { type: 'DELETE_NODE'; id: string }
   | { type: 'ADD_EDGE'; edge: SimEdge }
+  | { type: 'UPDATE_EDGE'; id: string; patch: Partial<Pick<SimEdge, 'ratio' | 'label' | 'dashed'>> }
+  | { type: 'DELETE_EDGE'; id: string }
   | { type: 'TOGGLE_EDGE'; id: string }
   | { type: 'SELECT'; id: string | null }
+  | { type: 'SELECT_EDGE'; id: string | null }
   | { type: 'START_CONNECT'; fromId: string; port: 'out' | 'out2' }
   | { type: 'CANCEL_CONNECT' }
+  | { type: 'AUTO_LAYOUT' }
   | { type: 'LOAD_PROJECT'; project: SimProject }
   | { type: 'CLEAR' }
   // 工厂 / 产线管理

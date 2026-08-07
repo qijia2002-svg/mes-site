@@ -1,26 +1,28 @@
 /**
- * 英文单词翻译 / 解释卡片（带发音）。
+ * 名称翻译 / 英文单词解释卡片（带发音）。
  *
- * 能力：输入框 + 常见 SQL 关键字快捷词 + 结果卡，展示
- *   词性 / 中文释义 / 英文例句（可朗读 en-US）/ 中文译文 / 分类标签 / 一句话详解。
+ * 能力：输入框 + 分组专业词汇表（点选即查）+ 结果卡，展示
+ *   词性 / 中文翻译 / 英文例句（可朗读 en-US）/ 中文译文 / 分类标签 / 一句话详解。
  * 数据来自后端 POST /api/v1/ai/explain-word（离线词典兜底 + Workers AI 生成）。
  *
  * 遵循 P0：图标走 Icon 体系、颜色用 design token（禁硬编码 hex）、零 emoji、
  * 单文件 ≤300 行、所有 hook 置于组件顶部（防 React #310 多 hook 顺序错乱）。
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Icon } from './Icon';
 import { api, type ExplainWordResult } from '../api/endpoints';
+import { useDict, groupByType } from '../lib/dict';
 import { WordSpeaker } from './WordSpeaker';
 import { VoiceButton } from './VoiceButton';
 
-/** 常见 SQL / 数据库关键字，点击即可查，降低首用门槛。 */
-const PRESETS = ['SELECT', 'FROM', 'TABLE', 'QUERY', 'WHERE', 'JOIN', 'INSERT', 'UPDATE', 'DELETE', 'INDEX'];
+// 词表来自云端词典（useDict 缓存），按类型分组渲染，不再硬编码。
 
-export default function WordExplainer() {
-  const [word, setWord] = useState('');
+export default function WordExplainer({ initialWord }: { initialWord?: string }) {
+  const [word, setWord] = useState(initialWord ?? '');
   const [result, setResult] = useState<ExplainWordResult | null>(null);
+  const dictQ = useDict();
+  const groups = groupByType(dictQ.data);
 
   const mutation = useMutation({
     mutationFn: (w: string) => api.explainWord({ word: w }),
@@ -33,6 +35,12 @@ export default function WordExplainer() {
     setWord(clean);
     mutation.mutate(clean);
   };
+
+  // 深链：从首页等入口带 ?q= 直达时，自动查询该词
+  useEffect(() => {
+    if (initialWord && initialWord.trim()) submit(initialWord.trim());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,22 +73,35 @@ export default function WordExplainer() {
         </button>
       </form>
 
-      <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginTop: 'var(--space-3)' }}>
-        {PRESETS.map((p) => (
-          <button
-            key={p}
-            type="button"
-            className="we-chip"
-            onClick={() => submit(p)}
-            disabled={mutation.isPending}
-            style={{
-              padding: '4px var(--space-3)', borderRadius: 999, cursor: 'pointer',
-              border: '1px solid var(--border-soft)', background: 'var(--surface)',
-              color: 'var(--accent)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-mono)',
-            }}
-          >
-            {p}
-          </button>
+      {/* 分组专业词汇表：点选即翻译/释义（来自云端词典，按类型分组） */}
+      <div style={{ marginTop: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        {dictQ.isLoading && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--meta)' }}>
+            <Icon name="loading" size={16} className="spin" /> 加载词库中…
+          </div>
+        )}
+        {groups.map((grp) => (
+          <div key={grp.type.typeKey}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--meta)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-caps)', marginBottom: 'var(--space-2)' }}>{grp.type.name}</div>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+              {grp.items.map((it) => (
+                <button
+                  key={it.id}
+                  type="button"
+                  className="we-chip"
+                  onClick={() => submit(it.value)}
+                  disabled={mutation.isPending}
+                  style={{
+                    padding: '4px var(--space-3)', borderRadius: 999, cursor: 'pointer',
+                    border: '1px solid var(--border-soft)', background: 'var(--surface)',
+                    color: 'var(--accent)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  {it.value}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
 

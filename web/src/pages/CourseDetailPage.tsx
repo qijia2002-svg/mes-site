@@ -10,12 +10,9 @@ import { useCrumbTail } from '../components/Breadcrumb';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
 import { QuizDeck } from '../components/QuizDeck';
 import { api, type CourseState, type PathSummary, type StageSummary } from '../api/endpoints';
+import { peek } from '../lib/userData';
 
-const SK_ACTIVE = 'mes.engine.activePath';
-const SK_SELECTED = 'mes.engine.selectedPaths';
-function getStored<T>(key: string, fallback: T): T {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
-}
+// 学习引擎状态（激活路径 / 选中路径）走云端镜像 userData，跨设备一致（见 lib/userData.ts）
 
 export default function CourseDetailPage() {
   const { topicId } = useParams();
@@ -45,6 +42,16 @@ export default function CourseDetailPage() {
   );
   const totalCount = chapters.data?.length ?? 0;
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+  // 续学定位：按 sort 排序后取第一个未完成章 = 用户"当下学习的地方"。
+  // 重载后进入课程，不再从第一章开始，而是直接落到当前进度。
+  const sortedChapters = useMemo(
+    () => (chapters.data ?? []).slice().sort((a, b) => a.sort - b.sort),
+    [chapters.data],
+  );
+  const firstIncompleteIdx = sortedChapters.findIndex((c) => !completedSet.has(String(c.id)));
+  const firstIncomplete = firstIncompleteIdx >= 0 ? sortedChapters[firstIncompleteIdx] : null;
+  const resumeLabel = doneCount > 0 ? '继续学习' : '开始学习';
 
   // 模块汇总考试
   const [showExam, setShowExam] = useState(false);
@@ -119,26 +126,56 @@ export default function CourseDetailPage() {
           <EmptyState title="这门课还没有章节" hint="后台导入内容后会出现在这里。" icon="chapter" />
         )}
         {chapters.data && chapters.data.length > 0 && (
-          <ul className="row-list">
-            {chapters.data.map((c, i) => {
-              const isDone = completedSet.has(String(c.id));
-              return (
-                <li key={c.id}>
-                  <Link className="row-link" to={`/chapters/${c.id}`}>
-                    <span className="row-index">{String(i + 1).padStart(2, '0')}</span>
-                    <Icon name={isDone ? 'success' : 'chapter'} size={16} className="row-glyph" />
-                    <span className="row-title" style={isDone ? { color: 'var(--success)' } : undefined}>{c.title}</span>
-                    {c.status !== 'published' && <span className="row-meta">{c.status}</span>}
-                    {isDone ? (
-                      <span className="pill pill-ok" style={{ marginLeft: 'auto', flex: 'none' }}>已读</span>
-                    ) : (
-                      <Icon name="chevron-right" size={16} className="row-arrow" />
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            {firstIncomplete && (
+              <Link
+                className="resume-banner"
+                to={`/chapters/${firstIncomplete.id}`}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+                  padding: 'var(--space-4)', marginBottom: 'var(--space-4)',
+                  background: 'var(--accent-soft)', border: '1px solid var(--accent)',
+                  borderRadius: 'var(--radius-md)', textDecoration: 'none', color: 'inherit',
+                }}
+              >
+                <Icon name="play" size={20} style={{ color: 'var(--accent)', flex: 'none' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 'var(--text-sm)', color: 'var(--meta)' }}>{resumeLabel}</div>
+                  <div style={{ fontWeight: 'var(--weight-announce-cjk)', color: 'var(--fg)' }}>
+                    第 {firstIncompleteIdx + 1} 章 · {firstIncomplete.title}
+                  </div>
+                </div>
+                <Icon name="arrow-right" size={16} style={{ color: 'var(--accent)', flex: 'none' }} />
+              </Link>
+            )}
+            <ul className="row-list">
+              {sortedChapters.map((c, i) => {
+                const isDone = completedSet.has(String(c.id));
+                const isCurrent = i === firstIncompleteIdx;
+                return (
+                  <li key={c.id}>
+                    <Link
+                      className="row-link"
+                      to={`/chapters/${c.id}`}
+                      style={isCurrent ? { background: 'var(--accent-soft)' } : undefined}
+                    >
+                      <span className="row-index">{String(i + 1).padStart(2, '0')}</span>
+                      <Icon name={isDone ? 'success' : 'chapter'} size={16} className="row-glyph" />
+                      <span className="row-title" style={isDone ? { color: 'var(--success)' } : undefined}>{c.title}</span>
+                      {c.status !== 'published' && <span className="row-meta">{c.status}</span>}
+                      {isCurrent && !isDone ? (
+                        <span className="pill" style={{ marginLeft: 'auto', flex: 'none', background: 'var(--accent)', color: '#fff' }}>继续</span>
+                      ) : isDone ? (
+                        <span className="pill pill-ok" style={{ marginLeft: 'auto', flex: 'none' }}>已读</span>
+                      ) : (
+                        <Icon name="chevron-right" size={16} className="row-arrow" />
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </div>
 
@@ -208,8 +245,8 @@ export default function CourseDetailPage() {
  * 路径信息栏：显示当前课程在哪些路径中、位置、前置状态。
  */
 function PathContextBar({ topicId }: { topicId: number }) {
-  const activePath = getStored(SK_ACTIVE, undefined);
-  const selectedPaths = getStored(SK_SELECTED, []);
+  const activePath = peek<number | undefined>('engine.activePath', undefined);
+  const selectedPaths = peek<number[]>('engine.selectedPaths', []);
 
   const engineQ = useQuery({
     queryKey: ['engine-status', activePath, selectedPaths],
@@ -265,9 +302,9 @@ function PathContextBar({ topicId }: { topicId: number }) {
       )}
       <span style={{ color: 'var(--meta)', marginLeft: 'auto' }}>·</span>
       <span className={`pill ${activeCourse.status === 'completed' ? 'pill-ok' : activeCourse.status === 'doing' ? 'pill-warn' : activeCourse.status === 'locked' ? '' : ''}`} style={{ fontSize: 10 }}>
-        {activeCourse.status === 'completed' ? '✅ 已完成' : activeCourse.status === 'inherited' ? '⭐ 已继承' :
-         activeCourse.status === 'doing' ? '🔄 进行中' : activeCourse.status === 'locked' ? '🔒 ' + activeCourse.missingPrerequisites.join(',') :
-         activeCourse.status === 'skipped' ? '⊘ 已跳过' : '○ 待学习'}
+        {activeCourse.status === 'completed' ? '已完成' : activeCourse.status === 'inherited' ? '已继承' :
+         activeCourse.status === 'doing' ? '进行中' : activeCourse.status === 'locked' ? '未解锁: ' + activeCourse.missingPrerequisites.join(',') :
+         activeCourse.status === 'skipped' ? '已跳过' : '待学习'}
       </span>
     </div>
   );

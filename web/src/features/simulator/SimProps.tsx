@@ -11,7 +11,7 @@ interface Props {
 
 export default function SimProps({ node, onChange, onLabelChange, onDelete }: Props) {
   if (!node) return null;
-  const def = NODE_LIBRARY[node.nodeType];
+  const def = node.def ?? NODE_LIBRARY[node.nodeType];
   const isInspect = def?.category === 'inspect';
 
   return (
@@ -32,6 +32,12 @@ export default function SimProps({ node, onChange, onLabelChange, onDelete }: Pr
           <label className="sim-field">
             <span className="sim-field-label">标准工时(分)</span>
             <input className="sim-input" type="number" min={1} value={node.props.hours ?? ''} onChange={(e) => onChange({ hours: e.target.value ? Number(e.target.value) : undefined })} placeholder="30" />
+          </label>
+        )}
+        {!isInspect && (
+          <label className="sim-field">
+            <span className="sim-field-label">产能(件/时)</span>
+            <input className="sim-input" type="number" min={0} value={node.props.capacity ?? ''} onChange={(e) => onChange({ capacity: e.target.value ? Number(e.target.value) : undefined })} placeholder="留空按工时算" />
           </label>
         )}
         {isInspect && (

@@ -7,7 +7,7 @@
  *  - 写入成功后广播 'mes:profile-changed'，配合 useSyncExternalStore 让首页问候栏
  *    在设置页保存后即时更新，无需刷新或依赖组件重新挂载。
  */
-const KEY = 'mes.profile';
+import { peek, write } from './userData';
 const PROFILE_EVENT = 'mes:profile-changed';
 
 const listeners = new Set<() => void>();
@@ -48,34 +48,22 @@ const DEFAULTS: UserProfile = {
 };
 
 export function getProfile(): UserProfile {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return { ...DEFAULTS };
-    const parsed = JSON.parse(raw) as Partial<UserProfile>;
-    return {
-      nickname: typeof parsed.nickname === 'string' ? parsed.nickname : DEFAULTS.nickname,
-      dailyGoal:
-        typeof parsed.dailyGoal === 'number' && parsed.dailyGoal > 0
-          ? parsed.dailyGoal
-          : DEFAULTS.dailyGoal,
-      reminderTime: typeof parsed.reminderTime === 'string' ? parsed.reminderTime : DEFAULTS.reminderTime,
-    };
-  } catch {
-    return { ...DEFAULTS };
-  }
+  const parsed = peek<Partial<UserProfile>>('profile', {});
+  return {
+    nickname: typeof parsed?.nickname === 'string' ? parsed.nickname : DEFAULTS.nickname,
+    dailyGoal:
+      typeof parsed?.dailyGoal === 'number' && parsed.dailyGoal > 0
+        ? parsed.dailyGoal
+        : DEFAULTS.dailyGoal,
+    reminderTime: typeof parsed?.reminderTime === 'string' ? parsed.reminderTime : DEFAULTS.reminderTime,
+  };
 }
 
 export function setProfile(patch: Partial<UserProfile>): { ok: boolean; profile: UserProfile } {
   const next = { ...getProfile(), ...patch };
-  let ok = true;
-  try {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  } catch {
-    // 隐私模式 / 存储被禁用 / 配额耗尽：标记为失败，让上层提示用户。
-    ok = false;
-  }
-  if (ok) emit();
-  return { ok, profile: next };
+  void write('profile', next);
+  emit();
+  return { ok: true, profile: next };
 }
 
 /* 兼容旧调用：GreetingBar / ProfilePage 仍用这两个函数 */

@@ -16,8 +16,8 @@ export function VoiceButton({
   className?: string;
   lang?: SpeechLang;
 }) {
-  const { supported, speaking, speak, stop } = useSpeech();
-  if (!supported || !text.trim()) return null;
+  const { speaking, speak, stop } = useSpeech();
+  if (!text.trim()) return null;
   return (
     <button
       type="button"

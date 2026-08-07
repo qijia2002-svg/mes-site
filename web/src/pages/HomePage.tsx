@@ -7,6 +7,7 @@ import { GreetingBar } from '../components/GreetingBar';
 import ProgressDashboard from '../components/ProgressDashboard';
 import HomeLearningPaths from '../components/HomeLearningPaths';
 import HomeStudyInfo from '../components/HomeStudyInfo';
+import HomeNameTranslate from '../components/HomeNameTranslate';
 
 export default function HomePage() {
   return (
@@ -15,6 +16,7 @@ export default function HomePage() {
       <HomeStudyInfo />
       <ProgressDashboard />
       <HomeLearningPaths />
+      <HomeNameTranslate />
     </section>
   );
 }

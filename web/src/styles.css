@@ -20,14 +20,10 @@ body,
   height: 100%;
 }
 
-/* ---------- App Shell ---------- */
+/* ---------- App Shell（v5：侧栏改为固定抽屉，主体全宽）---------- */
 .shell {
   min-height: 100%;
-  display: grid;
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
-}
-.shell.is-collapsed {
-  grid-template-columns: var(--sidebar-w-collapsed) minmax(0, 1fr);
+  display: block;
 }
 
 .skip-link {
@@ -50,8 +46,12 @@ body,
    SIDEBAR — 智造学院风格：白色底、分组标签、圆点更新提示、用户卡片
    ═══════════════════════════════════════════════════════════════════════════ */
 .sidebar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  z-index: 200;
+  width: var(--sidebar-w);
+  max-width: 86vw;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -59,6 +59,11 @@ body,
   border-right: 1px solid var(--border);
   box-shadow: 2px 0 8px rgba(0,0,0,0.04);
   overflow: hidden;
+  transform: translateX(-100%);
+  transition: transform var(--motion-base) var(--ease-standard);
+}
+.sidebar.open {
+  transform: translateX(0);
 }
 .sidebar-brand {
   height: var(--topbar-h);
@@ -353,7 +358,7 @@ body,
   display: none;
   position: fixed; inset: 0;
   background: var(--app-scrim);
-  z-index: 39;
+  z-index: 190;
   border: 0; padding: 0;
 }
 .drawer-scrim.show { display: block; }
@@ -361,7 +366,7 @@ body,
 @media (max-width: 1023px) {
   .sidebar {
     position: fixed;
-    z-index: 40;
+    z-index: 200;
     transform: translateX(-100%);
     transition: transform var(--motion-base) var(--ease-standard);
   }
@@ -964,6 +969,27 @@ body,
 .icon-btn:hover {
   background: var(--surface-2);
   color: var(--fg);
+}
+
+/* 侧边栏折叠切换按钮（比普通 icon-btn 更醒目） */
+.sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+.sidebar-toggle:hover {
+  background: var(--surface-2);
+  color: var(--fg);
+  border-color: var(--border-strong);
 }
 
 .kbd {
@@ -2091,3 +2117,78 @@ body,
 .word-speaker-text { margin-left: 4px; font-size: var(--text-xs); color: var(--meta); font-family: var(--font-mono); }
 .glossary-term { display: inline-flex; align-items: center; gap: 6px; }
 .flash-card-voice { margin-left: auto; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UIX-Redesign v1 · 动效与互动增强（§C / §D）
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 微交互：所有可操作元素统一反馈（§C.2）── */
+.btn, .icon-btn, .card-link, .row-link, .pill, .nav-item, .nav-subitem {
+  transition: background-color var(--dur-micro) var(--ease-settle),
+              transform var(--dur-micro) var(--ease-settle),
+              box-shadow var(--dur-micro) var(--ease-settle),
+              border-color var(--dur-micro) var(--ease-settle),
+              color var(--dur-micro) var(--ease-settle);
+}
+.btn:active, .icon-btn:active { transform: translateY(1px); }
+.btn:focus-visible, .icon-btn:focus-visible { box-shadow: var(--state-focus-ring); }
+.btn:disabled, .pill:disabled { opacity: var(--state-disabled-opacity); cursor: not-allowed; }
+
+/* ── 导航激活左条形变（§C.2）── */
+.nav-item::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px;
+  width: 2px; border-radius: 2px; background: var(--accent);
+  transform: scaleY(0); transform-origin: center;
+  transition: transform var(--dur-micro) var(--ease-enter);
+}
+.nav-item.is-active::before { transform: scaleY(1); }
+
+/* ── 卡片 hover 微抬（§D.2）── */
+.card:hover, .card-link:hover {
+  background: var(--state-hover-bg);
+  box-shadow: var(--elev-card-hover);
+  transform: translateY(-2px);
+}
+
+/* ── 滚动揭示入场（§C.4）── */
+.reveal {
+  opacity: 0; transform: translateY(8px);
+  transition: opacity var(--motion-slow) var(--ease-enter),
+              transform var(--motion-slow) var(--ease-enter);
+}
+.reveal.in-view { opacity: 1; transform: none; }
+
+/* ── Shimmer 骨架屏（§C.6）── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+.skeleton-text { height: 14px; margin-bottom: 8px; }
+.skeleton-title { height: 20px; width: 60%; margin-bottom: 12px; }
+.skeleton-card { height: 120px; border-radius: var(--radius-md); }
+
+/* ── View Transitions 路由形变（§C.3）── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--motion-base);
+  animation-timing-function: var(--ease-enter);
+}
+.content { view-transition-name: main-content; }
+
+/* ── 确认 reduced-motion 全局安全网（§C.7）── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+  .skeleton { animation: none; background: var(--surface-3); }
+}

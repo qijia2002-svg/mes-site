@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
 import { api, type Topic, type Chapter } from '../api/endpoints';
+import DictManagementPanel from '../components/DictManagementPanel';
 
 /* ===================== 工具组件 ===================== */
 
@@ -16,6 +17,82 @@ function Btn({ onClick, children, ...rest }: any) {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="field"><span>{label}</span>{children}</label>;
+}
+
+/* ===================== 模板 ===================== */
+
+const MD_TEMPLATE = `---
+topic: 新课程名称
+tags: [theory,sql]
+---
+
+# 第一章标题
+
+第一章内容（Markdown）。支持完整的 Markdown 语法：
+- 列表
+- **粗体**
+- \`行内代码\`
+
+## 第一节
+
+内容...
+
+## 第二节
+
+内容...
+
+# 第二章标题
+
+第二章内容...
+`;
+
+const JSON_TEMPLATE = JSON.stringify({
+  topics: [{
+    slug: "new-course",
+    title: "新课程名称",
+    description: "课程简介",
+    modules: ["theory", "sql", "quiz"],
+    chapters: [
+      { title: "第一章标题", sort: 1, md: "# 第一章\\n\\n内容..." },
+      { title: "第二章标题", sort: 2, md: "# 第二章\\n\\n内容..." }
+    ]
+  }]
+}, null, 2);
+
+function download(filename: string, content: string, type: string) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function TemplatePanel() {
+  return (
+    <section className="panel">
+      <div className="panel-head"><h2><Icon name="chapter" size={20} className="panel-glyph" />模板导出</h2></div>
+      <div className="btn-row">
+        <button className="btn btn-secondary btn-sm" onClick={() => download('course-template.md', MD_TEMPLATE, 'text/markdown')}>
+          <Icon name="copy" size={16} /> 下载 MD 模板
+        </button>
+        <button className="btn btn-secondary btn-sm" onClick={() => download('course-template.json', JSON_TEMPLATE, 'application/json')}>
+          <Icon name="copy" size={16} /> 下载 JSON 模板
+        </button>
+      </div>
+      <details style={{ marginTop: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>
+        <summary>模板说明</summary>
+        <div style={{ marginTop: 'var(--space-2)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
+{`MD 模板：每个文件必须包含 --- frontmatter --- 头部
+  · topic: 课程名称
+  · tags: 模块标签（数组）
+
+JSON 模板：直接对应 importContent 接口格式
+  · slug: 课程唯一标识
+  · chapters: 章节数组（title + sort + md）`}
+        </div>
+      </details>
+    </section>
+  );
 }
 
 /* ===================== Markdown 导入 ===================== */
@@ -115,7 +192,7 @@ function ChapterPanel({ topicId }: { topicId: number }) {
   const [showNew, setShowNew] = useState(false);
 
   const delMut = useMutation({
-    mutationFn: (id: number) => api.deleteTopic(id),
+    mutationFn: (id: number) => api.deleteChapter(id),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['admin-chapters', topicId] }),
   });
 
@@ -153,25 +230,28 @@ function ChapterPanel({ topicId }: { topicId: number }) {
 function ChapterEditForm({ topicId, chapter, onClose }: { topicId: number; chapter?: Chapter & { status?: string }; onClose: () => void }) {
   const qc = useQueryClient();
   const [title, setTitle] = useState(chapter?.title ?? '');
-  const [md, setMd] = useState(chapter ? '' : ''); // need to load detail
+  const [md, setMd] = useState('');
+  const [chStatus, setChStatus] = useState(chapter?.status ?? 'published');
 
-  // load full chapter detail for edit
   const detailQ = chapter ? useQuery({ queryKey: ['chapter', chapter.id], queryFn: () => api.chapter(chapter.id), enabled: !!chapter }) : null;
   const [mdLoaded, setMdLoaded] = useState(false);
   if (detailQ?.data && !mdLoaded) { setMd(detailQ.data.md); setMdLoaded(true); }
 
   const saveMut = useMutation({
     mutationFn: () => {
-      if (chapter) return api.updateChapter(chapter.id, { topic_id: topicId, title, sort: chapter.sort, status: 'published', md_text: md, schema_version: 1 });
-      return api.createChapter({ topic_id: topicId, title, sort: 99, status: 'published', md_text: md, schema_version: 1 });
+      if (chapter) return api.updateChapter(chapter.id, { topic_id: topicId, title, sort: chapter.sort, status: chStatus, md_text: md, schema_version: 1 });
+      return api.createChapter({ topic_id: topicId, title, sort: 99, status: chStatus, md_text: md, schema_version: 1 });
     },
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ['admin-chapters', topicId] }); onClose(); },
   });
 
   return (
     <div style={{ padding: 'var(--space-3)', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-2)' }}>
-      <Field label="标题"><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
-      <Field label="Markdown 正文"><textarea className="input sql-editor" rows={8} value={md} onChange={(e) => setMd(e.target.value)} style={{ minHeight: 160, width: '100%', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' }} /></Field>
+      <div className="form form-inline" style={{ gap: 'var(--space-3)' }}>
+        <Field label="标题"><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
+        <Field label="状态"><select className="select" value={chStatus} onChange={(e) => setChStatus(e.target.value)}><option value="published">已发布</option><option value="draft">草稿</option></select></Field>
+      </div>
+      <Field label="Markdown 正文"><textarea className="input" rows={8} value={md} onChange={(e) => setMd(e.target.value)} style={{ minHeight: 160, width: '100%', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', background: 'var(--code-bg)', color: 'var(--code-fg)', border: '1px solid var(--code-border)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-3)' }} /></Field>
       <div className="btn-row" style={{ marginTop: 'var(--space-2)' }}>
         <button className="btn btn-primary btn-sm" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>{saveMut.isPending ? '保存中' : '保存'}</button>
         <button className="btn btn-ghost btn-sm" onClick={onClose}>取消</button>
@@ -224,6 +304,45 @@ function TopicRow({ topic }: { topic: Topic }) {
   );
 }
 
+/* ===================== 学员进度看板 ===================== */
+
+function StatsPanel() {
+  const topicsQ = useQuery({ queryKey: ['admin-topics'], queryFn: api.adminTopics, retry: 0 });
+  const pathsQ = useQuery({ queryKey: ['learning-paths'], queryFn: api.learningPaths });
+  const quizQ = useQuery({ queryKey: ['quiz-questions', 0], queryFn: () => api.topicQuestions(1), retry: 0 });
+  const sqlQ = useQuery({ queryKey: ['sql-exercises'], queryFn: () => api.sqlExercises(0), retry: 0 });
+  const healthQ = useQuery({ queryKey: ['health'], queryFn: api.health, retry: 0 });
+
+  const loading = topicsQ.isLoading || pathsQ.isLoading;
+  if (loading) return <LoadingState label="加载统计…" />;
+
+  return (
+    <section className="panel">
+      <div className="panel-head"><h2><Icon name="dashboard" size={20} className="panel-glyph" />运营概览</h2></div>
+      <div className="stat-row">
+        <div className="stat">
+          <span className="stat-value">{topicsQ.data?.length ?? 0}</span>
+          <span className="stat-label">主题数</span>
+        </div>
+        <div className="stat">
+          <span className="stat-value">{pathsQ.data?.length ?? 0}</span>
+          <span className="stat-label">学习路径</span>
+        </div>
+        <div className="stat">
+          <span className="stat-value" style={{ color: healthQ.data?.status === 'ok' ? 'var(--success)' : 'var(--danger)' }}>
+            {healthQ.data?.status === 'ok' ? '正常' : healthQ.isError ? '异常' : '...'}
+          </span>
+          <span className="stat-label">API 状态</span>
+        </div>
+        <div className="stat">
+          <span className="stat-value">{sqlQ.data?.length ?? 0}</span>
+          <span className="stat-label">SQL 实训题</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ===================== 主页 ===================== */
 
 export default function AdminPage() {
@@ -238,7 +357,9 @@ export default function AdminPage() {
 
   return (
     <>
-      <header className="page-head"><div><h1 className="page-title">内容后台</h1><p className="page-sub">低代码管理：主题/章节 CRUD + Markdown 导入</p></div></header>
+      <header className="page-head"><div><h1 className="page-title">内容后台</h1><p className="page-sub">课程管理 + 运营概览</p></div></header>
+
+      <StatsPanel />
 
       <section className="panel">
         <div className="panel-head"><h2><Icon name="add" size={20} className="panel-glyph" />新建主题</h2></div>
@@ -251,8 +372,10 @@ export default function AdminPage() {
         {create.isError && <ErrorState error={create.error} title="新建失败" />}
       </section>
 
+      <TemplatePanel />
       <MdImportPanel />
       <JsonImportPanel />
+      <DictManagementPanel />
 
       <section className="panel">
         <div className="panel-head"><h2><Icon name="courses" size={20} className="panel-glyph" />主题列表</h2><span className="panel-note">共 {topics.data?.length ?? 0} 个</span></div>

@@ -8,6 +8,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { Icon } from './Icon';
+import { ErrorState } from './StateBlock';
 import { VoiceButton } from './VoiceButton';
 import { api, type LearningPath, type Topic } from '../api/endpoints';
 
@@ -47,6 +48,7 @@ export default function HomeLearningPaths() {
   const titleOf = (id: number) =>
     topicsQ.data?.find((t: Topic) => t.id === id)?.title ?? `课程 #${id}`;
 
+  if (pathsQ.isError) return <ErrorState error={pathsQ.error} title="学习路径加载失败" onRetry={() => pathsQ.refetch()} />;
   if (pathsQ.isLoading || !pathsQ.data || pathsQ.data.length === 0) return null;
 
   return (

@@ -10,6 +10,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { Icon } from './Icon';
+import { ErrorState } from './StateBlock';
 import { api, type LearningPath, type Topic, type ProgressEvent } from '../api/endpoints';
 import { getNickname } from '../lib/profileStore';
 import { VoiceButton } from './VoiceButton';
@@ -179,6 +180,20 @@ export default function HomeStudyInfo() {
       setTipLoading(false);
     }
   };
+
+  if (pathsQ.isError || topicsQ.isError || progressQ.isError) {
+    return (
+      <ErrorState
+        error={pathsQ.error ?? topicsQ.error ?? progressQ.error}
+        title="学习档案加载失败"
+        onRetry={() => {
+          pathsQ.refetch();
+          topicsQ.refetch();
+          progressQ.refetch();
+        }}
+      />
+    );
+  }
 
   return (
     <section className="home-study-card panel">

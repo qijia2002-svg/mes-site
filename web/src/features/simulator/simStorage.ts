@@ -1,7 +1,6 @@
 import type { SimProject, SimState, SimFactory } from './simTypes';
 import { getActiveLine } from './simReducer';
-
-const LS_KEY = 'mes.sim_project';
+import { peek, write } from '../../lib/userData';
 
 interface StoredShape {
   factories: SimFactory[];
@@ -15,23 +14,13 @@ export function saveToStorage(state: SimState): void {
     activeFactoryId: state.activeFactoryId,
     activeLineId: state.activeLineId,
   };
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(data));
-  } catch {
-    // 存储不可用不影响功能
-  }
+  void write('sim_project', data);
 }
 
 export function loadFromStorage(): StoredShape | null {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return null;
-    const d = JSON.parse(raw) as StoredShape;
-    if (d && Array.isArray(d.factories) && d.factories.length > 0) return d;
-    return null;
-  } catch {
-    return null;
-  }
+  const d = peek<StoredShape | null>('sim_project', null);
+  if (d && Array.isArray(d.factories) && d.factories.length > 0) return d;
+  return null;
 }
 
 /** 导出当前激活产线为单条工艺路线 JSON */
