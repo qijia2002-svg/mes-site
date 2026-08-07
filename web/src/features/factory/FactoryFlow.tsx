@@ -1,15 +1,15 @@
 /**
- * 工厂全景（factory-first 导航主干）—— 全屏英雄视图 v3（四色分区 + 学习闭环）。
+ * 工厂全景（factory-first 导航主干）—— v10「克制专业」重设计。
  *
- * 设计原则（与用户确认的设计方案一致）：
- *  - 全屏宽：.board 以 100vw 突破容器约束，铺满视口。
- *  - 四色分区（语义色，非装饰渐变）：
- *      蓝=计划/仓储 · 橙=生产执行 · 绿=质量检验 · 紫=物流出库。
- *  - 节点 = 工位卡片（圆角 + 图标 + 标题 + 环节标签 + 进度状态点）。
- *  - 进度状态点：绿=已学(点开过) · 灰=未开始 · 脉冲(accent)=推荐下一步。
- *  - 紧凑工具栏：缩放 −/+ · 适应画布 · 四色图例。缩放与平移记忆到 localStorage。
- *  - 互动：拖拽平移；点节点右侧滑出「知识 + 实战」；选中节点相关连线呈流动动画。
- *  - 图标走已注册 Icon 语义名；内置 DEFAULT_FLOW 兜底，首屏永不空白。
+ * 设计依据：design-system/factory-flow-redesign.md（方向 B · Notion/Linear 克制专业）
+ *  - 节点 = 白底 + 1px hairline 描边 + 大留白，横向排布（20px 图标 · 标题 · 环节名）。
+ *    不做整卡色块填充、不做 56px 大徽章 —— v9「拥挤 + 像 BPM 工具」的根因。
+ *  - 四阶段语义只以 3px 左色条 + 图例圆点表达，色值全部走 --phase-* token。
+ *  - 进度用 Linear 式克制表达：已学 = check-circle(success)；推荐下一步 = accent 描边 +
+ *    极轻光晕 + 「下一步」文字，无脉冲动画。
+ *  - 连线 1.5px 中性灰；选中路径 accent 细线 + 轻流动虚线（linear）。
+ *  - 保留：全屏画布、拖拽平移、缩放/平移 localStorage 记忆、详情抽屉、DEFAULT_FLOW 兜底。
+ *  - P0：零硬编码色（全部 var(--token)）· 图标全走 Icon.tsx 注册表 · 无 emoji · 无弹跳缓动。
  */
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { Link } from 'react-router-dom';
@@ -19,21 +19,18 @@ import { LoadingState } from '../../components/StateBlock';
 import { api } from '../../api/endpoints';
 import type { FlowNodeDTO, FlowEdgeDTO } from '../../api/endpoints';
 
-const NODE_W = 132;
-const BOX_H = 104;
-const R = 26;
+const NODE_W = 168;
+const BOX_H = 64;
+/** 数据坐标 → 画布坐标的呼吸系数：不改数据，只在渲染时拉开间距。 */
+const SPREAD_X = 1.34;
+const SPREAD_Y = 1.55;
+const PAD = 48;
 const VIEW_KEY = 'factory.view';
 const VISITED_KEY = 'factory.visited';
 
 type Phase = 'plan' | 'production' | 'qc' | 'logistics';
 
-/** 四色分区的色值（定义为组件级 token，fallback 为语义色本身）。 */
-const PHASE_COLOR: Record<Phase, { fill: string; stroke: string }> = {
-  plan: { fill: '#E6F1FB', stroke: '#378ADD' },
-  production: { fill: '#FAEEDA', stroke: '#EF9F27' },
-  qc: { fill: '#EAF3DE', stroke: '#639922' },
-  logistics: { fill: '#EEEDFE', stroke: '#7F77DD' },
-};
+const PHASES: Phase[] = ['plan', 'production', 'qc', 'logistics'];
 const PHASE_LABEL: Record<Phase, string> = {
   plan: '计划/仓储', production: '生产执行', qc: '质量检验', logistics: '物流出库',
 };
@@ -101,7 +98,7 @@ const SYSTEMS: { id: string; name: string; icon: IconName; role: string; body: s
     body: '检验标准、不合格品隔离与偏差流程、质量追溯。把「质量」从一道工序变成贯穿全流程的能力。' },
 ];
 
-/** 实战入口：直接跳既有路由，不再写"接入中"。 */
+/** 实战入口：直接跳既有路由。 */
 const DRILLS: { to: string; icon: IconName; label: string; desc: string }[] = [
   { to: '/simulator', icon: 'routing', label: '工厂仿真', desc: '拖拽搭建产线，看 MES 怎么流转' },
   { to: '/quiz', icon: 'quiz', label: '随堂测验', desc: '该环节的知识点考一考' },
@@ -135,21 +132,27 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
 
   // 后端无数据/出错 → 用兜底工厂流。
   const flow = q.data && q.data.nodes?.length ? q.data : DEFAULT_FLOW;
-  const nodes = flow.nodes as (FlowNodeDTO & { phase?: Phase })[];
+  const rawNodes = flow.nodes as (FlowNodeDTO & { phase?: Phase })[];
   const edges = flow.edges;
-  const phaseOf = (n: FlowNodeDTO & { phase?: Phase }): Phase => n.phase ?? PHASE_BY_KEY[n.key] ?? 'plan';
 
-  const { bounds } = useMemo(() => {
-    const xs = nodes.map((n) => n.x);
-    const ys = nodes.map((n) => n.y);
-    const left = Math.min(...xs) - 40;
-    const right = Math.max(...xs) + NODE_W + 40;
-    const top = Math.min(...ys) - 40;
-    const bottom = Math.max(...ys) + BOX_H + 40;
-    return { bounds: { left, top, w: right - left, h: bottom - top } };
-  }, [nodes]);
+  /** 拉开间距后的布局坐标（数据不动，只动渲染）。 */
+  const { nodes, bounds } = useMemo(() => {
+    const laid = rawNodes.map((n) => ({
+      ...n,
+      phase: (n.phase ?? PHASE_BY_KEY[n.key] ?? 'plan') as Phase,
+      lx: n.x * SPREAD_X,
+      ly: n.y * SPREAD_Y,
+    }));
+    const xs = laid.map((n) => n.lx);
+    const ys = laid.map((n) => n.ly);
+    const left = Math.min(...xs) - PAD;
+    const right = Math.max(...xs) + NODE_W + PAD;
+    const top = Math.min(...ys) - PAD;
+    const bottom = Math.max(...ys) + BOX_H + PAD;
+    return { nodes: laid, bounds: { left, top, w: right - left, h: bottom - top } };
+  }, [rawNodes]);
 
-  // 缩放：自动适配宽度（封顶 1.6）或被用户手动缩放覆盖；记忆到 localStorage。
+  // 缩放：自动适配宽度（封顶 1.35）或被用户手动缩放覆盖；记忆到 localStorage。
   const stageRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const [autoScale, setAutoScale] = useState(1);
@@ -163,7 +166,7 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
     if (!el || !parent) return;
     const calc = () => {
       const avail = parent.clientWidth - 36;
-      const s = avail >= bounds.w ? Math.min(1.6, avail / bounds.w) : 1;
+      const s = avail >= bounds.w ? Math.min(1.35, avail / bounds.w) : 1;
       setAutoScale(s > 0 ? s : 1);
     };
     calc();
@@ -188,13 +191,11 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
     if (!b) return;
     try { localStorage.setItem(VIEW_KEY, JSON.stringify({ zoom: userZoom, sl: b.scrollLeft, st: b.scrollTop })); } catch { /* noop */ }
   };
-  const zoomIn = () => setUserZoom(clamp((userZoom ?? autoScale) * 1.15, 0.5, 2.5));
-  const zoomOut = () => setUserZoom(clamp((userZoom ?? autoScale) / 1.15, 0.5, 2.5));
+  const zoomIn = () => setUserZoom(clamp((userZoom ?? autoScale) * 1.12, 0.6, 2));
+  const zoomOut = () => setUserZoom(clamp((userZoom ?? autoScale) / 1.12, 0.6, 2));
   const fit = () => { setUserZoom(null); saveView(); };
 
-  if (q.isLoading) return <LoadingState label="加载工厂全景…" />;
-
-  const nodeByKey = new Map(nodes.map((n) => [n.key, n]));
+  const nodeByKey = useMemo(() => new Map(nodes.map((n) => [n.key, n])), [nodes]);
   const selected = selectedKey ? nodeByKey.get(selectedKey) ?? null : null;
 
   // 选中节点的直接相邻节点集合（用于淡化非相关节点 + 高亮相关连线）。
@@ -214,10 +215,12 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
     return null;
   }, [nodes, visited]);
 
+  const doneCount = useMemo(() => nodes.filter((n) => visited.has(n.key)).length, [nodes, visited]);
+
   const toggleSys = (id: string) => {
     setOpenSys((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
@@ -247,158 +250,151 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
     saveView();
   };
 
-  const selPhaseStroke = selected ? PHASE_COLOR[phaseOf(selected)].stroke : null;
+  if (q.isLoading) return <LoadingState label="加载工厂全景…" />;
 
   return (
     <div className="ff">
       <style>{`
-        .ff{font-family:inherit;color:var(--ink-solid,#1f2a24);
-          --ff-accent:var(--accent,#547C70);
-          --ff-accent-soft:var(--accent-soft,#eaf1ee);
-          --ff-line:var(--border,#e3e8e5);
-          --ff-mut:var(--muted,#6b7770);
-          --ff-slate:#64748b;
-          --ff-slate-soft:#f1f5f9;
-          --ff-radius:16px;
-          --ff-shadow:0 1px 2px rgba(31,42,36,.06),0 8px 24px rgba(31,42,36,.06);
-          --ff-plan-fill:#E6F1FB;--ff-plan-stroke:#378ADD;
-          --ff-production-fill:#FAEEDA;--ff-production-stroke:#EF9F27;
-          --ff-qc-fill:#EAF3DE;--ff-qc-stroke:#639922;
-          --ff-logistics-fill:#EEEDFE;--ff-logistics-stroke:#7F77DD}
+        .ff{font-family:inherit;color:var(--fg)}
         .ff *{box-sizing:border-box}
         .ff .ff-inner{max-width:1120px;margin:0 auto;padding:0 4px}
-        .ff .sec-h{display:flex;align-items:baseline;gap:10px;margin:0 0 14px;flex-wrap:wrap}
-        .ff .sec-h h2{font-size:20px;margin:0;font-weight:700}
-        .ff .sec-h .sub{color:var(--ff-mut);font-size:13px}
+        .ff .sec-h{display:flex;align-items:baseline;gap:10px;margin:0 0 16px;flex-wrap:wrap}
+        .ff .sec-h h2{font-size:20px;margin:0;font-weight:600;letter-spacing:-.01em}
+        .ff .sec-h .sub{color:var(--muted);font-size:13px}
+        .ff .sec-h .prog{margin-left:auto;font-size:12px;color:var(--muted);
+          font-variant-numeric:tabular-nums}
 
-        /* ── 全屏画布 ── */
+        /* ── 全屏画布（hairline first：无阴影，只有 1px 边）── */
         .ff .board{position:relative;width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);
-          padding:22px 18px;border-radius:var(--ff-radius);border:1px solid var(--ff-line);
-          background:
-            radial-gradient(circle at 1px 1px, rgba(84,124,112,.10) 1px, transparent 0) 0 0/22px 22px,
-            var(--surface,#fff);
-          overflow:auto;cursor:grab;user-select:none}
+          padding:20px 18px 26px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+          background:var(--surface);overflow:auto;cursor:grab;user-select:none}
         .ff .board.grabbing{cursor:grabbing}
 
-        /* ── 紧凑工具栏 ── */
+        /* ── 工具栏 ── */
         .ff .ff-toolbar{position:sticky;top:0;left:0;z-index:5;display:flex;align-items:center;
-          gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:8px 12px;border-radius:12px;
-          background:var(--surface,#fff);border:1px solid var(--ff-line);box-shadow:var(--ff-shadow)}
-        .ff .ff-toolbar .grp{display:inline-flex;align-items:center;gap:4px}
-        .ff .ff-tbtn{width:30px;height:30px;border-radius:9px;border:1px solid var(--ff-line);
-          background:var(--surface,#fff);color:var(--ff-mut);display:inline-flex;align-items:center;
-          justify-content:center;cursor:pointer;transition:.15s;font-family:inherit}
-        .ff .ff-tbtn:hover{border-color:var(--ff-accent);color:var(--ff-accent);background:var(--ff-accent-soft)}
-        .ff .ff-zoom{font-size:12px;color:var(--ff-mut);min-width:40px;text-align:center;font-variant-numeric:tabular-nums}
-        .ff .ff-legend{display:inline-flex;gap:12px;flex-wrap:wrap;margin-left:auto}
-        .ff .ff-legend .lg{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ff-mut)}
-        .ff .ff-legend .sw{width:12px;height:12px;border-radius:4px;border:1.5px solid}
+          gap:8px;flex-wrap:wrap;margin-bottom:18px;padding:6px 10px;border-radius:var(--radius-sm);
+          background:var(--surface);border:1px solid var(--border)}
+        .ff .ff-toolbar .grp{display:inline-flex;align-items:center;gap:2px}
+        .ff .ff-tbtn{height:28px;min-width:28px;padding:0 6px;border-radius:var(--radius-xs);
+          border:1px solid transparent;background:transparent;color:var(--muted);
+          display:inline-flex;align-items:center;justify-content:center;gap:6px;
+          cursor:pointer;transition:background .15s var(--ease-standard),color .15s var(--ease-standard);
+          font-family:inherit;font-size:12px}
+        .ff .ff-tbtn:hover{background:var(--surface-2);color:var(--fg)}
+        .ff .ff-zoom{font-size:12px;color:var(--muted);min-width:38px;text-align:center;
+          font-variant-numeric:tabular-nums}
+        .ff .ff-sep{width:1px;height:18px;background:var(--border)}
+        .ff .ff-legend{display:inline-flex;gap:14px;flex-wrap:wrap;margin-left:auto;padding-right:2px}
+        .ff .ff-legend .lg{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+        .ff .ff-legend .dot{width:8px;height:8px;border-radius:var(--radius-pill);flex:none}
 
         .ff .stage-scale{position:relative;width:100%}
         .ff .stage{position:relative;transform-origin:top left}
         .ff .stage svg{position:absolute;inset:0;display:block}
-        .ff .ff-line{stroke:var(--ff-slate);stroke-width:2.5;fill:none;opacity:.35;transition:.25s}
-        .ff .ff-line.hi{stroke-width:3.5;opacity:1;
-          stroke-dasharray:10 9;animation:ffFlow 1s linear infinite}
-        .ff .ff-line.muted{opacity:.12}
-        @keyframes ffFlow{to{stroke-dashoffset:-38}}
+        .ff .ff-line{stroke:var(--border-strong);stroke-width:1.5;fill:none;
+          transition:stroke .2s var(--ease-standard),opacity .2s var(--ease-standard)}
+        .ff .ff-line.hi{stroke:var(--accent);stroke-dasharray:6 5;animation:ffFlow 1.1s linear infinite}
+        .ff .ff-line.muted{opacity:.35}
+        @keyframes ffFlow{to{stroke-dashoffset:-22}}
 
-        /* ── 节点（工位卡片）── */
-        .ff .node{position:absolute;width:${NODE_W}px;background:var(--nf,var(--surface,#fff));
-          border:1.5px solid var(--ns,var(--ff-line));border-radius:16px;padding:14px 10px 12px;
-          cursor:pointer;font-family:inherit;box-shadow:var(--ff-shadow);
-          display:flex;justify-content:center;
-          transition:transform .18s, box-shadow .18s, border-color .18s, opacity .25s}
-        .ff .node.phase-plan{--nf:var(--ff-plan-fill);--ns:var(--ff-plan-stroke)}
-        .ff .node.phase-production{--nf:var(--ff-production-fill);--ns:var(--ff-production-stroke)}
-        .ff .node.phase-qc{--nf:var(--ff-qc-fill);--ns:var(--ff-qc-stroke)}
-        .ff .node.phase-logistics{--nf:var(--ff-logistics-fill);--ns:var(--ff-logistics-stroke)}
-        .ff .node:hover{transform:translateY(-5px);box-shadow:0 12px 30px rgba(84,124,112,.20)}
-        .ff .node.active{border-color:var(--ns);background:var(--nf);
-          box-shadow:0 12px 32px rgba(84,124,112,.28)}
-        .ff .node.dim{opacity:.32}
-        .ff .node-in{display:flex;flex-direction:column;align-items:center;
-          animation:ffNodeIn .5s var(--ease-out,ease) both}
-        .ff .node .badge{width:56px;height:56px;border-radius:16px;
-          background:var(--nf);color:var(--ns);
-          display:flex;align-items:center;justify-content:center;transition:.18s}
-        .ff .node:hover .badge,.ff .node.active .badge{background:var(--ns);color:#fff}
-        .ff .node .chip{margin-top:10px;font-size:14px;font-weight:700;color:var(--ns)}
-        .ff .node .kind{margin-top:4px;font-size:11px;color:var(--ff-mut);letter-spacing:.06em}
-        .ff .node.entry{box-shadow:0 0 0 3px color-mix(in srgb, var(--ns) 18%, transparent), var(--ff-shadow)}
-        @keyframes ffNodeIn{from{opacity:0;transform:translateY(16px) scale(.94)}to{opacity:1;transform:none}}
-
-        /* ── 进度状态点 ── */
-        .ff .node .stat{position:absolute;top:-5px;right:-5px;width:11px;height:11px;border-radius:50%;
-          border:2px solid var(--surface,#fff);z-index:2}
-        .ff .node .stat.done{background:var(--ff-success,#2f9e44)}
-        .ff .node .stat.todo{background:#B4B2A9}
-        .ff .node .stat.next{background:var(--ff-accent);animation:ffPulse 1.5s ease-in-out infinite}
-        @keyframes ffPulse{0%,100%{box-shadow:0 0 0 0 rgba(84,124,112,.55)}50%{box-shadow:0 0 0 7px rgba(84,124,112,0)}}
+        /* ── 节点：白底 hairline，横向排布，大留白 ── */
+        .ff .node{position:absolute;width:${NODE_W}px;min-height:${BOX_H}px;
+          background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);
+          padding:12px 14px 12px 16px;cursor:pointer;font-family:inherit;text-align:left;
+          display:flex;align-items:center;gap:11px;overflow:hidden;
+          transition:border-color .16s var(--ease-standard),background .16s var(--ease-standard),
+            box-shadow .16s var(--ease-standard),opacity .22s var(--ease-standard);
+          animation:ffNodeIn .34s var(--ease-out) both}
+        /* 阶段语义：3px 左色条，绝不整卡填充 */
+        .ff .node::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+          background:var(--ph);opacity:.75}
+        .ff .node.phase-plan{--ph:var(--phase-plan)}
+        .ff .node.phase-production{--ph:var(--phase-production)}
+        .ff .node.phase-qc{--ph:var(--phase-qc)}
+        .ff .node.phase-logistics{--ph:var(--phase-logistics)}
+        .ff .node:hover{border-color:var(--border-strong);background:var(--surface-2)}
+        .ff .node.active{border-color:var(--accent);background:var(--surface);
+          box-shadow:0 0 0 3px var(--accent-soft)}
+        .ff .node.is-next{border-color:var(--accent);
+          box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent)}
+        .ff .node.dim{opacity:.4}
+        .ff .node .nic{color:var(--muted);flex:none;display:flex;transition:color .16s var(--ease-standard)}
+        .ff .node:hover .nic,.ff .node.active .nic{color:var(--accent)}
+        .ff .node .ntx{min-width:0;flex:1}
+        .ff .node .ntitle{display:block;font-size:14px;font-weight:500;line-height:1.35;
+          color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .ff .node .nmeta{display:flex;align-items:center;gap:5px;margin-top:3px;
+          font-size:12px;font-weight:400;color:var(--muted)}
+        .ff .node .nmeta .next{display:inline-flex;align-items:center;gap:2px;color:var(--accent)}
+        .ff .node .ndone{flex:none;color:var(--success);display:flex}
+        @keyframes ffNodeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
         /* ── 右侧详情抽屉 ── */
-        .ff .drawer{position:absolute;top:0;right:0;bottom:0;width:360px;max-width:88%;
-          background:var(--surface,#fff);border-left:1px solid var(--ff-line);
-          box-shadow:-12px 0 32px rgba(31,42,36,.12);z-index:6;
-          transform:translateX(100%);transition:transform .22s ease;padding:20px;
-          overflow-y:auto;display:flex;flex-direction:column}
+        .ff .drawer{position:absolute;top:0;right:0;bottom:0;width:372px;max-width:88%;
+          background:var(--surface);border-left:1px solid var(--border);
+          box-shadow:var(--elev-modal);z-index:6;
+          transform:translateX(100%);transition:transform .22s var(--ease-standard);
+          padding:22px 22px 26px;overflow-y:auto;display:flex;flex-direction:column}
         .ff .drawer.open{transform:translateX(0)}
-        .ff .d-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
-        .ff .d-head .dbadge{width:46px;height:46px;border-radius:13px;
-          background:var(--ns,var(--ff-accent-soft));color:var(--ns,var(--ff-accent));
-          display:flex;align-items:center;justify-content:center;flex:0 0 auto}
-        .ff .d-head h3{margin:0;font-size:18px}
-        .ff .d-head .close{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--ff-mut);
-          padding:6px;border-radius:9px;transition:.15s}
-        .ff .d-head .close:hover{background:var(--ff-slate-soft);color:var(--ink-solid,#1f2a24)}
-        .ff .d-kind{font-size:12px;color:var(--ff-mut);margin:2px 0 12px}
-        .ff .d-phase{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
-          color:var(--ns,var(--ff-mut));background:var(--nf,var(--ff-accent-soft));
-          border:1px solid var(--ns,var(--ff-line));border-radius:999px;padding:3px 10px;margin-bottom:12px}
-        .ff .d-know{color:#33423a;margin:0 0 14px;line-height:1.7;font-size:14px}
-        .ff .d-sys{background:var(--ff-accent-soft);border-left:4px solid var(--ff-accent);
-          padding:11px 14px;border-radius:0 11px 11px 0;font-size:13px;color:#25433a;margin-bottom:14px}
-        .ff .d-sys .lbl{font-weight:600;margin-bottom:6px}
-        .ff .d-sys .tags{display:inline-flex;gap:6px;flex-wrap:wrap}
-        .ff .tag{background:#fff;border:1px solid var(--ff-line);border-radius:999px;
-          padding:2px 10px;font-size:12px;color:var(--ff-accent)}
-        .ff .drills-h{font-size:12px;font-weight:600;color:var(--ff-mut);text-transform:uppercase;
-          letter-spacing:.06em;margin:4px 0 10px}
-        .ff .drill{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
-          border:1px solid var(--ff-line);border-radius:13px;padding:13px;margin-bottom:9px;
-          background:var(--surface,#fff);text-decoration:none;color:inherit;cursor:pointer;
-          transition:.15s;font-family:inherit}
-        .ff .drill:hover{border-color:var(--ff-accent);background:var(--ff-accent-soft)}
-        .ff .drill .di{width:38px;height:38px;border-radius:11px;background:var(--ff-accent-soft);
-          color:var(--ff-accent);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
-        .ff .drill .dl{font-weight:600;font-size:14px}
-        .ff .drill .dd{font-size:12px;color:var(--ff-mut);margin-top:1px}
+        .ff .d-head{display:flex;align-items:center;gap:10px}
+        .ff .d-head .dic{color:var(--muted);display:flex;flex:none}
+        .ff .d-head h3{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+        .ff .d-head .close{margin-left:auto;background:none;border:none;cursor:pointer;
+          color:var(--muted);padding:5px;border-radius:var(--radius-xs);display:flex;
+          transition:background .15s var(--ease-standard),color .15s var(--ease-standard)}
+        .ff .d-head .close:hover{background:var(--surface-2);color:var(--fg)}
+        .ff .d-meta{display:flex;align-items:center;gap:8px;margin:10px 0 16px;
+          font-size:12px;color:var(--muted)}
+        .ff .d-meta .dot{width:8px;height:8px;border-radius:var(--radius-pill);flex:none}
+        .ff .d-meta .sp{color:var(--border-strong)}
+        .ff .d-know{color:var(--fg-2);margin:0 0 18px;line-height:1.7;font-size:14px}
+        .ff .d-sec{font-size:12px;font-weight:500;color:var(--muted);margin:0 0 9px}
+        .ff .d-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+        .ff .tag{background:var(--tag-bg);border:1px solid var(--tag-border);
+          border-radius:var(--radius-xs);padding:2px 8px;font-size:12px;color:var(--tag-fg)}
+        .ff .drill{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+          border:1px solid transparent;border-radius:var(--radius-sm);padding:10px 10px 10px 8px;
+          background:transparent;text-decoration:none;color:inherit;cursor:pointer;
+          transition:background .15s var(--ease-standard),border-color .15s var(--ease-standard);
+          font-family:inherit}
+        .ff .drill + .drill{margin-top:2px}
+        .ff .drill:hover{background:var(--surface-2);border-color:var(--border)}
+        .ff .drill .di{color:var(--muted);flex:none;display:flex}
+        .ff .drill:hover .di{color:var(--accent)}
+        .ff .drill .dl{display:block;font-weight:500;font-size:14px}
+        .ff .drill .dd{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+        .ff .drill .dgo{margin-left:auto;color:var(--border-strong);flex:none;display:flex}
+        .ff .drill:hover .dgo{color:var(--accent)}
 
-        /* ── 拖拽提示 ── */
-        .ff .pan-hint{display:inline-flex;align-items:center;gap:8px;margin-top:12px;
-          color:var(--ff-mut);font-size:12.5px}
-        .ff .pan-hint svg{color:var(--ff-accent)}
+        /* ── 画布下方提示 ── */
+        .ff .pan-hint{display:flex;align-items:center;gap:7px;margin-top:14px;
+          color:var(--muted);font-size:12px}
 
-        /* ── 系统卡片 ── */
-        .ff .sys-section{margin-top:26px}
-        .ff .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-        .ff .sys{padding:16px;border:1px solid var(--ff-line);border-radius:14px;background:var(--surface,#fff);
-          cursor:pointer;box-shadow:var(--ff-shadow);transition:.15s}
-        .ff .sys:hover{border-color:var(--ff-accent)}
-        .ff .sys .top{display:flex;align-items:center;gap:12px}
-        .ff .sys .ic{width:42px;height:42px;border-radius:12px;background:var(--ff-accent-soft);
-          color:var(--ff-accent);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
-        .ff .sys h3{margin:0;font-size:16px}
-        .ff .sys .role{color:var(--ff-mut);font-size:13px;margin:2px 0 0}
-        .ff .sys .body{display:none;margin-top:12px;padding-top:12px;border-top:1px dashed var(--ff-line);
-          color:#33423a;font-size:14px;line-height:1.65}
+        /* ── 横切系统 ── */
+        .ff .sys-section{margin-top:32px}
+        .ff .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+        .ff .sys{padding:16px 18px;border:1px solid var(--border);border-radius:var(--radius-md);
+          background:var(--surface);cursor:pointer;
+          transition:border-color .15s var(--ease-standard),background .15s var(--ease-standard)}
+        .ff .sys:hover{border-color:var(--border-strong);background:var(--surface-2)}
+        .ff .sys .top{display:flex;align-items:center;gap:11px}
+        .ff .sys .ic{color:var(--muted);flex:none;display:flex}
+        .ff .sys:hover .ic{color:var(--accent)}
+        .ff .sys h3{margin:0;font-size:15px;font-weight:600}
+        .ff .sys .role{color:var(--muted);font-size:13px;margin:2px 0 0}
+        .ff .sys .body{display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);
+          color:var(--fg-2);font-size:14px;line-height:1.7}
         .ff .sys.open .body{display:block}
+        .ff .sys .caret{margin-left:auto;color:var(--border-strong);flex:none;display:flex;
+          transition:transform .18s var(--ease-standard)}
+        .ff .sys.open .caret{transform:rotate(90deg)}
 
         @media(max-width:720px){
           .ff .board{width:100%;margin-left:0}
           .ff .ff-inner{max-width:100%}
           .ff .drawer{width:100%;max-width:100%}
           .ff .grid{grid-template-columns:1fr}
+          .ff .ff-legend{margin-left:0;width:100%;gap:10px}
         }
       `}</style>
 
@@ -406,27 +402,28 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
       <div className="ff-inner">
         <div className="sec-h">
           <h2>工厂全景</h2>
-          <span className="sub">点任意环节看「知识 + 实战」· 拖动画布左右平移</span>
+          <span className="sub">点任意环节看「知识 + 实战」</span>
+          <span className="prog">已走过 {doneCount} / {nodes.length} 个环节</span>
         </div>
       </div>
 
       {/* ═══ 全屏画布 ═══ */}
       <div className="board" ref={boardRef}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}>
-        {/* 紧凑工具栏 */}
         <div className="ff-toolbar">
           <div className="grp">
             <button type="button" className="ff-tbtn" aria-label="缩小" onClick={zoomOut}><Icon name="minus" size={16} /></button>
             <span className="ff-zoom">{Math.round(scale * 100)}%</span>
             <button type="button" className="ff-tbtn" aria-label="放大" onClick={zoomIn}><Icon name="plus" size={16} /></button>
           </div>
-          <button type="button" className="ff-tbtn" aria-label="适应画布" onClick={fit} style={{ width: 'auto', padding: '0 10px', gap: 6, display: 'inline-flex' }}>
-            <Icon name="expand" size={16} /><span style={{ fontSize: 12, color: 'inherit' }}>适应</span>
+          <span className="ff-sep" />
+          <button type="button" className="ff-tbtn" onClick={fit}>
+            <Icon name="expand" size={16} />适应
           </button>
           <div className="ff-legend">
-            {(Object.keys(PHASE_COLOR) as Phase[]).map((p) => (
+            {PHASES.map((p) => (
               <span key={p} className="lg">
-                <span className="sw" style={{ background: PHASE_COLOR[p].fill, borderColor: PHASE_COLOR[p].stroke }} />
+                <span className="dot" style={{ background: `var(--phase-${p})` }} />
                 {PHASE_LABEL[p]}
               </span>
             ))}
@@ -440,44 +437,50 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
               viewBox={`0 0 ${bounds.w} ${bounds.h}`} preserveAspectRatio="none"
               role="img" aria-label="工厂流程图">
               <defs>
-                <marker id="ff-arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-                  <path d="M0,0 L8,4.5 L0,9 Z" fill="var(--ff-slate)" />
+                <marker id="ff-arrow" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto">
+                  <path d="M0,0.5 L7,4 L0,7.5 Z" fill="var(--border-strong)" />
+                </marker>
+                <marker id="ff-arrow-hi" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto">
+                  <path d="M0,0.5 L7,4 L0,7.5 Z" fill="var(--accent)" />
                 </marker>
               </defs>
               {edges.map((e, i) => {
                 const s = nodeByKey.get(e.from);
                 const t = nodeByKey.get(e.to);
                 if (!s || !t) return null;
-                const y1 = s.y + BOX_H / 2;
-                const x1 = s.x + NODE_W;
-                const y2 = t.y + BOX_H / 2;
-                const x2 = t.x;
-                const dx = Math.max(40, (x2 - x1) * 0.5);
+                const y1 = s.ly - bounds.top + BOX_H / 2;
+                const x1 = s.lx - bounds.left + NODE_W;
+                const y2 = t.ly - bounds.top + BOX_H / 2;
+                const x2 = t.lx - bounds.left;
+                const dx = Math.max(30, (x2 - x1) * 0.45);
                 const hi = selectedKey === e.from || selectedKey === e.to;
                 const muted = !!related && !hi;
                 return (
                   <path key={i} className={`ff-line${hi ? ' hi' : ''}${muted ? ' muted' : ''}`}
-                    style={hi && selPhaseStroke ? { stroke: selPhaseStroke } : undefined}
-                    markerEnd="url(#ff-arrow)"
+                    markerEnd={hi ? 'url(#ff-arrow-hi)' : 'url(#ff-arrow)'}
                     d={`M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`} />
                 );
               })}
             </svg>
             {nodes.map((n, idx) => {
-              const ph = phaseOf(n);
               const dim = !!related && !related.has(n.key);
-              const status = visited.has(n.key) ? 'done' : (n.key === nextKey ? 'next' : 'todo');
+              const done = visited.has(n.key);
+              const isNext = !done && n.key === nextKey;
               return (
                 <button key={n.key} type="button"
-                  className={`node phase-${ph}${selectedKey === n.key ? ' active' : ''}${dim ? ' dim' : ''} ${n.kind}`}
-                  style={{ left: n.x - bounds.left, top: n.y - bounds.top, animationDelay: `${idx * 50}ms` }}
+                  className={`node phase-${n.phase}${selectedKey === n.key ? ' active' : ''}${isNext ? ' is-next' : ''}${dim ? ' dim' : ''}`}
+                  style={{ left: n.lx - bounds.left, top: n.ly - bounds.top, animationDelay: `${idx * 32}ms` }}
                   onClick={() => { setSelectedKey(n.key); markVisited(n.key); }} aria-pressed={selectedKey === n.key}>
-                  <span className={`stat ${status}`} aria-hidden="true" />
-                  <span className="node-in">
-                    <span className="badge"><Icon name={n.icon as IconName} size={24} /></span>
-                    <span className="chip">{n.label}</span>
-                    <span className="kind">{n.kind === 'entry' ? '起点' : n.kind === 'exit' ? '终点' : '环节'}</span>
+                  <span className="nic"><Icon name={n.icon as IconName} size={20} /></span>
+                  <span className="ntx">
+                    <span className="ntitle">{n.label}</span>
+                    <span className="nmeta">
+                      {isNext
+                        ? <span className="next">下一步<Icon name="chevron-right" size={16} /></span>
+                        : <span>{PHASE_LABEL[n.phase]}</span>}
+                    </span>
                   </span>
+                  {done ? <span className="ndone" aria-label="已学过"><Icon name="check-circle" size={16} /></span> : null}
                 </button>
               );
             })}
@@ -489,27 +492,26 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
           {selected ? (
             <>
               <div className="d-head">
-                <span className="dbadge"><Icon name={selected.icon as IconName} size={24} /></span>
+                <span className="dic"><Icon name={selected.icon as IconName} size={20} /></span>
                 <h3>{selected.label}</h3>
                 <button type="button" className="close" onClick={() => setSelectedKey(null)} aria-label="关闭">
                   <Icon name="close" size={20} />
                 </button>
               </div>
-              <div className="d-phase">
-                <span className="sw" style={{ width: 10, height: 10, borderRadius: 3, background: PHASE_COLOR[phaseOf(selected)].fill, border: `1.5px solid ${PHASE_COLOR[phaseOf(selected)].stroke}`, display: 'inline-block' }} />
-                {PHASE_LABEL[phaseOf(selected)]}
-              </div>
-              <div className="d-kind">
-                {selected.kind === 'entry' ? '流程起点' : selected.kind === 'exit' ? '流程终点' : '生产环节'}
+              <div className="d-meta">
+                <span className="dot" style={{ background: `var(--phase-${selected.phase})` }} />
+                <span>{PHASE_LABEL[selected.phase]}</span>
+                <span className="sp">·</span>
+                <span>{selected.kind === 'entry' ? '流程起点' : selected.kind === 'exit' ? '流程终点' : '生产环节'}</span>
               </div>
               <p className="d-know">{selected.description}</p>
-              <div className="d-sys">
-                <div className="lbl">涉及系统</div>
-                <div className="tags">
-                  {(SYSTEM_HINTS[selected.key] ?? []).map((s) => <span key={s} className="tag">{s}</span>)}
-                </div>
+
+              <div className="d-sec">涉及系统</div>
+              <div className="d-tags">
+                {(SYSTEM_HINTS[selected.key] ?? []).map((s) => <span key={s} className="tag">{s}</span>)}
               </div>
-              <div className="drills-h">动手练（真实跳转）</div>
+
+              <div className="d-sec">在这个环节动手练</div>
               {DRILLS.map((d) => (
                 <Link key={d.to} to={d.to} className="drill">
                   <span className="di"><Icon name={d.icon} size={20} /></span>
@@ -517,6 +519,7 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
                     <span className="dl">{d.label}</span>
                     <span className="dd">{d.desc}</span>
                   </span>
+                  <span className="dgo"><Icon name="chevron-right" size={16} /></span>
                 </Link>
               ))}
             </>
@@ -528,21 +531,23 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
       <div className="ff-inner">
         <div className="pan-hint">
           <Icon name="expand" size={16} />
-          <span>可拖动画布查看完整工厂 · 点节点看细节 · 绿点=已学 · 灰点=未开始 · 脉冲=推荐下一步</span>
+          <span>拖动画布可查看完整工厂 · 打勾=已走过 · accent 描边=推荐下一步</span>
         </div>
 
         <section className="sys-section">
           <div className="sec-h">
             <h2>贯穿全流程的系统</h2>
-            <span className="sub">MES / ERP / WMS / QMS 是工具，不是孤立入口，点开看它管什么</span>
+            <span className="sub">MES / ERP / WMS / QMS 是工具，不是孤立入口</span>
           </div>
           <div className="grid">
             {SYSTEMS.map((s) => (
               <div key={s.id} className={`sys${openSys.has(s.id) ? ' open' : ''}`}
-                onClick={() => toggleSys(s.id)} role="button" tabIndex={0}>
+                onClick={() => toggleSys(s.id)} role="button" tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSys(s.id); } }}>
                 <div className="top">
-                  <div className="ic"><Icon name={s.icon} size={24} /></div>
+                  <div className="ic"><Icon name={s.icon} size={20} /></div>
                   <div><h3>{s.name}</h3><div className="role">{s.role}</div></div>
+                  <div className="caret"><Icon name="chevron-right" size={16} /></div>
                 </div>
                 <div className="body">{s.body}</div>
               </div>

@@ -172,6 +172,18 @@
   --info: var(--accent);
   --info-soft: var(--accent-soft);
 
+  /* 工厂流程四阶段语义色 —— 只用于小面积点缀（3px 细色条 / 8px 圆点 / 图例），
+     禁止整卡填充。饱和度已向森绿基底收敛，避免流程图变成花花绿绿的 BPM 工具。
+     组件内一律 var(--phase-*)，不得硬编码 hex。 */
+  --phase-plan: #3A6EA5;       /* 计划 / 仓储 */
+  --phase-production: #A9701D; /* 生产执行 */
+  --phase-qc: #5A7D2E;         /* 质量检验 */
+  --phase-logistics: #6B63A6;  /* 物流出库 */
+  --phase-plan-soft: color-mix(in srgb, var(--phase-plan) 10%, var(--surface));
+  --phase-production-soft: color-mix(in srgb, var(--phase-production) 10%, var(--surface));
+  --phase-qc-soft: color-mix(in srgb, var(--phase-qc) 10%, var(--surface));
+  --phase-logistics-soft: color-mix(in srgb, var(--phase-logistics) 10%, var(--surface));
+
   /* ======================================================================
      A2 · 层级（Hairline First：默认无阴影，靠 1px 边框 + 底色差）
      Hairline First 仍作基线；顶栏/底栏作为导航条允许 1px 细线 + blur 玻璃
