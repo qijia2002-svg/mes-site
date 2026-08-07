@@ -15,7 +15,7 @@
  *  白底 hairline 卡片 · 3px 左色条表阶段 · check-circle 表已学 · 无脉冲无渐变。
  * P0：零硬编码色（全部 var(--token)）· 图标全走 Icon.tsx 注册表 · 无 emoji · 无弹跳缓动。
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, Fragment, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Icon, type IconName } from '../../components/Icon';
@@ -185,6 +185,12 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
   );
   const steps = useMemo(() => buildSteps(nodes, edges), [nodes, edges]);
 
+  // 选中的节点属于第几步 —— 详情面板就近插在该步骤正下方，点谁就贴着谁展开，不用滚到最底。
+  const selectedStepIndex = useMemo(
+    () => (selectedKey ? steps.findIndex((g) => g.some((n) => n.key === selectedKey)) : -1),
+    [steps, selectedKey],
+  );
+
   // 列数：按容器实测宽度算，宽屏多列、手机两列，纯 CSS 断点做不到「按内容数量收敛」。
   const gridRef = useRef<HTMLDivElement>(null);
   const [cols, setCols] = useState(1);
@@ -202,6 +208,14 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
     ro.observe(el);
     return () => ro.disconnect();
   }, [steps.length]);
+
+  // 详情面板就近展开后，若落在视口外则轻轻滚入视野（block:nearest，不大幅跳动）。
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (selectedKey && panelRef.current) {
+      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [selectedKey]);
 
   const nodeByKey = useMemo(() => new Map(nodes.map((n) => [n.key, n])), [nodes]);
   const selected = selectedKey ? nodeByKey.get(selectedKey) ?? null : null;
@@ -373,83 +387,83 @@ export default function FactoryFlow({ slug = 'generic-factory' }: { slug?: strin
         ))}
       </div>
 
-      {/* ═══ 响应式步骤网格 ═══ */}
+      {/* ═══ 响应式步骤网格（详情就近插在选中步骤正下方）═══ */}
       <div className="ff-grid" ref={gridRef} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
         {steps.map((group, si) => {
           const isRowEnd = (si + 1) % cols === 0;
           const isLast = si === steps.length - 1;
           return (
-            <div className="step" key={si}>
-              <span className="sno">{String(si + 1).padStart(2, '0')}</span>
-              {group.map((n, ni) => {
-                const done = visited.has(n.key);
-                const isNext = !done && n.key === nextKey;
-                return (
-                  <button key={n.key} type="button"
-                    className={`node phase-${n.phase}${selectedKey === n.key ? ' active' : ''}${isNext ? ' is-next' : ''}`}
-                    style={{ animationDelay: `${(si * 2 + ni) * 22}ms` }}
-                    onClick={() => pickNode(n.key)} aria-pressed={selectedKey === n.key}>
-                    <span className="nic"><Icon name={n.icon as IconName} size={20} /></span>
-                    <span className="ntx">
-                      <span className="ntitle">{n.label}</span>
-                      <span className="nmeta">
-                        {isNext
-                          ? <span className="next">从这里继续<Icon name="chevron-right" size={16} /></span>
-                          : PHASE_LABEL[n.phase]}
+            <Fragment key={si}>
+              <div className="step">
+                <span className="sno">{String(si + 1).padStart(2, '0')}</span>
+                {group.map((n, ni) => {
+                  const done = visited.has(n.key);
+                  const isNext = !done && n.key === nextKey;
+                  return (
+                    <button key={n.key} type="button"
+                      className={`node phase-${n.phase}${selectedKey === n.key ? ' active' : ''}${isNext ? ' is-next' : ''}`}
+                      style={{ animationDelay: `${(si * 2 + ni) * 22}ms` }}
+                      onClick={() => pickNode(n.key)} aria-pressed={selectedKey === n.key}>
+                      <span className="nic"><Icon name={n.icon as IconName} size={20} /></span>
+                      <span className="ntx">
+                        <span className="ntitle">{n.label}</span>
+                        <span className="nmeta">
+                          {isNext
+                            ? <span className="next">从这里继续<Icon name="chevron-right" size={16} /></span>
+                            : PHASE_LABEL[n.phase]}
+                        </span>
                       </span>
-                    </span>
-                    {done ? <span className="ndone" aria-label="已走过"><Icon name="check-circle" size={16} /></span> : null}
-                  </button>
-                );
-              })}
-              {!isRowEnd && !isLast
-                ? <span className="link" aria-hidden="true"><Icon name="chevron-right" size={16} /></span>
-                : null}
-            </div>
+                      {done ? <span className="ndone" aria-label="已走过"><Icon name="check-circle" size={16} /></span> : null}
+                    </button>
+                  );
+                })}
+                {!isRowEnd && !isLast
+                  ? <span className="link" aria-hidden="true"><Icon name="chevron-right" size={16} /></span>
+                  : null}
+              </div>
+              {selected && selectedStepIndex === si ? (
+                <div className="panel" style={{ gridColumn: '1 / -1' }} ref={panelRef}>
+                  <div className="p-head">
+                    <span className="pic"><Icon name={selected.icon as IconName} size={20} /></span>
+                    <h3>{selected.label}</h3>
+                    <button type="button" className="close" onClick={() => setSelectedKey(null)} aria-label="收起">
+                      <Icon name="close" size={20} />
+                    </button>
+                  </div>
+                  <div className="p-meta">
+                    <span className="dot" style={{ background: `var(--phase-${selected.phase})` }} />
+                    <span>{PHASE_LABEL[selected.phase]}</span>
+                    <span className="sp">·</span>
+                    <span>{selected.kind === 'entry' ? '流程起点' : selected.kind === 'exit' ? '流程终点' : '生产环节'}</span>
+                  </div>
+                  <div className="p-body">
+                    <div>
+                      <p className="p-know">{selected.description}</p>
+                      <div className="p-sec">涉及系统</div>
+                      <div className="p-tags">
+                        {(SYSTEM_HINTS[selected.key] ?? []).map((s) => <span key={s} className="tag">{s}</span>)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="p-sec">在这个环节动手练</div>
+                      {DRILLS.map((d) => (
+                        <Link key={d.to} to={d.to} className="drill">
+                          <span className="di"><Icon name={d.icon} size={20} /></span>
+                          <span>
+                            <span className="dl">{d.label}</span>
+                            <span className="dd">{d.desc}</span>
+                          </span>
+                          <span className="dgo"><Icon name="chevron-right" size={16} /></span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </Fragment>
           );
         })}
       </div>
-
-      {/* ═══ 内联详情（看练同屏）═══ */}
-      {selected ? (
-        <div className="panel">
-          <div className="p-head">
-            <span className="pic"><Icon name={selected.icon as IconName} size={20} /></span>
-            <h3>{selected.label}</h3>
-            <button type="button" className="close" onClick={() => setSelectedKey(null)} aria-label="收起">
-              <Icon name="close" size={20} />
-            </button>
-          </div>
-          <div className="p-meta">
-            <span className="dot" style={{ background: `var(--phase-${selected.phase})` }} />
-            <span>{PHASE_LABEL[selected.phase]}</span>
-            <span className="sp">·</span>
-            <span>{selected.kind === 'entry' ? '流程起点' : selected.kind === 'exit' ? '流程终点' : '生产环节'}</span>
-          </div>
-          <div className="p-body">
-            <div>
-              <p className="p-know">{selected.description}</p>
-              <div className="p-sec">涉及系统</div>
-              <div className="p-tags">
-                {(SYSTEM_HINTS[selected.key] ?? []).map((s) => <span key={s} className="tag">{s}</span>)}
-              </div>
-            </div>
-            <div>
-              <div className="p-sec">在这个环节动手练</div>
-              {DRILLS.map((d) => (
-                <Link key={d.to} to={d.to} className="drill">
-                  <span className="di"><Icon name={d.icon} size={20} /></span>
-                  <span>
-                    <span className="dl">{d.label}</span>
-                    <span className="dd">{d.desc}</span>
-                  </span>
-                  <span className="dgo"><Icon name="chevron-right" size={16} /></span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       <div className="hint">
         <Icon name="check-circle" size={16} />
