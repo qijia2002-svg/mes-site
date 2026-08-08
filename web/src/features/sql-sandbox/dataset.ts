@@ -13,6 +13,9 @@ export const SANDBOX_TABLES = [
   'work_orders',
   'production_records',
   'quality_checks',
+  'suppliers',
+  'purchase_orders',
+  'pick_lists',
 ] as const;
 
 /** 未绑定题目时的默认演示查询。 */
@@ -97,6 +100,44 @@ export const TABLE_SCHEMAS: Record<string, { name: string; fields: { name: strin
       { name: 'check_time', type: 'TEXT', desc: '检查时间' },
       { name: 'result', type: 'TEXT', desc: '结果 (合格/不合格)' },
       { name: 'defect_type', type: 'TEXT', desc: '缺陷类型 (可空)' },
+    ],
+  },
+  suppliers: {
+    name: '供应商主数据',
+    fields: [
+      { name: 'supplier_id', type: 'INTEGER', desc: '供应商ID (PK)' },
+      { name: 'code', type: 'TEXT', desc: '供应商编码' },
+      { name: 'name', type: 'TEXT', desc: '供应商名称' },
+      { name: 'contact', type: 'TEXT', desc: '对接人' },
+      { name: 'lead_time_days', type: 'INTEGER', desc: '承诺交期天数' },
+    ],
+  },
+  purchase_orders: {
+    name: '采购订单',
+    fields: [
+      { name: 'po_id', type: 'INTEGER', desc: '采购单ID (PK)' },
+      { name: 'po_no', type: 'TEXT', desc: '采购单号' },
+      { name: 'supplier_id', type: 'INTEGER', desc: '供应商ID (FK)' },
+      { name: 'material_id', type: 'INTEGER', desc: '物料ID (FK)' },
+      { name: 'qty_order', type: 'INTEGER', desc: '订购数量' },
+      { name: 'qty_received', type: 'INTEGER', desc: '已收数量' },
+      { name: 'order_date', type: 'TEXT', desc: '下单日期' },
+      { name: 'promise_date', type: 'TEXT', desc: '承诺到货日期' },
+      { name: 'arrive_date', type: 'TEXT', desc: '实际到货日期 (空 = 未到货)' },
+      { name: 'state', type: 'TEXT', desc: '状态 (created/approved/shipped/received)' },
+    ],
+  },
+  pick_lists: {
+    name: '领料单',
+    fields: [
+      { name: 'pick_id', type: 'INTEGER', desc: '领料单ID (PK)' },
+      { name: 'pick_no', type: 'TEXT', desc: '领料单号' },
+      { name: 'wo_id', type: 'INTEGER', desc: '工单ID (FK)' },
+      { name: 'material_id', type: 'INTEGER', desc: '物料ID (FK)' },
+      { name: 'qty_required', type: 'INTEGER', desc: '应发数量 (按 BOM 含损耗算)' },
+      { name: 'qty_issued', type: 'INTEGER', desc: '实发数量 (小于应发 = 缺料)' },
+      { name: 'pick_time', type: 'TEXT', desc: '领料时间' },
+      { name: 'state', type: 'TEXT', desc: '状态 (pending/partial/done)' },
     ],
   },
 };

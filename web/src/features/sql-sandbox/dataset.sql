@@ -131,3 +131,88 @@ INSERT INTO quality_checks (check_id, wo_id, check_time, result, defect_type) VA
   (5, 4, '2026-08-07 18:00:00', '不合格', '尺寸超差'),
   (6, 5, '2026-08-07 18:00:00', '合格',   NULL),
   (7, 3, '2026-08-08 18:00:00', '不合格', '装配错位');
+
+-- ============================================================================
+-- 【2026-08-08 扩展】采购与领料域
+-- ----------------------------------------------------------------------------
+-- 只增不改：以上 7 张表的定义与数据一个字都没动，
+-- 现存 6 道真哈希题（sql_exercises id 1~6）的 answer_hash 必须保持不变。
+-- 每次改本文件后跑：node scripts/gen-answer-hash.mjs --regress
+--
+-- 数据设计的「病灶」（工厂全景节点要练的就是把它们查出来）：
+--   采购节点 —— PO-3 / PO-7 / PO-10 承诺日期已过、arrive_date 仍为空 = 逾期未到；
+--               PO-4 / PO-9 到了货但数量短交。
+--   领料节点 —— pick_lists 中 qty_issued < qty_required 的 4 行 = 缺料，
+--               其中定子组件与控制主板的缺口，正好源自上面逾期的采购单，
+--               形成「采购逾期 → 领料缺料 → 工单动不了」的完整因果链。
+--
+-- 数值约定：pick_lists.qty_required = CAST(ROUND(bom.qty_per * work_orders.qty_plan
+--           * (1 + bom.loss_rate)) AS INTEGER)，四舍五入，12 行全部成立（已脚本校验）。
+--           学员可以自己用 BOM 反算出来，不是拍脑袋填的数。
+-- 参照「今天」= 2026-08-08，与 quality_checks 最后一条检验时间对齐。
+-- ============================================================================
+
+-- 供应商主数据
+CREATE TABLE suppliers (
+  supplier_id     INTEGER PRIMARY KEY,
+  code            TEXT NOT NULL,
+  name            TEXT NOT NULL,
+  contact         TEXT NOT NULL,
+  lead_time_days  INTEGER NOT NULL
+);
+INSERT INTO suppliers (supplier_id, code, name, contact, lead_time_days) VALUES
+  (1, 'SUP-01', '恒昌精密铸造', '邵文倩', 15),
+  (2, 'SUP-02', '中科轴承',     '温启贤', 7),
+  (3, 'SUP-03', '华瑞电机部件', '樊立宁', 20),
+  (4, 'SUP-04', '迅达电子',     '阮清越', 10),
+  (5, 'SUP-05', '泰兴五金',     '卓耀庭', 5);
+
+-- 采购订单（arrive_date 为空 = 还没到货）
+CREATE TABLE purchase_orders (
+  po_id        INTEGER PRIMARY KEY,
+  po_no        TEXT NOT NULL,
+  supplier_id  INTEGER NOT NULL,
+  material_id  INTEGER NOT NULL,
+  qty_order    INTEGER NOT NULL,
+  qty_received INTEGER NOT NULL,
+  order_date   TEXT NOT NULL,
+  promise_date TEXT NOT NULL,
+  arrive_date  TEXT,
+  state        TEXT NOT NULL
+);
+INSERT INTO purchase_orders (po_id, po_no, supplier_id, material_id, qty_order, qty_received, order_date, promise_date, arrive_date, state) VALUES
+  (1,  'PO-20260710-01', 1, 1,  300,  300, '2026-07-10', '2026-07-25', '2026-07-24', 'received'),
+  (2,  'PO-20260712-01', 2, 2, 2000, 2000, '2026-07-12', '2026-07-19', '2026-07-19', 'received'),
+  (3,  'PO-20260715-01', 3, 3,  400,    0, '2026-07-15', '2026-08-04', NULL,         'created'),
+  (4,  'PO-20260718-01', 4, 4,  200,  120, '2026-07-18', '2026-07-28', '2026-07-30', 'received'),
+  (5,  'PO-20260720-01', 5, 5, 6000, 6000, '2026-07-20', '2026-07-25', '2026-07-25', 'received'),
+  (6,  'PO-20260722-01', 3, 3,  150,    0, '2026-07-22', '2026-08-11', NULL,         'shipped'),
+  (7,  'PO-20260725-01', 4, 4,  300,    0, '2026-07-25', '2026-08-06', NULL,         'shipped'),
+  (8,  'PO-20260728-01', 1, 1,  150,  150, '2026-07-28', '2026-08-12', '2026-08-05', 'received'),
+  (9,  'PO-20260801-01', 2, 2,  800,  500, '2026-08-01', '2026-08-08', '2026-08-08', 'received'),
+  (10, 'PO-20260802-01', 5, 5, 2000,    0, '2026-08-02', '2026-08-07', NULL,         'approved');
+
+-- 领料单（qty_issued < qty_required = 缺料）
+CREATE TABLE pick_lists (
+  pick_id      INTEGER PRIMARY KEY,
+  pick_no      TEXT NOT NULL,
+  wo_id        INTEGER NOT NULL,
+  material_id  INTEGER NOT NULL,
+  qty_required INTEGER NOT NULL,
+  qty_issued   INTEGER NOT NULL,
+  pick_time    TEXT NOT NULL,
+  state        TEXT NOT NULL
+);
+INSERT INTO pick_lists (pick_id, pick_no, wo_id, material_id, qty_required, qty_issued, pick_time, state) VALUES
+  (1,  'PK-20260803-01', 1, 1,  122,  122, '2026-08-03 08:30:00', 'done'),
+  (2,  'PK-20260803-02', 1, 2,  485,  485, '2026-08-03 08:35:00', 'done'),
+  (3,  'PK-20260804-01', 2, 3,   62,   40, '2026-08-04 09:10:00', 'partial'),
+  (4,  'PK-20260804-02', 2, 2,  121,  121, '2026-08-04 09:15:00', 'done'),
+  (5,  'PK-20260805-01', 4, 4,  153,   96, '2026-08-05 07:50:00', 'partial'),
+  (6,  'PK-20260805-02', 4, 5, 1890, 1890, '2026-08-05 07:55:00', 'done'),
+  (7,  'PK-20260806-01', 3, 1,  204,  204, '2026-08-06 10:20:00', 'done'),
+  (8,  'PK-20260806-02', 3, 2,  808,  760, '2026-08-06 10:25:00', 'partial'),
+  (9,  'PK-20260807-01', 5, 4,   82,   82, '2026-08-07 13:40:00', 'done'),
+  (10, 'PK-20260807-02', 5, 5,  666,  666, '2026-08-07 13:45:00', 'done'),
+  (11, 'PK-20260808-01', 6, 3,   41,    0, '2026-08-08 08:05:00', 'pending'),
+  (12, 'PK-20260808-02', 6, 2,   81,   81, '2026-08-08 08:10:00', 'done');
