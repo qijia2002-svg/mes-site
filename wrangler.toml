@@ -7,6 +7,33 @@ compatibility_flags = ["nodejs_compat"]
 # not_found_handling = "single-page-application" 让嵌套路由（/learn/sql/01）回退到 index.html
 assets = { directory = "./worker/dist", binding = "ASSETS", not_found_handling = "single-page-application" }
 
+# 访问入口（多通道冗余）
+#
+# 大陆手机流量访问 *.workers.dev 常被按 SNI 阻断，所以必须有自定义域兜底。
+# 但单一自定义域同样会失效——解析到的 Cloudflare IP 段、是否下发 AAAA 记录，
+# 都会影响移动网络连通性（IPv6 优先 + 2606:4700::/32 路由差 = 直接卡死）。
+# 因此这里声明多个入口，任一条通即可用，不把可达性押在单个域名上。
+#
+# 注：早期注释称「qzz.io zone 不在本账户、无法用 routes 接管」，已核实为误判——
+# shuojia.qzz.io 本身就是本账户下的 active zone，可由 wrangler 直接管理。
+#
+# custom_domain = true 会自动创建并维护对应 DNS 记录（要求 zone 在同账户）。
+# 一律用子域而非根域，避免接管这些域上可能已有的其他服务。
+# 现有的 shuojia.qzz.io 必须一并列出，否则同步时可能被摘掉。
+#
+# 【TOML 陷阱】routes 是顶层键，必须留在所有 [table] 段之前。
+# 若挪到 [vars] 之后会被解析成 vars.routes，配置静默失效。
+#
+# 【必须显式保留】一旦声明 routes，wrangler 会默认把 workers.dev 子域关掉
+# （部署时只给一条 WARNING）。那是 WiFi 下仍可用的兜底入口，不能连带丢掉。
+workers_dev = true
+
+routes = [
+  { pattern = "shuojia.qzz.io", custom_domain = true },
+  { pattern = "mes.jiudaozhuo.top", custom_domain = true },
+  { pattern = "mes.miaojia.ccwu.cc", custom_domain = true },
+]
+
 # D1 数据库绑定（免费版单库单线程）
 [[d1_databases]]
 binding = "DB"
@@ -33,9 +60,6 @@ NODE_ENV = "production"
 # 敏感配置（务必用 secret，不要写进仓库）：
 #   wrangler secret put SESSION_SECRET   # HMAC 会话签名密钥，建议 32+ 字节随机串
 #   wrangler secret put ADMIN_PASSWORD   # 后台登录口令（Phase 1 启用后台时使用）
-
-# 自定义域名 shuojia.qzz.io：qzz.io zone 不在本 Cloudflare 账户，无法用 routes 自动接管。
-# 请在 qzz.io 的 DNS 提供商处添加 CNAME：shuojia.qzz.io -> mes-site.qijia2002.workers.dev
 
 # Workers AI 绑定（AI 判读自由理解：用户写理解 → 模型评分+反馈）
 # 免费账户默认可用 @cf/meta/llama-3.1-8b-instruct 等模型
