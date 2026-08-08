@@ -7,6 +7,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { renderChapterMarkdown } from '../lib/markdown';
 import { Icon } from './Icon';
 import { VoiceButton } from './VoiceButton';
+import { TermAwareHtml } from '../features/glossary/TermAwareHtml';
 import './FlashCardDeck.css';
 
 interface Card {
@@ -128,10 +129,7 @@ export function FlashCardDeck({ mdText, chapterTitle }: FlashCardDeckProps) {
           <h3 className="flash-card-title">{card.title}</h3>
           <VoiceButton text={cardText} className="flash-card-voice" lang="auto" />
         </div>
-        <div
-          className="flash-card-body prose"
-          dangerouslySetInnerHTML={{ __html: card.html }}
-        />
+        <TermAwareHtml html={card.html} className="flash-card-body prose" />
       </div>
 
       {/* 底部操作栏 */}

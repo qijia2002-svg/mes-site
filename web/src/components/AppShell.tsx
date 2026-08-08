@@ -122,12 +122,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <span className="nav-label">作品集</span>
               </NavLink>
             </li>
-            <li>
-              <NavLink to="/dictionary" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
-                <Icon name="dictionary" size={20} className="nav-glyph" />
-                <span className="nav-label">名称翻译</span>
-              </NavLink>
-            </li>
           </ul>
         </div>
 
@@ -191,7 +185,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           { to: '/factory', label: '工厂', icon: 'factory' as IconName },
           { to: '/simulator', label: '搭建', icon: 'routing' as IconName },
           { to: '/sql-space', label: 'SQL', icon: 'sql' as IconName },
-          { to: '/dictionary', label: '名称翻译', icon: 'dictionary' as IconName },
           { to: '/profile', label: '我的', icon: 'user' as IconName },
         ].map((item) => (
           <NavLink key={item.to} to={item.to}

@@ -15,6 +15,9 @@ import { QuizDeck } from '../components/QuizDeck';
 import { renderChapterMarkdown } from '../lib/markdown';
 import { api } from '../api/endpoints';
 import { NODE_RESOURCE_DONE } from '../features/factory/useNodeProgress';
+import { GlossaryProvider } from '../features/glossary/glossary.context';
+import { TermAwareHtml } from '../features/glossary/TermAwareHtml';
+import { GlossarySearch } from '../features/glossary/GlossarySearch';
 
 type ReadMode = 'doc' | 'card';
 
@@ -106,7 +109,8 @@ export default function ChapterPage() {
   }
 
   return (
-    <article>
+    <GlossaryProvider>
+      <article>
       <header className="page-head">
         <div>
           <h1 className="page-title">{chapter.data.title}</h1>
@@ -142,6 +146,7 @@ export default function ChapterPage() {
               文档
             </button>
           </div>
+          <GlossarySearch />
           <ReadBadge state={readState} />
         </div>
       </header>
@@ -155,8 +160,7 @@ export default function ChapterPage() {
                 chapterTitle={chapter.data.title}
               />
             ) : (
-              // 已过 markdown-it(html:false) + DOMPurify 白名单，见 lib/markdown.ts
-              <div className="prose" dangerouslySetInnerHTML={{ __html: rendered.html }} />
+              <TermAwareHtml html={rendered.html} className="prose" />
             )
           ) : (
             <EmptyState title="正文为空" hint="这一章只有标题，内容待补充。" icon="chapter" />
@@ -215,7 +219,8 @@ export default function ChapterPage() {
           </nav>
         )}
       </div>
-    </article>
+      </article>
+    </GlossaryProvider>
   );
 }
 

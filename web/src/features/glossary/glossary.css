@@ -1,0 +1,170 @@
+/* ==========================================================================
+   内联名词（名词介绍 + 名词翻译）功能样式
+   铁律：组件一律 var(--token)，禁裸 hex；图标走 Icon 体系，禁 emoji。
+   ========================================================================== */
+
+/* 行内术语高亮链接 */
+.term-link {
+  color: var(--accent);
+  border-bottom: 1px dashed var(--accent-border);
+  cursor: help;
+  border-radius: 2px;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+.term-link:hover,
+.term-link:focus-visible {
+  background-color: var(--accent-soft);
+}
+
+/* 弹卡遮罩：透明，仅用于点击外部关闭 */
+.term-popover-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dropdown);
+  background: transparent;
+}
+
+/* 名词解释弹卡 */
+.term-popover {
+  position: fixed;
+  z-index: var(--z-modal);
+  box-sizing: border-box;
+  max-width: calc(100vw - 24px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elev-modal);
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+.term-popover-close {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+.term-popover-close:hover {
+  background-color: var(--surface-2);
+  color: var(--fg);
+}
+
+.term-popover-loading,
+.term-popover-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.term-popover-body {
+  padding-right: var(--space-6); /* 给关闭按钮留白 */
+}
+
+.term-popover-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.term-popover-word {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-announce);
+  color: var(--fg);
+}
+.term-popover-pos {
+  font-size: var(--text-xs);
+  color: var(--meta);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+.term-popover-speak {
+  margin-left: auto;
+}
+
+.term-popover-zh {
+  font-size: var(--text-base);
+  color: var(--accent);
+  font-weight: var(--weight-emph);
+  margin-bottom: var(--space-2);
+}
+
+.term-popover-detail {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--fg-2);
+}
+
+.term-popover-example {
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-soft);
+  margin-bottom: var(--space-3);
+}
+.term-popover-example-en {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--fg-2);
+}
+.term-popover-example-zh {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin-top: var(--space-1);
+}
+
+.term-popover-cat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.term-popover-ai {
+  color: var(--meta);
+}
+
+/* 内联搜索（章节页工具栏） */
+.glossary-search {
+  position: relative;
+}
+.glossary-search-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2) 0 var(--space-3);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+.glossary-search-form:focus-within {
+  border-color: var(--input-border-focus);
+}
+.glossary-search-icon {
+  color: var(--muted);
+  display: inline-flex;
+}
+.glossary-search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--input-fg);
+  font-size: var(--text-sm);
+  padding: var(--space-2) 0;
+  width: 180px;
+}
+.glossary-search-input::placeholder {
+  color: var(--input-placeholder);
+}
