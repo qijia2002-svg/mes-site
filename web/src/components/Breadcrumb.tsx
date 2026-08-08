@@ -34,15 +34,15 @@ export function useCrumbTail(label: string | null | undefined) {
 }
 
 const SECTION: Record<string, { label: string; to: string }> = {
-  engine: { label: '学习', to: '/engine' },
+  factory: { label: '工厂', to: '/factory' },
   courses: { label: '课程', to: '/courses' },
   chapters: { label: '课程', to: '/courses' },
-  'learning-paths': { label: '学习路径', to: '/learning-paths' },
-  roadmap: { label: '职业路径', to: '/roadmap' },
-  tracks: { label: '职业路径', to: '/roadmap' },
+  'learning-paths': { label: '学习路径', to: '/factory?view=paths' },
+  roadmap: { label: '职业路径', to: '/factory?view=career' },
+  tracks: { label: '职业路径', to: '/factory?view=career' },
   'sql-space': { label: 'SQL 工作台', to: '/sql-space' },
   quiz: { label: '题库', to: '/quiz' },
-  simulator: { label: '工厂仿真', to: '/simulator' },
+  simulator: { label: '搭建', to: '/factory?mode=build' },
   profile: { label: '个人中心', to: '/profile' },
   portfolio: { label: '作品集', to: '/portfolio' },
   dictionary: { label: '名称翻译', to: '/dictionary' },
@@ -51,7 +51,7 @@ const SECTION: Record<string, { label: string; to: string }> = {
 };
 
 const FALLBACK_LEAF: Record<string, string> = {
-  engine: '学习中心',
+  factory: '工厂全景',
   courses: '课程详情',
   chapters: '章节正文',
   'learning-paths': '路径详情',

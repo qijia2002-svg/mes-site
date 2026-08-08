@@ -14,6 +14,7 @@ import { FlashCardDeck } from '../components/FlashCardDeck';
 import { QuizDeck } from '../components/QuizDeck';
 import { renderChapterMarkdown } from '../lib/markdown';
 import { api } from '../api/endpoints';
+import { NODE_RESOURCE_DONE } from '../features/factory/useNodeProgress';
 
 type ReadMode = 'doc' | 'card';
 
@@ -71,6 +72,10 @@ export default function ChapterPage() {
           reportedRef.current = null;
           setReadState('failed');
         });
+      // 通知工厂全景：该节点的知识卡片已读（仅作卡片勾选，不影响节点完成——C1 只认实战）。
+      window.dispatchEvent(
+        new CustomEvent(NODE_RESOURCE_DONE, { detail: { type: 'chapter', refId: id } }),
+      );
     }, READ_DWELL_MS);
 
     return () => window.clearTimeout(timer);

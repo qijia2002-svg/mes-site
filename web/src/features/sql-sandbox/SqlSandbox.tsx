@@ -13,6 +13,7 @@ import { api, readAnswerHash, readSchemaHint, type SqlExercise } from '../../api
 import { SANDBOX_SAMPLE_QUERY, SANDBOX_TABLES, TABLE_SCHEMAS, SANDBOX_CHALLENGES, type SandboxChallenge } from './dataset';
 import { useSandboxDb, type QueryOutcome } from './useSandboxDb';
 import { ResultTable } from './ResultTable';
+import { NODE_RESOURCE_DONE } from '../factory/useNodeProgress';
 
 type Verdict =
   | { kind: 'idle' }
@@ -58,6 +59,10 @@ export function SqlSandbox({ exercise }: { exercise?: SqlExercise }) {
             item_id: String(id),
             status: 'passed',
           });
+          // 通知工厂全景：该节点的 SQL 实战已完成（C1 完成度来源之一）。
+          window.dispatchEvent(
+            new CustomEvent(NODE_RESOURCE_DONE, { detail: { type: 'sql', refId: id } }),
+          );
         }
         setSubmitNote(null);
       } catch {

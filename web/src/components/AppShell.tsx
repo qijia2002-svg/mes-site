@@ -95,9 +95,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="sidebar-nav">
           <ul className="nav-list">
             <li>
-              <NavLink to="/engine" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
-                <Icon name="stage" size={20} className="nav-glyph" />
-                <span className="nav-label">学习</span>
+              <NavLink to="/factory" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
+                <Icon name="factory" size={20} className="nav-glyph" />
+                <span className="nav-label">工厂</span>
               </NavLink>
             </li>
           </ul>
@@ -111,15 +111,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </NavLink>
             </li>
             <li>
-              <NavLink to="/simulator" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
+              <NavLink to="/factory?mode=build" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
                 <Icon name="routing" size={20} className="nav-glyph" />
-                <span className="nav-label">工厂仿真</span>
+                <span className="nav-label">工厂搭建</span>
               </NavLink>
             </li>
             <li>
               <NavLink to="/portfolio" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
                 <Icon name="portfolio" size={20} className="nav-glyph" />
                 <span className="nav-label">作品集</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/dictionary" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
+                <Icon name="dictionary" size={20} className="nav-glyph" />
+                <span className="nav-label">名称翻译</span>
               </NavLink>
             </li>
           </ul>
@@ -182,9 +188,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ═══ MOBILE TAB BAR ═══ */}
       <nav className="mobile-tabbar only-mobile" aria-label="主导航">
         {[
-          { to: '/engine', label: '学习', icon: 'stage' as IconName },
+          { to: '/factory', label: '工厂', icon: 'factory' as IconName },
+          { to: '/factory?mode=build', label: '搭建', icon: 'routing' as IconName },
           { to: '/sql-space', label: 'SQL', icon: 'sql' as IconName },
-          { to: '/engine?tab=factory', label: '工厂', icon: 'factory' as IconName },
           { to: '/dictionary', label: '名称翻译', icon: 'dictionary' as IconName },
           { to: '/profile', label: '我的', icon: 'user' as IconName },
         ].map((item) => (

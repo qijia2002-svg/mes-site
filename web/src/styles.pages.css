@@ -100,12 +100,12 @@
 .path-phase.is-done .path-phase-circle {
   background: var(--success);
   border-color: var(--success);
-  color: #fff;
+  color: var(--accent-on);
 }
 .path-phase.is-doing .path-phase-circle {
   background: var(--warn);
   border-color: var(--warn);
-  color: #fff;
+  color: var(--accent-on);
 }
 .path-phase-title {
   font-size: var(--text-base);

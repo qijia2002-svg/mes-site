@@ -203,6 +203,7 @@ export interface NodeResourceDTO {
   type: string;
   refId: number;
   title: string;
+  sort: number;
 }
 export interface FlowchartBundle {
   flow: { id: number; slug: string; title: string; description: string; status: string };
@@ -275,6 +276,9 @@ export const api = {
   // 题库 / SQL 实训
   quizQuestions: (chapterId: number) =>
     apiGet<QuizQuestion[]>(`/api/v1/quiz/questions?chapterId=${chapterId}`),
+  /** 单题深链（工厂全景节点内嵌测验用，不含答案） */
+  quizQuestion: (id: number) =>
+    apiGet<QuizQuestion>(`/api/v1/quiz/questions/${id}`),
   topicQuestions: (topicId: number) =>
     apiGet<QuizQuestion[]>(`/api/v1/quiz/topic-questions?topicId=${topicId}`),
   gradeQuestion: (questionId: number, answer: string) =>

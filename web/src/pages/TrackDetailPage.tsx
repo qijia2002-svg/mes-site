@@ -118,7 +118,7 @@ export default function TrackDetailPage() {
                   hint="三级大纲由后台导入，导入后会按入门 / 中级 / 高级依次出现。"
                   icon="schedule"
                   action={
-                    <Link className="btn btn-secondary btn-sm" to="/roadmap">
+                    <Link className="btn btn-secondary btn-sm" to="/factory?view=career">
                       回岗位路径
                     </Link>
                   }
@@ -169,7 +169,7 @@ export default function TrackDetailPage() {
                   <ul className="toc-list">
                     {track.relatedCareers.map((career) => (
                       <li key={career.slug}>
-                        <Link to={`/roadmap?role=${encodeURIComponent(career.slug)}`}>
+                        <Link to={`/factory?view=career`}>
                           <Icon
                             name={careerIcon(career.slug, career.icon)}
                             size={16}

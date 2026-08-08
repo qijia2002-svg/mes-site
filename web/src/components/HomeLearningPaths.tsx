@@ -55,7 +55,7 @@ export default function HomeLearningPaths() {
     <section className="home-paths">
       <div className="home-paths-head">
         <h2>学习路径</h2>
-        <Link className="text-link" to="/roadmap">
+        <Link className="text-link" to="/factory?view=career">
           查看职业路径地图 <Icon name="chevron-right" size={16} className="inline-glyph" />
         </Link>
       </div>

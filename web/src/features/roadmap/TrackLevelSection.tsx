@@ -77,7 +77,7 @@ export function TrackLevelSection({
                 回到{levelCn(prev.level, prev.name)}继续
               </a>
             ) : (
-              <Link className="btn btn-secondary btn-sm" to="/roadmap">
+              <Link className="btn btn-secondary btn-sm" to="/factory?view=career">
                 回岗位路径看别的线
               </Link>
             )
