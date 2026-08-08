@@ -87,12 +87,16 @@ export const SYSTEMS: { id: string; name: string; icon: IconName; role: string; 
 
 export type LaidNode = FlowNodeDTO & { phase: Phase };
 
+// BLOCK-01 修复：用白名单而非黑名单。新增资源类型（sim/micro...）必须显式加入本集合才进完成度分母，
+// 否则配 useNodeStatus 的 .every(isDone) 会让节点永久卡在「未完成」。
+const PRACTICE_TYPES = new Set(['quiz', 'sql', 'sim', 'micro']);
+
 /**
- * 「什么算实战」的全项目单点定义：非 chapter 的资源即实战入口。
- * 完成度语义（C1：只认动手练）依赖它——要改判据只改这一处，不要在组件里各写各的。
+ * 「什么算实战」的全项目单点定义：只有 PRACTICE_TYPES 里的类型才算实战入口。
+ * 完成度语义（C1：只认动手练）依赖它——要改判据只改 PRACTICE_TYPES 这一处，不要在组件里各写各的。
  */
 export function practicesOf(res: NodeResourceDTO[]): NodeResourceDTO[] {
-  return res.filter((r) => r.type !== 'chapter');
+  return res.filter((r) => PRACTICE_TYPES.has(r.type));
 }
 
 /**
