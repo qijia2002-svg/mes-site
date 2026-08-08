@@ -2,9 +2,11 @@
 node_modules/
 
 # Cloudflare 本地状态 / 构建产物
-# worker/public 由 vite build 生成（outDir = ../worker/public），属构建产物，不入库
+# vite build 的 outDir 现为 ../worker/dist（由下面的 dist/ 规则覆盖，匹配任意层级）。
+# worker/public 是历史 outDir，保留忽略以防旧产物回流。
 .wrangler/
 worker/public/
+worker/public.bak/
 dist/
 dist-worker/
 dist-worker4/
@@ -32,3 +34,20 @@ docs/_val*.txt
 docs/verify-seed-sql.mjs
 _qa_*.mjs
 _*verify*.mjs
+# 种子校验的一次性输出（docs/seeds/_verify-*.txt），只是跑完看一眼，不是资产
+docs/**/_verify*.txt
+
+# 一次性调试产物（2026-08-08 补：此前有 23 个此类文件在污染 git status）
+# 按前缀/目录收口，避免每加一个临时文件就要改一次 .gitignore
+tmp/
+.cache/
+.tmp_*
+_*.mjs
+_*.ts
+_redesign_archive/
+# 根目录下 D1 查询/导出的一次性 JSON 快照（allq / p1 / dedup / topics_dump 之类）
+# 只匹配根目录，不影响 web/ worker/ 内的配置与数据文件
+/*.json
+!/package.json
+!/package-lock.json
+!/tsconfig.json
