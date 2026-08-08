@@ -26,57 +26,72 @@ export function TermAwareHtml({ html, className }: TermAwareHtmlProps) {
 
   useEffect(() => {
     const root = ref.current;
-    if (!root || !termPattern) return;
+    if (!root) return;
+    // 每个实例克隆独立正则（用 source 重建），杜绝 g 标志 lastIndex 跨实例污染；
+    // 这是"点一次后高亮消失"的根因之一：原本 termPattern 是 context 共享的同一 RegExp 对象。
+    const re = termPattern ? new RegExp(termPattern.source, termPattern.flags) : null;
+    if (!re) return; // 词典未就绪：保留当前 DOM（不拆已有高亮）
 
-    // 先拆掉上一次注入的高亮，避免重复包裹（html 变化重渲染时）。
-    root.querySelectorAll('span.term-link').forEach((el) => {
-      const parent = el.parentNode;
-      if (parent) {
-        parent.replaceChild(document.createTextNode(el.textContent ?? ''), el);
-        parent.normalize();
-      }
-    });
+    try {
+      // 在离屏克隆上处理：处理中途任何异常都不会破坏线上已渲染的高亮，
+      // 只有处理成功才整体换上带高亮的新结构（避免"拆了又没装上"导致正文空白）。
+      const work = root.cloneNode(true) as HTMLDivElement;
 
-    // 收集需要处理的文本节点（含词典词）。
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    const textNodes: Text[] = [];
-    let n: Node | null;
-    while ((n = walker.nextNode())) {
-      const t = n as Text;
-      const v = t.nodeValue ?? '';
-      if (!v.trim()) continue;
-      termPattern.lastIndex = 0;
-      if (termPattern.test(v)) textNodes.push(t);
-    }
-
-    for (const node of textNodes) {
-      const text = node.nodeValue ?? '';
-      termPattern.lastIndex = 0;
-      const frag = document.createDocumentFragment();
-      let last = 0;
-      let matched = false;
-      let m: RegExpExecArray | null;
-      while ((m = termPattern.exec(text))) {
-        const term = m[0];
-        const lower = term.toLowerCase();
-        if (!lookup(lower)) {
-          // 命中正则但不收录（如英文词未进词典且不想走 AI 的），跳过。
-          last = m.index + term.length;
-          continue;
+      // 还原克隆里已有的 term-link，避免重复包裹（html 变化重渲染时）。
+      work.querySelectorAll('span.term-link').forEach((el) => {
+        const parent = el.parentNode;
+        if (parent) {
+          parent.replaceChild(document.createTextNode(el.textContent ?? ''), el);
+          parent.normalize();
         }
-        matched = true;
-        if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
-        const span = document.createElement('span');
-        span.className = 'term-link';
-        span.setAttribute('data-term', lower);
-        span.textContent = term;
-        frag.appendChild(span);
-        last = m.index + term.length;
+      });
+
+      // 收集需要处理的文本节点（含词典词）。
+      const walker = document.createTreeWalker(work, NodeFilter.SHOW_TEXT);
+      const textNodes: Text[] = [];
+      let n: Node | null;
+      while ((n = walker.nextNode())) {
+        const t = n as Text;
+        const v = t.nodeValue ?? '';
+        if (!v.trim()) continue;
+        re.lastIndex = 0;
+        if (re.test(v)) textNodes.push(t);
       }
-      if (matched) {
-        if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
-        node.parentNode?.replaceChild(frag, node);
+
+      for (const node of textNodes) {
+        const text = node.nodeValue ?? '';
+        re.lastIndex = 0;
+        const frag = document.createDocumentFragment();
+        let last = 0;
+        let matched = false;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(text))) {
+          const term = m[0];
+          const lower = term.toLowerCase();
+          if (!lookup(lower)) {
+            // 命中正则但不收录（如英文词未进词典且不想走 AI 的），跳过。
+            last = m.index + term.length;
+            continue;
+          }
+          matched = true;
+          if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+          const span = document.createElement('span');
+          span.className = 'term-link';
+          span.setAttribute('data-term', lower);
+          span.textContent = term;
+          frag.appendChild(span);
+          last = m.index + term.length;
+        }
+        if (matched) {
+          if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+          node.parentNode?.replaceChild(frag, node);
+        }
       }
+
+      // 处理成功，整体换上带高亮的新结构。
+      root.replaceChildren(...Array.from(work.childNodes));
+    } catch {
+      // 任何异常都保持原样（原高亮仍在），不把正文拆没。
     }
   }, [html, termPattern, lookup]);
 

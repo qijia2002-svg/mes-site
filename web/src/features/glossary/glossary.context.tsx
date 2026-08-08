@@ -11,7 +11,7 @@
  *    绝不把不可信的 Markdown 当成术语来源，也不在渲染管线里混入词典数据。
  *  - 组件颜色一律 var(--token)，禁硬编码 hex；图标走 Icon 体系，禁 emoji。
  */
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from 'react';
 import { useDict } from '../../lib/dict';
 import { api, type DictData, type ExplainWordResult } from '../../api/endpoints';
 
@@ -78,7 +78,12 @@ function buildIndex(items: DictData[]): { map: Map<string, GlossaryEntry>; patte
 
 export function GlossaryProvider({ children }: { children: ReactNode }) {
   const dictQ = useDict();
-  const { map, pattern } = useMemo(() => buildIndex(dictQ.data?.data ?? []), [dictQ.data]);
+  const built = useMemo(() => buildIndex(dictQ.data?.data ?? []), [dictQ.data]);
+  // 词典短暂为空/重新拉取时，不要掉回 null 把已注入的高亮拆掉：保留上一次有效结果。
+  const lastGood = useRef<{ map: Map<string, GlossaryEntry>; pattern: RegExp | null } | null>(null);
+  if (built.pattern && built.map.size > 0) lastGood.current = built;
+  const map = built.map.size > 0 ? built.map : (lastGood.current?.map ?? built.map);
+  const pattern = built.pattern ?? lastGood.current?.pattern ?? null;
 
   const lookup = useCallback(
     (term: string): GlossaryEntry | undefined => {

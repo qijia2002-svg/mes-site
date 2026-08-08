@@ -20,6 +20,10 @@ export function useDict() {
     queryKey: ['dict'],
     queryFn: api.dictGet,
     staleTime: 5 * 60 * 1000,
+    // 词典是静态资源，禁用窗口聚焦/重连时的后台重拉，避免瞬时重拉把 termPattern 短暂置空
+    // （这会让行内高亮在"用一次之后"被拆掉且不再重建）。
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 
