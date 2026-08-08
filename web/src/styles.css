@@ -1597,6 +1597,24 @@ body,
   border-radius: var(--radius-sm);
 }
 
+/* 移动端：宽表格改为横向滚动，避免撑破视口导致整页横向滚动。 */
+@media (max-width: 860px) {
+  .prose table {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: var(--text-sm);
+  }
+}
+/* 超小屏：放宽标题字号，避免一行只装得下几个字。 */
+@media (max-width: 480px) {
+  .page-title {
+    font-size: var(--text-2xl);
+  }
+}
+
 .chapter-foot {
   display: flex;
   align-items: center;

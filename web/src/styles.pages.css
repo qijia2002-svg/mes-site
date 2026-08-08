@@ -233,6 +233,26 @@ a.card:hover {
   color: var(--accent);
 }
 
+/* 移动端：两栏塌成单列，目录（正文下方）不再抢占正文宽度。
+   （此前只有 TrackDetailPage 注释里声称"≤1024 塌单列"，实际缺这条媒体查询） */
+@media (max-width: 860px) {
+  .chapter-layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+  .chapter-aside {
+    position: static;
+    top: auto;
+    order: 2;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding-left: 0;
+    padding-top: var(--space-3);
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+}
+
 /* ---------- 表单行 / 表单卡片 ---------- */
 .form-row {
   display: flex;
