@@ -191,6 +191,27 @@ export interface FlowNodeDTO {
   x: number;
   y: number;
   description: string;
+  /**
+   * 所属 6 站主线（SPEC §6）。后端 ALTER 未执行前该字段缺失，空串 = 未分配。
+   * BLOCK-04：空串不参与阶段分组，绝不默认落到 'tour'，否则全平台一夜静默改分。
+   */
+  stageKey?: string;
+  /** 大白话一句话（SPEC §6）。缺失时前端回落 factoryStages.data 的静态兜底。 */
+  oneLiner?: string;
+}
+
+/**
+ * 6 站主线阶段（flow_stages）。practiceTypes 是**阶段级完成度口径**（BLOCK-02）：
+ * 入门段只认 ["micro","quiz"]，SQL 不进分母，避免小白入门即撞最硬门槛。
+ */
+export interface FlowStageDTO {
+  stageKey: string;
+  title: string;
+  subtitle: string;
+  goal?: string;
+  icon: string;
+  practiceTypes: string[];
+  sort: number;
 }
 export interface FlowEdgeDTO {
   from: string;
@@ -210,7 +231,47 @@ export interface FlowchartBundle {
   nodes: FlowNodeDTO[];
   edges: FlowEdgeDTO[];
   resources: NodeResourceDTO[];
+  /** 后端 flow_stages 端点未上线前缺失，调用方须回落静态 DEFAULT_STAGES。 */
+  stages?: FlowStageDTO[];
 }
+
+/**
+ * 微练习（SQL 前台阶，计入完成度）。
+ * answer 由服务端留存，**绝不出网**——判分只走 gradeMicroPractice。
+ * payload 按 kind 取不同形状，见 MicroPayload。
+ */
+export type MicroKind = 'match' | 'order' | 'pick';
+
+export interface MicroItem {
+  id: string;
+  text: string;
+}
+
+/** match：左右配对；order：拖成正确顺序；pick：单选/多选。 */
+export interface MicroPayload {
+  left?: MicroItem[];
+  right?: MicroItem[];
+  items?: MicroItem[];
+  options?: MicroItem[];
+  multiple?: boolean;
+}
+
+export interface MicroPracticeDTO {
+  id: number;
+  nodeId: number;
+  kind: MicroKind;
+  prompt: string;
+  payload: MicroPayload;
+}
+
+/** 判分结果。feedback 由服务端按 feedback_ok / feedback_bad 下发，前端不编错因。 */
+export interface MicroGradeResult {
+  correct: boolean;
+  feedback: string;
+}
+
+/** match 提交 {左id: 右id}；order 提交有序 id 数组；pick 提交选中 id 数组。 */
+export type MicroAnswer = Record<string, string> | string[];
 
 /** 兼容后端 snake_case / camelCase 两种命名，避免单点字段名不一致导致整页失效。 */
 export function readSchemaHint(e: SqlExercise): string {
@@ -326,6 +387,14 @@ export const api = {
   // 工厂流程图（factory-first 导航主干；公开读）
   flowchart: (slug: string) =>
     apiGet<FlowchartBundle>(`/api/v1/flowchart/${encodeURIComponent(slug)}`),
+
+  // 微练习（SQL 前台阶）。按需单条拉取——只在用户展开某个 micro 时触发，
+  // 不按节点循环预拉（D1 Free 单次查询 ≤50 行，禁批量循环）。
+  microPractice: (id: number) =>
+    apiGet<MicroPracticeDTO>(`/api/v1/micro-practices/${id}`),
+  /** 判分只在服务端做：answer 留服务端，前端只提交作答、只收 correct + feedback。 */
+  gradeMicroPractice: (id: number, answer: MicroAnswer) =>
+    apiPost<MicroGradeResult>(`/api/v1/micro-practices/${id}/grade`, { answer }),
 
   // 认证
   whoami: () => apiGet<{ sub: string }>('/api/v1/auth/whoami'),

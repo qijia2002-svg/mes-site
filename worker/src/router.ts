@@ -53,6 +53,7 @@ import {
   deleteDictData,
 } from './modules/dict/dict.routes';
 import { getFlowchart } from './modules/flowchart/flowchart.routes';
+import { getMicroPractice, gradeMicroPractice } from './modules/learn/learn.routes';
 
 export interface Route {
   method: string;
@@ -156,6 +157,10 @@ export const routes: Route[] = [
 
   // 工厂流程图（factory-first 导航主干；读取公开）
   { method: 'GET', path: '/api/v1/flowchart/:slug', handler: getFlowchart, noAuth: true },
+
+  // 零基础重学 v1：微练习（SQL 前台阶，计入完成度；判分只在服务端）
+  { method: 'GET', path: '/api/v1/micro-practices/:id', handler: getMicroPractice, noAuth: true },
+  { method: 'POST', path: '/api/v1/micro-practices/:id/grade', middlewares: [trace, security, writeLimit(), validate], handler: gradeMicroPractice, noAuth: true },
 
   // 名称翻译 / 专业词典（读取公开，供「名称翻译」页与选中翻译缓存；后台管理 admin）
   { method: 'GET', path: '/api/v1/dict', handler: getDict, noAuth: true },

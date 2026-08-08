@@ -15,12 +15,15 @@ import { useQuery } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { LoadingState } from '../components/StateBlock';
 import { api } from '../api/endpoints';
-import type { FlowNodeDTO, NodeResourceDTO } from '../api/endpoints';
+import type { FlowNodeDTO, FlowStageDTO, NodeResourceDTO } from '../api/endpoints';
 import FactoryFlow from '../features/factory/FactoryFlow';
 import FactoryExtras from '../features/factory/FactoryExtras';
 import { DEFAULT_FLOW, PHASE_BY_KEY, buildSteps, type LaidNode, type Phase } from '../features/factory/factoryFlow.data';
 import { useNodeProgress } from '../features/factory/useNodeProgress';
 import { useNodeStatus, type NodeStatusApi } from '../features/factory/useNodeStatus';
+import { useStageProgress } from '../features/factory/useStageProgress';
+import MainlineStepper from '../features/factory/MainlineStepper';
+import { DEFAULT_STAGES } from '../features/factory/factoryStages.data';
 
 const SLUG = 'generic-factory';
 
@@ -154,6 +157,12 @@ export default function FactoryPage() {
 
   const status = useNodeStatus(nodes, resourcesByNode, isDone);
 
+  // 6 站主线进度（BLOCK-03：站点内先找没练完的，站内全练完才跨站）。
+  // 后端未下发 stages 时回落静态 DEFAULT_STAGES；节点 stage_key 由 stageKeyOf 静态兜底，
+  // 因此迁移前也能呈现 6 站骨架，迁移后无缝切换到后端数据（BLOCK-04 中间态）。
+  const stages: FlowStageDTO[] = q.data?.stages && q.data.stages.length ? q.data.stages : DEFAULT_STAGES;
+  const stageProgress = useStageProgress(stages, nodes, resourcesByNode, isDone);
+
   const selectedKey = sp.get('node');
   const select = useCallback(
     (key: string | null) => {
@@ -167,8 +176,12 @@ export default function FactoryPage() {
   );
 
   const nextNode = useMemo(
-    () => (status.nextKey ? nodes.find((n) => n.key === status.nextKey) ?? null : null),
-    [nodes, status.nextKey],
+    () => {
+      // 主 CTA 必须绑 stageNextKey（BLOCK-03），跨站前先走完当前站。
+      const key = stageProgress.stageNextKey ?? status.nextKey;
+      return key ? nodes.find((n) => n.key === key) ?? null : null;
+    },
+    [nodes, stageProgress.stageNextKey, status.nextKey],
   );
 
   if (q.isLoading) return <LoadingState label="加载工厂全景…" />;
@@ -182,6 +195,9 @@ export default function FactoryPage() {
         nextNode={nextNode}
         onResume={() => nextNode && select(nextNode.key)}
       />
+      {stageProgress.enabled && (
+        <MainlineStepper stages={stageProgress.stages} onGoto={select} />
+      )}
       <FactoryFlow
         nodes={nodes}
         resourcesByNode={resourcesByNode}

@@ -89,7 +89,9 @@ export type LaidNode = FlowNodeDTO & { phase: Phase };
 
 // BLOCK-01 修复：用白名单而非黑名单。新增资源类型（sim/micro...）必须显式加入本集合才进完成度分母，
 // 否则配 useNodeStatus 的 .every(isDone) 会让节点永久卡在「未完成」。
-const PRACTICE_TYPES = new Set(['quiz', 'sql', 'sim', 'micro']);
+// 导出给 useStageProgress：阶段级口径（flow_stages.practice_types）必须与本白名单**取交集**，
+// 否则后端多下发一个没实现的类型就会凭空进分母，阶段永远练不完。
+export const PRACTICE_TYPES: ReadonlySet<string> = new Set(['quiz', 'sql', 'sim', 'micro']);
 
 /**
  * 「什么算实战」的全项目单点定义：只有 PRACTICE_TYPES 里的类型才算实战入口。

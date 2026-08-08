@@ -19,8 +19,8 @@ export interface FactoryProgress {
 
 const DEFAULT: FactoryProgress = { v: 1, flows: {} };
 
-/** 实战资源类型（node_resources.res_type 的值域）。 */
-export type ResourceType = 'chapter' | 'sql' | 'quiz' | 'sim';
+/** 实战资源类型（node_resources.res_type 的值域）。micro = 微练习，SQL 前台阶。 */
+export type ResourceType = 'chapter' | 'sql' | 'quiz' | 'sim' | 'micro';
 
 /** 资源完成时由目标页派发的事件名。 */
 export const NODE_RESOURCE_DONE = 'factory:resource-done';

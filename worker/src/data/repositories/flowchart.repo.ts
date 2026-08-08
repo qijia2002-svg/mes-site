@@ -24,6 +24,23 @@ export interface FlowNodeRow {
   y: number;
   description: string;
   sort: number;
+  /** 归属 6 站主线（learn-redesign 迁移增列，默认 '' = 未分配）。 */
+  stage_key: string;
+  /** 大白话一句话（learn-redesign 迁移增列）。 */
+  one_liner: string;
+}
+
+export interface FlowStageRow {
+  id: number;
+  flow_id: number;
+  stage_key: string;
+  title: string;
+  subtitle: string;
+  goal: string;
+  icon: string;
+  /** JSON 数组字符串：本阶段计入完成度分母的实战类型（BLOCK-02）。 */
+  practice_types: string;
+  sort: number;
 }
 
 export interface FlowEdgeRow {
@@ -51,8 +68,17 @@ export const flowchartRepo = {
 
   listNodes(db: DbSession, flowId: number): Promise<FlowNodeRow[]> {
     return db.all<FlowNodeRow>(
-      `SELECT id, flow_id, node_key, label, kind, icon, x, y, description, sort
+      `SELECT id, flow_id, node_key, label, kind, icon, x, y, description, sort, stage_key, one_liner
        FROM flow_nodes WHERE flow_id = ?1 ORDER BY sort ASC, id ASC`,
+      flowId,
+    );
+  },
+
+  /** 6 站主线阶段（flow_stages），按 sort 升序。空表 → 前端回落现有全景。 */
+  listStages(db: DbSession, flowId: number): Promise<FlowStageRow[]> {
+    return db.all<FlowStageRow>(
+      `SELECT id, flow_id, stage_key, title, subtitle, goal, icon, practice_types, sort
+       FROM flow_stages WHERE flow_id = ?1 ORDER BY sort ASC, id ASC`,
       flowId,
     );
   },

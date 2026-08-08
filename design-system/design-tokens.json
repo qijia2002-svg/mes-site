@@ -1,11 +1,17 @@
 {
   "$meta": {
     "project": "MES 实训平台",
-    "version": "1.0.0",
-    "phase": "Phase 1 设计调研",
+    "version": "3.1.0",
+    "phase": "零基础重学（Beginner Redesign v1）",
     "register": "product",
     "platform": "web",
     "scales": { "variance": 4, "motion": 3, "density": 6 },
+    "densityZones": {
+      "learn": 3,
+      "do": 6,
+      "note": "Learn 表面（主线/站页/章节/练习题面）挂 data-density=\"learn\" 降到 3；Do 表面（SQL 沙箱/仿真/后台/表格）维持 6。见 density.learn 节。"
+    },
+    "source": "design-system/design-tokens.css 是唯一事实源；本文件为其机器可读镜像，改 CSS 必须同步改这里。",
     "iconLibrary": {
       "name": "lucide-react",
       "version": "1.28.0",
@@ -14,87 +20,144 @@
       "strokeWidth": 2,
       "color": "currentColor",
       "adr": "docs/decisions/ADR-002-icon-library-lucide.md",
-      "note": "全项目唯一图标库，不引第二套。缺图标时在 web/src/components/icons/ 按 24×24 栅格 / stroke 2 自绘。"
+      "registry": "web/src/components/Icon.tsx",
+      "note": "全项目唯一图标库，不引第二套，禁 emoji 作功能图标。页面只用语义名，不直接 import lucide。"
     },
-    "note": "前端一律 import 本文件或 design-tokens.css，禁止在组件内硬编码色值。"
+    "note": "前端一律 import 本文件或 design-tokens.css，禁止在组件内硬编码色值（唯一例外 #fff / #000）。"
   },
 
   "color": {
-    "bg":            { "value": "#F7F9FB", "type": "color", "layer": "A1" },
-    "surface":       { "value": "#FFFFFF", "type": "color", "layer": "A1" },
-    "surface2":      { "value": "#F1F5F9", "type": "color", "layer": "A1" },
-    "surface3":      { "value": "#E7EDF3", "type": "color", "layer": "A1" },
+    "brandInk":      { "value": "#2d3a33", "type": "color", "layer": "A1", "note": "品牌墨色·深森绿，主按钮与 SQL 深底" },
 
-    "fg":            { "value": "#0F1B26", "type": "color", "layer": "A1" },
-    "fg2":           { "value": "#33475B", "type": "color", "layer": "B" },
-    "muted":         { "value": "#5A6E80", "type": "color", "layer": "A1" },
-    "meta":          { "value": "#6B8093", "type": "color", "layer": "B" },
+    "bg":            { "value": "#F3F3E9", "type": "color", "layer": "A1", "note": "暖米底色" },
+    "surface":       { "value": "#ffffff", "type": "color", "layer": "A1" },
+    "surface2":      { "value": "#F7F7EF", "type": "color", "layer": "A1" },
+    "surface3":      { "value": "#EAEAE0", "type": "color", "layer": "A1" },
 
-    "border":        { "value": "#DDE5EC", "type": "color", "layer": "A1" },
-    "borderSoft":    { "value": "#EDF1F5", "type": "color", "layer": "B" },
-    "borderStrong":  { "value": "#C3D0DA", "type": "color", "layer": "B" },
+    "fg":            { "value": "#222222", "type": "color", "layer": "A1" },
+    "fg2":           { "value": "#3d4540", "type": "color", "layer": "B" },
+    "muted":         { "value": "#606864", "type": "color", "layer": "A1" },
+    "meta":          { "value": "#8a928d", "type": "color", "layer": "B", "note": "仅 12-13px 非关键信息，不得承载正文" },
 
-    "accent":        { "value": "#0E7490", "type": "color", "layer": "A1", "note": "唯一强调色，每屏可见使用 ≤2 处" },
-    "accentOn":      { "value": "#FFFFFF", "type": "color", "layer": "A2" },
-    "accentHover":   { "value": "#0B6178", "type": "color", "layer": "A2" },
-    "accentActive":  { "value": "#094F61", "type": "color", "layer": "A2" },
-    "accentSoft":    { "value": "#E2F2F6", "type": "color", "layer": "A2" },
-    "accentBorder":  { "value": "#A9D5E0", "type": "color", "layer": "A2" },
+    "border":        { "value": "#DDDFD6", "type": "color", "layer": "A1" },
+    "borderSoft":    { "value": "#E8E9E0", "type": "color", "layer": "B" },
+    "borderStrong":  { "value": "#c5c7bb", "type": "color", "layer": "B" },
 
-    "success":       { "value": "#15803D", "type": "color", "layer": "A2" },
-    "successSoft":   { "value": "#E6F4EA", "type": "color", "layer": "A2" },
-    "successBorder": { "value": "#B0DCC0", "type": "color", "layer": "A2" },
-    "warn":          { "value": "#B45309", "type": "color", "layer": "A2" },
-    "warnSoft":      { "value": "#FDF1E3", "type": "color", "layer": "A2" },
-    "warnBorder":    { "value": "#E8C79A", "type": "color", "layer": "A2" },
-    "danger":        { "value": "#B91C1C", "type": "color", "layer": "A2" },
-    "dangerSoft":    { "value": "#FDEAEA", "type": "color", "layer": "A2" },
-    "dangerBorder":  { "value": "#EEB4B4", "type": "color", "layer": "A2" }
+    "accent":        { "value": "#547C70", "type": "color", "layer": "A1", "note": "低饱和森系绿。唯一强调色，每屏可见使用 ≤2 处" },
+    "accentOn":      { "value": "#ffffff", "type": "color", "layer": "A2" },
+    "accentHover":   { "value": "#466B60", "type": "color", "layer": "A2" },
+    "accentActive":  { "value": "#3a564d", "type": "color", "layer": "A2" },
+    "accentSoft":    { "value": "#E1EBE4", "type": "color", "layer": "A2" },
+    "accentBorder":  { "value": "#b8cfc0", "type": "color", "layer": "A2" },
+
+    "inkSolid":       { "value": "#2d3a33", "type": "color", "layer": "A2", "note": "主按钮底 = 深色视觉锚点" },
+    "inkSolidHover":  { "value": "#3d4d44", "type": "color", "layer": "A2" },
+    "inkSolidActive": { "value": "#1d2922", "type": "color", "layer": "A2" },
+
+    "fgOnInk":     { "value": "#edf2ee", "type": "color", "layer": "A2" },
+    "fg2OnInk":    { "value": "#bcc8c0", "type": "color", "layer": "A2" },
+    "metaOnInk":   { "value": "#8fa396", "type": "color", "layer": "A2" },
+    "borderOnInk": { "value": "#405247", "type": "color", "layer": "A2" },
+    "accentOnInk": { "value": "#7db89a", "type": "color", "layer": "A2" },
+
+    "success":       { "value": "#15803d", "type": "color", "layer": "A2", "note": "设备运行 / 判题通过" },
+    "successSoft":   { "value": "#e6f4ea", "type": "color", "layer": "A2" },
+    "successBorder": { "value": "#b0dcc0", "type": "color", "layer": "A2" },
+    "warn":          { "value": "#b45309", "type": "color", "layer": "A2", "note": "停机预警 / 待下达" },
+    "warnSoft":      { "value": "#fdf1e3", "type": "color", "layer": "A2" },
+    "warnBorder":    { "value": "#e8c79a", "type": "color", "layer": "A2" },
+    "danger":        { "value": "#b91c1c", "type": "color", "layer": "A2", "note": "故障 / SQL 报错" },
+    "dangerSoft":    { "value": "#fdeaea", "type": "color", "layer": "A2" },
+    "dangerBorder":  { "value": "#eeb4b4", "type": "color", "layer": "A2" }
+  },
+
+  "phase": {
+    "note": "工厂流程四阶段语义色。只用于 3px 细色条 / 8px 圆点 / 图例，禁止整卡填充。",
+    "plan":       { "value": "#3A6EA5", "type": "color", "layer": "A2", "label": "计划 / 仓储" },
+    "production": { "value": "#A9701D", "type": "color", "layer": "A2", "label": "生产执行" },
+    "qc":         { "value": "#5A7D2E", "type": "color", "layer": "A2", "label": "质量检验" },
+    "logistics":  { "value": "#6B63A6", "type": "color", "layer": "A2", "label": "物流出库" }
   },
 
   "code": {
-    "bg":        { "value": "#0F1B26", "type": "color", "layer": "C" },
-    "bgGutter":  { "value": "#16232F", "type": "color", "layer": "C" },
-    "fg":        { "value": "#E3ECF2", "type": "color", "layer": "C" },
-    "border":    { "value": "#22384A", "type": "color", "layer": "C" },
-    "selection": { "value": "#17475A", "type": "color", "layer": "C" },
-    "caret":     { "value": "#4CC4DD", "type": "color", "layer": "C" },
-    "synKeyword":  { "value": "#7DD3FC", "type": "color", "layer": "C" },
-    "synString":   { "value": "#86EFAC", "type": "color", "layer": "C" },
-    "synNumber":   { "value": "#FCD34D", "type": "color", "layer": "C" },
-    "synFunc":     { "value": "#C4B5FD", "type": "color", "layer": "C" },
-    "synComment":  { "value": "#6B8093", "type": "color", "layer": "C" },
-    "synOperator": { "value": "#CBD5E1", "type": "color", "layer": "C" }
+    "bg":        { "value": "#2d3a33", "type": "color", "layer": "C" },
+    "bgGutter":  { "value": "#36453c", "type": "color", "layer": "C" },
+    "fg":        { "value": "#edf2ee", "type": "color", "layer": "C" },
+    "border":    { "value": "#405247", "type": "color", "layer": "C" },
+    "selection": { "value": "#3a564d", "type": "color", "layer": "C" },
+    "caret":     { "value": "#7db89a", "type": "color", "layer": "C" },
+    "synKeyword":  { "value": "#7db89a", "type": "color", "layer": "C" },
+    "synString":   { "value": "#a3c9ae", "type": "color", "layer": "C" },
+    "synNumber":   { "value": "#e8d58a", "type": "color", "layer": "C" },
+    "synFunc":     { "value": "#8fc9b3", "type": "color", "layer": "C" },
+    "synComment":  { "value": "#6b7a71", "type": "color", "layer": "C" },
+    "synOperator": { "value": "#bcc8c0", "type": "color", "layer": "C" }
   },
 
   "status": {
-    "running": { "value": "#15803D", "type": "color", "layer": "C", "label": "运行 / 通过" },
-    "idle":    { "value": "#6B8093", "type": "color", "layer": "C", "label": "空闲 / 草稿" },
-    "stopped": { "value": "#B45309", "type": "color", "layer": "C", "label": "停机 / 待处理" },
-    "fault":   { "value": "#B91C1C", "type": "color", "layer": "C", "label": "故障 / 失败" }
+    "running": { "value": "#15803d", "type": "color", "layer": "C", "label": "运行 / 通过" },
+    "idle":    { "value": "#8a928d", "type": "color", "layer": "C", "label": "空闲 / 草稿" },
+    "stopped": { "value": "#b45309", "type": "color", "layer": "C", "label": "停机 / 待处理" },
+    "fault":   { "value": "#b91c1c", "type": "color", "layer": "C", "label": "故障 / 失败" }
+  },
+
+  "progress": {
+    "track":    { "value": "#EAEAE0", "type": "color", "layer": "C", "ref": "surface3" },
+    "fill":     { "value": "#547C70", "type": "color", "layer": "C", "ref": "accent" },
+    "fillDone": { "value": "#15803d", "type": "color", "layer": "C", "ref": "success" }
+  },
+
+  "mainline": {
+    "note": "6 站主线阶梯三态。只取结构层游戏化（单路径 + 锁定/解锁 + 方向感），不取情绪层（无徽章/奖杯/星级/撒花/连胜）。零新色相。",
+    "doneBg":         { "value": "#ffffff", "type": "color", "ref": "surface" },
+    "doneFg":         { "value": "#3d4540", "type": "color", "ref": "fg2" },
+    "doneRing":       { "value": "#15803d", "type": "color", "ref": "success" },
+    "currentBg":      { "value": "#E1EBE4", "type": "color", "ref": "accentSoft" },
+    "currentFg":      { "value": "#222222", "type": "color", "ref": "fg" },
+    "currentMarker":  { "value": "#547C70", "type": "color", "ref": "accent" },
+    "lockedBg":       { "value": "#F7F7EF", "type": "color", "ref": "surface2" },
+    "lockedFg":       { "value": "#8a928d", "type": "color", "ref": "meta", "note": "locked 标题必须保持可读——可见不可入是方向感，连标题一起藏是焦虑" },
+    "lockedOpacity":  { "value": 0.45, "type": "number", "ref": "stateDisabledOpacity" },
+    "markerWidth":    { "value": "2px",  "type": "dimension" },
+    "dotSize":        { "value": "8px",  "type": "dimension", "note": "站内「知识/练习/测验」三点式微进度，不用百分比" },
+    "rowHeight":      { "value": "56px", "type": "dimension" },
+    "rowHeightPhone": { "value": "36px", "type": "dimension" },
+    "railWidth":      { "value": "240px","type": "dimension" }
+  },
+
+  "hint": {
+    "note": "三级提示阶梯：1 级给方向 / 2 级给结构 / 3 级给答案+讲解。前两级中性底不占 accent 配额；第 3 级升 accentSoft 标记不可逆。用到第 3 级不扣分、不标失败。",
+    "bg":           { "value": "#F7F7EF", "type": "color", "ref": "surface2" },
+    "border":       { "value": "#E8E9E0", "type": "color", "ref": "borderSoft" },
+    "fg":           { "value": "#3d4540", "type": "color", "ref": "fg2" },
+    "answerBg":     { "value": "#E1EBE4", "type": "color", "ref": "accentSoft" },
+    "answerBorder": { "value": "#b8cfc0", "type": "color", "ref": "accentBorder" },
+    "answerFg":     { "value": "#222222", "type": "color", "ref": "fg" }
   },
 
   "font": {
     "family": {
-      "display": { "value": "Archivo Variable, Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif", "type": "fontFamily" },
-      "body":    { "value": "Archivo Variable, Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif", "type": "fontFamily" },
-      "mono":    { "value": "JetBrains Mono Variable, JetBrains Mono, SFMono-Regular, Consolas, Menlo, monospace", "type": "fontFamily" }
+      "display": { "value": "Archivo Variable, Archivo, Noto Sans SC Variable, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif", "type": "fontFamily" },
+      "body":    { "value": "Archivo Variable, Archivo, Noto Sans SC Variable, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif", "type": "fontFamily" },
+      "mono":    { "value": "JetBrains Mono Variable, JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace", "type": "fontFamily" }
     },
     "size": {
-      "xs":    { "value": "0.75rem",    "px": 12, "type": "dimension", "use": "徽章 / 全大写标签" },
-      "sm":    { "value": "0.8125rem",  "px": 13, "type": "dimension", "use": "表格单元 / 辅助说明" },
-      "base":  { "value": "0.9375rem",  "px": 15, "type": "dimension", "use": "UI 正文" },
-      "prose": { "value": "1.0625rem",  "px": 17, "type": "dimension", "use": "理论章节长文，仅 .prose 内" },
-      "lg":    { "value": "1.125rem",   "px": 18, "type": "dimension", "use": "卡片标题" },
-      "xl":    { "value": "1.25rem",    "px": 20, "type": "dimension", "use": "区块标题" },
-      "2xl":   { "value": "1.5rem",     "px": 24, "type": "dimension", "use": "页面标题" },
-      "3xl":   { "value": "1.875rem",   "px": 30, "type": "dimension", "use": "工作台主标题" },
-      "4xl":   { "value": "2.375rem",   "px": 38, "type": "dimension", "use": "仅首页首屏，全站唯一一处" }
+      "xs":    { "value": "0.75rem",   "px": 12, "type": "dimension", "use": "徽章 / 全大写标签" },
+      "sm":    { "value": "0.8125rem", "px": 13, "type": "dimension", "use": "表格单元 / 辅助说明" },
+      "base":  { "value": "0.9375rem", "px": 15, "type": "dimension", "use": "UI 正文（工具型密度）" },
+      "prose": { "value": "1.0625rem", "px": 17, "type": "dimension", "use": "理论章节长文，仅 .prose 内" },
+      "lg":    { "value": "1.125rem",  "px": 18, "type": "dimension", "use": "卡片标题" },
+      "xl":    { "value": "1.25rem",   "px": 20, "type": "dimension", "use": "区块标题 / Learn 密度下的卡片标题" },
+      "2xl":   { "value": "1.5rem",    "px": 24, "type": "dimension", "use": "页面标题" },
+      "3xl":   { "value": "1.875rem",  "px": 30, "type": "dimension", "use": "工作台主标题（阶梯顶端）" }
+    },
+    "removed": {
+      "4xl": "v3 删除（38px）：全站零引用的死 token，且不补用——靠放大标题制造首屏重心是落地页套路，重心改由深色锚点区承担。"
     },
     "weight": {
-      "read":            { "value": 400, "type": "fontWeight" },
-      "emph":            { "value": 510, "type": "fontWeight", "cjkFallback": 500 },
-      "announce":        { "value": 590, "type": "fontWeight", "cjkFallback": 600 }
+      "read":     { "value": 400, "type": "fontWeight" },
+      "emph":     { "value": 510, "type": "fontWeight", "cjkFallback": 500 },
+      "announce": { "value": 590, "type": "fontWeight", "cjkFallback": 600 }
     },
     "leading": {
       "tight": { "value": 1.2,  "type": "number" },
@@ -103,10 +166,10 @@
       "prose": { "value": 1.75, "type": "number" }
     },
     "tracking": {
-      "caps":    { "value": "0.08em",  "type": "dimension" },
-      "body":    { "value": "0",       "type": "dimension" },
-      "title":   { "value": "-0.011em","type": "dimension" },
-      "display": { "value": "-0.021em","type": "dimension" }
+      "caps":    { "value": "0.08em",   "type": "dimension", "note": "全大写标签硬性 ≥0.06em" },
+      "body":    { "value": "0",        "type": "dimension" },
+      "title":   { "value": "-0.011em", "type": "dimension", "note": "≥24px 标题" },
+      "display": { "value": "-0.021em", "type": "dimension", "note": "30px 工作台主标题" }
     }
   },
 
@@ -126,31 +189,41 @@
   "radius": {
     "xs":   { "value": "3px",    "type": "dimension", "use": "Badge / Tag" },
     "sm":   { "value": "6px",    "type": "dimension", "use": "按钮 / 输入框" },
-    "md":   { "value": "8px",    "type": "dimension", "use": "卡片 / 面板（上限）" },
-    "lg":   { "value": "12px",   "type": "dimension", "use": "模态框" },
+    "md":   { "value": "12px",   "type": "dimension", "use": "卡片 / 面板（v3 上调，仍 <16px 纪律）" },
+    "lg":   { "value": "16px",   "type": "dimension", "use": "模态框（全站上限，绝不 ≥24px）" },
     "pill": { "value": "9999px", "type": "dimension", "use": "状态胶囊 / 头像" }
   },
 
   "shadow": {
-    "flat":     { "value": "none", "type": "boxShadow", "note": "默认。卡片靠 1px border + 底色差，不靠阴影" },
-    "ring":     { "value": "0 0 0 1px #DDE5EC", "type": "boxShadow" },
-    "dropdown": { "value": "0 4px 12px -2px rgba(15,27,38,0.10), 0 2px 4px -2px rgba(15,27,38,0.06)", "type": "boxShadow" },
-    "modal":    { "value": "0 16px 40px -8px rgba(15,27,38,0.18), 0 4px 12px -4px rgba(15,27,38,0.08)", "type": "boxShadow" }
+    "flat":      { "value": "none", "type": "boxShadow", "note": "Hairline First：卡片靠 1px border + 底色差，不靠阴影" },
+    "ring":      { "value": "0 0 0 1px #DDDFD6", "type": "boxShadow" },
+    "card":      { "value": "0 0 0 0 transparent", "type": "boxShadow", "note": "必须写 0 0 0 0 transparent 而非 none —— none 在复合 box-shadow 列表中是非法语法，浏览器会静默丢弃整条声明" },
+    "cardHover": { "value": "0 4px 12px -2px rgba(15,27,38,0.10), 0 1px 3px rgba(15,27,38,0.06)", "type": "boxShadow" },
+    "dropdown":  { "value": "0 4px 12px -2px rgba(15,27,38,0.10), 0 2px 4px -2px rgba(15,27,38,0.06)", "type": "boxShadow" },
+    "modal":     { "value": "0 16px 40px -8px rgba(15,27,38,0.18), 0 4px 12px -4px rgba(15,27,38,0.08)", "type": "boxShadow" }
   },
 
   "focus": {
-    "ring":      { "value": "0 0 0 2px #F7F9FB, 0 0 0 4px #0E7490", "type": "boxShadow" },
-    "ringInset": { "value": "inset 0 0 0 2px #0E7490", "type": "boxShadow" }
+    "ring":      { "value": "0 0 0 2px #F3F3E9, 0 0 0 4px #547C70", "type": "boxShadow" },
+    "ringInset": { "value": "inset 0 0 0 2px #547C70", "type": "boxShadow" }
+  },
+
+  "state": {
+    "hoverBg":         { "value": "color-mix(in srgb, #547C70 8%, #ffffff)",  "type": "color" },
+    "activeBg":        { "value": "color-mix(in srgb, #547C70 14%, #ffffff)", "type": "color" },
+    "focusRing":       { "value": "0 0 0 2px color-mix(in srgb, #547C70 35%, transparent)", "type": "boxShadow" },
+    "disabledOpacity": { "value": 0.45, "type": "number" }
   },
 
   "motion": {
     "instant": { "value": "80ms",  "type": "duration", "use": "按钮按下" },
-    "fast":    { "value": "150ms", "type": "duration", "use": "收敛基准：hover / 选中" },
-    "base":    { "value": "220ms", "type": "duration", "use": "下拉 / Toast" },
+    "fast":    { "value": "150ms", "type": "duration", "use": "收敛基准：hover / 选中 / 判分反馈" },
+    "base":    { "value": "220ms", "type": "duration", "use": "下拉 / Toast / 分段揭示 / 解锁" },
     "slow":    { "value": "320ms", "type": "duration", "use": "抽屉 / 模态" },
     "easeOut":      { "value": "cubic-bezier(0.22, 1, 0.36, 1)", "type": "cubicBezier" },
     "easeStandard": { "value": "cubic-bezier(0.2, 0, 0, 1)",     "type": "cubicBezier" },
-    "banned": ["bounce", "elastic", "cubic-bezier(0.68,-0.55,0.265,1.55)"]
+    "revealShift":  { "value": "8px", "type": "dimension", "note": "分段揭示位移量，只动 opacity + translateY" },
+    "banned": ["bounce", "elastic", "cubic-bezier(0.68,-0.55,0.265,1.55)", ">400ms", "撒花/粒子/庆祝"]
   },
 
   "layout": {
@@ -159,12 +232,28 @@
     "topbarHeight":          { "value": "52px",   "type": "dimension" },
     "containerApp":          { "value": "1280px", "type": "dimension" },
     "containerProse":        { "value": "720px",  "type": "dimension" },
+    "proseMeasure":          { "value": "68ch",   "type": "dimension", "note": "Do 密度行宽；Learn 密度收窄到 60ch" },
     "gutterDesktop":         { "value": "24px",   "type": "dimension" },
     "gutterTablet":          { "value": "16px",   "type": "dimension" },
-    "gutterPhone":           { "value": "12px",   "type": "dimension" },
+    "gutterPhone":           { "value": "16px",   "type": "dimension" },
     "sectionYDesktop":       { "value": "48px",   "type": "dimension" },
     "sectionYTablet":        { "value": "32px",   "type": "dimension" },
-    "sectionYPhone":         { "value": "24px",   "type": "dimension" }
+    "sectionYPhone":         { "value": "28px",   "type": "dimension" }
+  },
+
+  "density": {
+    "learn": {
+      "note": "挂 data-density=\"learn\" 的容器内生效。只放宽间距/行宽/标题档位三件事——刻意不覆写 fontSize.base，否则 Learn 区里的按钮与 tag 会跟着肿一圈，变成放大镜模式而不是阅读模式。",
+      "cardPadding":     { "value": "24px", "type": "dimension", "from": "20px" },
+      "cardTitleSize":   { "value": "1.25rem", "px": 20, "type": "dimension", "from": "18px" },
+      "sectionYDesktop": { "value": "64px", "type": "dimension", "from": "48px" },
+      "sectionYTablet":  { "value": "40px", "type": "dimension", "from": "32px" },
+      "sectionYPhone":   { "value": "32px", "type": "dimension", "from": "28px" },
+      "proseMeasure":    { "value": "60ch", "type": "dimension", "from": "68ch", "note": "零基础逐字读，行越长回扫越容易串行。60ch 仍在 45-75ch 安全区内" },
+      "proseGap":        { "value": "24px", "type": "dimension", "from": "20px" },
+      "proseH2Mt":       { "value": "48px", "type": "dimension", "from": "40px" },
+      "proseH3Mt":       { "value": "40px", "type": "dimension", "from": "32px" }
+    }
   },
 
   "breakpoint": {

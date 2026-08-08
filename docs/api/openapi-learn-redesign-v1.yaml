@@ -1,0 +1,468 @@
+openapi: 3.0.3
+info:
+  title: MES 实训平台 — 学习体验重构 v1 增量 API
+  version: 1.0.0
+  description: >
+    本文件只覆盖「学习体验重构」新增/变更的端点，存量端点见 router.ts。
+    响应信封锚定项目现状 worker/src/core/response.ts：
+    成功 { code: 0, data, msg: "ok", traceId }；失败 { code, data: null, msg, traceId }。
+    注意 msg 字段名不是 message。
+
+servers:
+  - url: https://shuojia.qzz.io
+  - url: https://mes.jiudaozhuo.top
+
+tags:
+  - name: flowchart
+  - name: explainer
+  - name: hint
+  - name: micro
+
+paths:
+  /api/v1/flowchart/{slug}:
+    get:
+      tags: [flowchart]
+      summary: 取流程图（变更：新增 stages 与节点 stageKey/oneLiner，向后兼容）
+      description: >
+        既有字段一个不动，只做加法，老前端不受影响。
+        实现约束：新增 stages 只允许 1 次查询，总查询数须 ≤ 5，
+        禁止按节点循环查询（D1 Free 单次 Worker 调用上限 50 条查询）。
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [flow, nodes, edges, resources, stages]
+                        properties:
+                          flow: { $ref: '#/components/schemas/Flow' }
+                          nodes:
+                            type: array
+                            items: { $ref: '#/components/schemas/FlowNode' }
+                          edges:
+                            type: array
+                            items: { $ref: '#/components/schemas/FlowEdge' }
+                          resources:
+                            type: array
+                            items: { $ref: '#/components/schemas/NodeResource' }
+                          stages:
+                            type: array
+                            description: 新增。按 sort 升序，决定「先全貌后细节」的推进顺序。
+                            items: { $ref: '#/components/schemas/FlowStage' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/nodes/{nodeId}/explainers:
+    get:
+      tags: [explainer]
+      summary: 取某节点的分层通俗讲解（比喻/生活例子/大白话/常见误解）
+      description: >
+        节点抽屉打开时才拉，不随首屏流程图下发（12 节点 × N 条讲解会拖垮首屏）。
+        本接口内容不计入完成度。
+      security: []
+      parameters:
+        - name: nodeId
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - name: tier
+          in: query
+          required: false
+          description: 省略则返回全部；overview 用于抽屉首屏直出，detail 折叠展示。
+          schema: { type: string, enum: [overview, detail] }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [items]
+                        properties:
+                          items:
+                            type: array
+                            items: { $ref: '#/components/schemas/Explainer' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/practice-hints:
+    get:
+      tags: [hint]
+      summary: 按级取一条提示（答错后逐级解锁）
+      description: >
+        安全铁律：一次只返回一条，禁止批量下发，禁止随题面接口下发。
+        level 必传，服务端不接受「返回全部提示」的调用形态。
+        L3 提示不得包含可直接提交的正确答案（sql_exercises.answer_sql /
+        questions.answer / micro_practices.answer 永不出网，沿用 R6）。
+        走写限流管线防刷。
+      security: []
+      parameters:
+        - name: targetType
+          in: query
+          required: true
+          schema: { type: string, enum: [quiz, sql, sim, micro] }
+        - name: targetId
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - name: level
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1, maximum: 3 }
+      responses:
+        '200':
+          description: 成功。该级不存在时 hint 为 null、hasNext 为 false，不报错。
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [level, hint, hasNext]
+                        properties:
+                          level: { type: integer, example: 1 }
+                          hint:
+                            type: string
+                            nullable: true
+                            description: Markdown
+                          hasNext:
+                            type: boolean
+                            description: 是否还有下一级提示，供前端决定要不要显示「还是不会」按钮
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/sql-exercises/{id}:
+    get:
+      tags: [micro]
+      summary: SQL 实训题（变更：新增 F6 三阶梯字段，仍不含 answer_sql）
+      description: >
+        既有字段不变，新增 worked / completion 两阶所需内容。
+        R6 不变：answer_sql 永不下发；answer_hash 仍下发供客户端判题（ADR-005）。
+        内容铁律：worked.sql 不得等于 answer_sql（否则阶梯退化成直接看答案）；
+        completionTemplate 为人工撰写的挖空版，不得运行时由 answer_sql 生成。
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          id: { type: integer }
+                          title: { type: string }
+                          prompt: { type: string }
+                          schemaHint: { type: string }
+                          answerHash: { type: string }
+                          worked:
+                            type: object
+                            nullable: true
+                            description: 看例题阶。为 null 时前端直接从填空或自己写开始。
+                            properties:
+                              sql:
+                                type: string
+                                description: 完整可运行的**同类**范例，不是本题答案
+                              note:
+                                type: string
+                                description: 这段范例在讲什么，逐句说人话
+                          completionTemplate:
+                            type: string
+                            nullable: true
+                            description: >
+                              填空阶模板，占位符 {{1}} {{2}} 按序号渲染输入框。
+                              为空时该阶跳过。
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/nodes/{nodeId}/micro-practices:
+    get:
+      tags: [micro]
+      summary: 取某节点的微练习（不含答案）
+      description: SQL 之前的低门槛台阶。响应中永不包含 answer 字段。
+      security: []
+      parameters:
+        - name: nodeId
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [items]
+                        properties:
+                          items:
+                            type: array
+                            items: { $ref: '#/components/schemas/MicroPractice' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /api/v1/micro-practices/{id}/grade:
+    post:
+      tags: [micro]
+      summary: 微练习判分（服务端判，即时反馈）
+      description: >
+        与 /api/v1/quiz/grade 同构：服务端比对，回对错 + 具体反馈文案。
+        只读 1 行、写 0 行——进度仍由前端派发 factory:resource-done 落 user_kv，
+        不在本接口写库（守住 D1 Free 每日 10 万行写入配额）。
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answer]
+              properties:
+                answer:
+                  type: array
+                  description: 学员作答，形状随 kind 而定（match 为配对数组，order 为顺序数组，pick 为选中 key 数组）
+                  items: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [correct, feedback, hintAvailable]
+                        properties:
+                          correct: { type: boolean }
+                          feedback:
+                            type: string
+                            description: 对应 feedback_ok / feedback_bad
+                          hintAvailable:
+                            type: integer
+                            description: 该题可用提示级数（0 表示没配提示，前端不显示提示入口）
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/quiz/grade:
+    post:
+      tags: [hint]
+      summary: 选择题判分（变更：响应新增 hintAvailable，仅加字段）
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [questionId, answer]
+              properties:
+                questionId: { type: integer }
+                answer: { type: string }
+      responses:
+        '200':
+          description: 成功。既有字段不变，新增 hintAvailable。
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          correct: { type: boolean }
+                          explanation: { type: string }
+                          hintAvailable:
+                            type: integer
+                            description: 新增。答错时前端据此显示「给我个提示」而不是直接摊开答案。
+
+components:
+  responses:
+    BadRequest:
+      description: 参数缺失或非法
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    RateLimited:
+      description: 触发限流
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  schemas:
+    Envelope:
+      type: object
+      required: [code, msg, traceId]
+      properties:
+        code: { type: integer, example: 0 }
+        msg: { type: string, example: ok }
+        traceId: { type: string }
+
+    ErrorEnvelope:
+      type: object
+      required: [code, data, msg, traceId]
+      properties:
+        code: { type: integer, example: 404 }
+        data: { type: object, nullable: true, example: null }
+        msg: { type: string }
+        traceId: { type: string }
+
+    Flow:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        status: { type: string }
+
+    FlowNode:
+      type: object
+      properties:
+        id: { type: integer }
+        key: { type: string }
+        label: { type: string }
+        kind: { type: string, enum: [entry, process, exit, hub] }
+        icon:
+          type: string
+          description: Icon.tsx 语义名（lucide-react@1.28.0），禁 emoji
+        x: { type: number }
+        y: { type: number }
+        description: { type: string }
+        stageKey:
+          type: string
+          description: >
+            新增。对应 flow_stages.stage_key。
+            **空串表示尚未分配阶段**（迁移默认值），此时该节点不参与阶段分组，
+            完成度取 PRACTICE_TYPES 全集。不得缺省为任何真实阶段名，原因见 BLOCK-04。
+        oneLiner:
+          type: string
+          description: 新增。大白话一句话，抽屉首屏第一行。
+
+    FlowEdge:
+      type: object
+      properties:
+        from: { type: string }
+        to: { type: string }
+        label: { type: string }
+
+    NodeResource:
+      type: object
+      properties:
+        id: { type: integer }
+        nodeId: { type: integer }
+        type:
+          type: string
+          enum: [chapter, quiz, sql, sim, micro]
+          description: >
+            micro 为本次新增值。前端 practicesOf 必须改为白名单
+            PRACTICE_TYPES = [quiz, sql, sim, micro]，
+            否则任何未来新增值都会自动混进完成度分母（见 ADR-017 / BLOCK-01）。
+        refId: { type: integer }
+        title: { type: string }
+        sort: { type: integer }
+
+    FlowStage:
+      type: object
+      required: [stageKey, title, sort, practiceTypes]
+      properties:
+        stageKey:
+          type: string
+          description: >
+            内容侧自由命名，代码不得硬编码具体值（阶段划分待用户给定，PRD v1.2 §3.2）。
+            排序一律用 sort，不得用 stageKey 推断先后。
+          example: stage-1
+        title: { type: string, example: 先走一圈 }
+        subtitle: { type: string }
+        goal:
+          type: string
+          description: 学完这一阶段学员具体能做到什么，写人话，不写「掌握相关知识」这类空话
+        icon: { type: string }
+        practiceTypes:
+          type: array
+          description: >
+            本阶段「算完成」要求做完哪几类实战。入门阶段（sort 最小的那个）为 ["micro","quiz"]，
+            其余阶段用全集（PRD v1.2 §3.0 决策一）。存在理由见 BLOCK-02：12 个节点每个都挂了 sql，
+            不限定的话第一阶段也要求写 SQL 才算完成。
+            未列出的类型仍可自由练习，只是不计入该阶段完成度分母。
+          items: { type: string, enum: [quiz, sql, sim, micro] }
+          example: [micro, quiz]
+        sort: { type: integer }
+
+    Explainer:
+      type: object
+      required: [id, tier, kind, bodyMd]
+      properties:
+        id: { type: integer }
+        tier: { type: string, enum: [overview, detail] }
+        kind:
+          type: string
+          enum: [plain, example, mapping, misconception]
+          description: >
+            plain 大白话 / example 真实业务数据例子（取自 SQL 沙盒真实记录，带真实单号）
+            / mapping 车间真实动作与系统真实记录的对照块（UIUX §6.3）
+            / misconception 常见误解澄清。
+            **无 analogy**：用户决策不走生活化比喻，具象化由 example 承担（ADR-021）。
+            mapping 两端都是真实存在的事物，是对应关系不是类比，故不受该决策约束。
+        title: { type: string }
+        bodyMd: { type: string }
+        icon: { type: string }
+        sort: { type: integer }
+
+    MicroPractice:
+      type: object
+      required: [id, kind, prompt, payload]
+      properties:
+        id: { type: integer }
+        kind: { type: string, enum: [match, order, pick] }
+        prompt: { type: string }
+        payload:
+          type: object
+          description: 题目素材，服务端保证不含答案
+        sort: { type: integer }

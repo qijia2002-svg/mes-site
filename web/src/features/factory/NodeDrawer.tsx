@@ -15,18 +15,10 @@
  */
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
 import { Icon, isIconName, type IconName } from '../../components/Icon';
 import type { NodeResourceDTO } from '../../api/endpoints';
-import { PHASE_LABEL, SYSTEM_HINTS, type LaidNode } from './factoryFlow.data';
-
-/** 资源类型 → 图标与目标路由。sim 走恢复后的真实 /simulator 路由。 */
-const RES_META: Record<string, { icon: IconName; to: (id: number) => string; kind: string }> = {
-  chapter: { icon: 'chapter', to: (id) => `/chapters/${id}`, kind: '知识' },
-  sql: { icon: 'sql', to: (id) => `/sql-space/${id}`, kind: 'SQL 实战' },
-  quiz: { icon: 'quiz', to: (id) => `/quiz/q/${id}`, kind: '随堂测验' },
-  sim: { icon: 'routing', to: () => '/simulator', kind: '产线搭建' },
-};
+import { PHASE_LABEL, type LaidNode } from './factoryFlow.data';
+import NodeDrawerBody from './NodeDrawerBody';
 
 const KIND_LABEL: Record<string, string> = {
   entry: '流程起点',
@@ -174,9 +166,6 @@ export default function NodeDrawer({
     }
   };
 
-  const sorted = [...resources].sort((a, b) => a.sort - b.sort);
-  const hints = SYSTEM_HINTS[node.key] ?? [];
-  const doneCount = sorted.filter((r) => isDone(r.type, r.refId)).length;
   const glyph: IconName = isIconName(node.icon) ? node.icon : 'process';
 
   return createPortal(
@@ -214,58 +203,7 @@ export default function NodeDrawer({
           </button>
         </header>
 
-        <div className="nd-body">
-          <section className="nd-sec">
-            <div className="nd-sec-h"><span className="caps">这一环在干什么</span></div>
-            <p className="nd-know">{node.description}</p>
-          </section>
-
-          {hints.length > 0 && (
-            <section className="nd-sec">
-              <div className="nd-sec-h"><span className="caps">归谁管</span></div>
-              <div className="nd-chips">
-                {hints.map((s) => <span key={s} className="nd-chip">{s}</span>)}
-              </div>
-            </section>
-          )}
-
-          <section className="nd-sec">
-            <div className="nd-sec-h">
-              <span className="caps">在这里动手练</span>
-              {sorted.length > 0 && (
-                <span className="nd-count tabular">{doneCount} / {sorted.length}</span>
-              )}
-            </div>
-            {sorted.length === 0 ? (
-              <p className="nd-know">这个环节暂未挂内容，先往后走，上线后会出现在这里。</p>
-            ) : (
-              sorted.map((r) => {
-                const meta = RES_META[r.type] ?? RES_META.chapter;
-                const done = isDone(r.type, r.refId);
-                return (
-                  <Link
-                    key={`${r.type}:${r.refId}`}
-                    to={meta.to(r.refId)}
-                    className={`nd-drill${done ? ' is-done' : ''}`}
-                  >
-                    <span className="nd-di"><Icon name={meta.icon} size={20} /></span>
-                    <span className="nd-dtx">
-                      <span className="nd-dl">{r.title}</span>
-                      <span className="nd-dk">{meta.kind}</span>
-                    </span>
-                    <span className="nd-dgo">
-                      <Icon
-                        name={done ? 'check-circle' : 'chevron-right'}
-                        size={16}
-                        label={done ? '已完成' : undefined}
-                      />
-                    </span>
-                  </Link>
-                );
-              })
-            )}
-          </section>
-        </div>
+        <NodeDrawerBody node={node} resources={resources} isDone={isDone} />
 
         <footer className="nd-foot">
           <button

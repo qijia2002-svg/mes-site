@@ -12,6 +12,7 @@ import type { SVGProps } from 'react';
 import {
   Activity,
   ArrowLeft,
+  ArrowLeftRight,
   ArrowRight,
   ArrowUpDown,
   Blocks,
@@ -24,8 +25,11 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronsDown,
+  ChevronUp,
   CircleAlert,
   CircleCheck,
+  CirclePlay,
   CircleQuestionMark,
   CircleUser,
   CircleX,
@@ -46,6 +50,7 @@ import {
   Eye,
   EyeOff,
   Factory,
+  Flag,
   Flame,
   FileText,
   Gauge,
@@ -53,16 +58,20 @@ import {
   HardHat,
   Inbox,
   Info,
+  Key,
   LayoutDashboard,
   Languages,
   Lightbulb,
   List,
   ListChecks,
+  ListRestart,
   Lock,
+  LockOpen,
   ListFilter,
   LoaderCircle,
   LogIn,
   LogOut,
+  MapPin,
   Maximize2,
   Minimize2,
   Menu,
@@ -76,6 +85,7 @@ import {
   Pencil,
   Play,
   Plus,
+  Quote,
   RotateCcw,
   Route,
   ScanLine,
@@ -124,6 +134,8 @@ const REGISTRY = {
   'chevron-right': ChevronRight,
   'chevron-left': ChevronLeft,
   'chevron-down': ChevronDown,
+  // 方向基元补齐：micro 练习 order 题的「上移」按钮需要，chevron-down 已在但缺 up
+  'chevron-up': ChevronUp,
   'arrow-left': ArrowLeft,
   'arrow-right': ArrowRight,
   'sort': ArrowUpDown,
@@ -211,6 +223,18 @@ const REGISTRY = {
 
   // UIX-Redesign v1
   lock: Lock,
+
+  // 零基础重学重构 v1（SPEC §5 / UIUX §5.2）——9 个语义名，全部核验存在于 lucide-react@1.28.0
+  // 命名口径：对照块叫 mapping 不叫 analogy（ADR-021 已删 analogy 槽位：讲系统，不打生活比方）
+  unlock: LockOpen,            // 站点解锁瞬间，与 lock 成对交换
+  mapping: ArrowLeftRight,     // 车间真实动作 ↔ 系统真实记录 对照
+  example: Quote,              // 真实数据例子块（WO-20260801-02 计划60/完成40）
+  'you-are-here': MapPin,      // 主线当前站标记
+  station: Flag,               // 主线站点标记（process 已占 Milestone，此处用 Flag 不冲突）
+  start: CirclePlay,           // 「从这里开始」主 CTA
+  'deep-dive': ChevronsDown,   // 「想深入」折叠块触发器
+  recap: ListRestart,          // 本站小结 / 回顾
+  answer: Key,                 // 提示第 3 级「直接看答案」
 
   // 工厂流程图节点图标（factory-first；复用已导入的 lucide 组件，不与既有语义名冲突）
   'shopping-cart': ShoppingCart,
