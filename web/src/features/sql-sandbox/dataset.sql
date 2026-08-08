@@ -216,3 +216,83 @@ INSERT INTO pick_lists (pick_id, pick_no, wo_id, material_id, qty_required, qty_
   (10, 'PK-20260807-02', 5, 5,  666,  666, '2026-08-07 13:45:00', 'done'),
   (11, 'PK-20260808-01', 6, 3,   41,    0, '2026-08-08 08:05:00', 'pending'),
   (12, 'PK-20260808-02', 6, 2,   81,   81, '2026-08-08 08:10:00', 'done');
+
+-- ============================================================================
+-- 【2026-08-08 扩展(二)】销售 · 计划 · 发货域（支撑工厂全景剩余 9 节点实战）
+-- ----------------------------------------------------------------------------
+-- 只增不改：前面所有表与数据一字未动；现存 6 道真哈希题（sql_exercises id 1~6）
+-- 以及本文件已有的采购/领料域数据全部保留，answer_hash 不变。
+-- 本批新增 customers / sales_orders / shipments 三张表 + 一个 released 工单 WO-7，
+-- 用来支撑 cust-order / order-review / mps / mrp / shipping 等节点的查询实战。
+--
+-- 埋设的「病灶」（学员要练的就是把它们一句 SQL 查出来）：
+--   cust-order  —— SO-11 / SO-12 还没评审(review_status='pending')、交期已逼近(≤ 2026-08-15)
+--   order-review—— SO-3 / SO-6 / SO-9 / SO-10 已评审通过(approved)却还没排产(plan_status='none')
+--   mrp        —— 已评审订单净需求：轴承(M-2002)净 96、控制主板(M-2004)净 68
+--   dispatch   —— WO-6 / WO-7 在二号车间(released)，但二号车间唯一设备 EQ-02 停机，派不出去
+--   shipping   —— SO-2 第二批 SH-02-2 实际发运 08-18 晚于交期 08-15（尾批逾期）；SO-4 整单未发
+-- 参照「今天」= 2026-08-08。
+-- ============================================================================
+
+-- 客户主数据
+CREATE TABLE customers (
+  customer_id INTEGER PRIMARY KEY,
+  code        TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  region      TEXT NOT NULL,
+  tier        TEXT NOT NULL
+);
+INSERT INTO customers (customer_id, code, name, region, tier) VALUES
+  (1, 'CU-01', '华东机电',   '华东', 'A'),
+  (2, 'CU-02', '华南自动化', '华南', 'A'),
+  (3, 'CU-03', '西南装备',   '西南', 'B'),
+  (4, 'CU-04', '北方重工',   '华北', 'A'),
+  (5, 'CU-05', '小微智造',   '华东', 'C');
+
+-- 销售订单（review_status: pending/approved/rejected；plan_status: none/planned/producing/done）
+CREATE TABLE sales_orders (
+  so_id         INTEGER PRIMARY KEY,
+  so_no         TEXT NOT NULL,
+  customer_id   INTEGER NOT NULL,
+  product_id    INTEGER NOT NULL,
+  qty           INTEGER NOT NULL,
+  order_date    TEXT NOT NULL,
+  due_date      TEXT NOT NULL,
+  review_status TEXT NOT NULL,
+  plan_status   TEXT NOT NULL
+);
+INSERT INTO sales_orders (so_id, so_no, customer_id, product_id, qty, order_date, due_date, review_status, plan_status) VALUES
+  (1,  'SO-20260720-01', 1, 1, 100, '2026-07-20', '2026-08-12', 'approved', 'producing'),
+  (2,  'SO-20260725-01', 2, 2,  60, '2026-07-25', '2026-08-15', 'approved', 'planned'),
+  (3,  'SO-20260728-01', 3, 3,  80, '2026-07-28', '2026-08-20', 'approved', 'none'),
+  (4,  'SO-20260730-01', 4, 4,  50, '2026-07-30', '2026-08-18', 'approved', 'planned'),
+  (5,  'SO-20260801-01', 1, 1, 120, '2026-08-01', '2026-08-16', 'approved', 'producing'),
+  (6,  'SO-20260802-01', 2, 2,  40, '2026-08-02', '2026-08-22', 'approved', 'none'),
+  (7,  'SO-20260803-01', 3, 3,  90, '2026-08-03', '2026-08-25', 'rejected', 'none'),
+  (8,  'SO-20260804-01', 4, 4,  30, '2026-08-04', '2026-08-28', 'approved', 'planned'),
+  (9,  'SO-20260805-01', 5, 1,  70, '2026-08-05', '2026-08-30', 'approved', 'none'),
+  (10, 'SO-20260806-01', 1, 2, 100, '2026-08-06', '2026-08-14', 'approved', 'none'),
+  (11, 'SO-20260807-01', 2, 3,  60, '2026-08-07', '2026-08-12', 'pending',  'none'),
+  (12, 'SO-20260808-01', 3, 4,  45, '2026-08-08', '2026-08-13', 'pending',  'none');
+
+-- 发货单（ship_date 为空 = 还没发；尾批实际发运晚于 due_date = 逾期）
+CREATE TABLE shipments (
+  ship_id   INTEGER PRIMARY KEY,
+  so_id     INTEGER NOT NULL,
+  ship_no   TEXT NOT NULL,
+  due_date  TEXT NOT NULL,
+  ship_date TEXT,
+  qty       INTEGER NOT NULL,
+  status    TEXT NOT NULL
+);
+INSERT INTO shipments (ship_id, so_id, ship_no, due_date, ship_date, qty, status) VALUES
+  (1, 1, 'SH-01-1', '2026-08-10', '2026-08-09', 50, 'shipped'),
+  (2, 1, 'SH-01-2', '2026-08-12', '2026-08-11', 50, 'shipped'),
+  (3, 2, 'SH-02-1', '2026-08-13', '2026-08-12', 30, 'shipped'),
+  (4, 2, 'SH-02-2', '2026-08-15', '2026-08-18', 30, 'shipped'),
+  (5, 4, 'SH-04-1', '2026-08-16', NULL,        50, 'pending'),
+  (6, 3, 'SH-03-1', '2026-08-19', '2026-08-19', 40, 'shipped');
+
+-- 仅追加一个已下达但无可用设备的工单（不改动既有 work_orders 数据）
+INSERT INTO work_orders (wo_id, wo_no, product_id, qty_plan, qty_done, due_date, state, workshop)
+VALUES (7, 'WO-20260808-01', 2, 50, 0, '2026-08-19', 'released', '二号车间');
