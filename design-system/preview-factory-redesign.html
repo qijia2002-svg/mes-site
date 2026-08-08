@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>工厂全景 · 重设计预览（Factory-First v13）</title>
+<style>
+/* ==========================================================================
+   Token 内联副本 —— 值照抄 design-system/design-tokens.css（唯一允许出现裸 hex 处）
+   ========================================================================== */
+:root{
+  /* A1 identity */
+  --brand-ink:#2d3a33;
+  --accent:#547C70;
+  --accent-on:#ffffff;
+  --font-display:'Archivo Variable','Archivo','Noto Sans SC Variable','Noto Sans SC','PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+  --font-body:var(--font-display);
+  --font-mono:'JetBrains Mono Variable','JetBrains Mono','SFMono-Regular',Consolas,Menlo,monospace;
+
+  /* A1 structure · 字号 */
+  --text-xs:0.75rem; --text-sm:0.8125rem; --text-base:0.9375rem; --text-prose:1.0625rem;
+  --text-lg:1.125rem; --text-xl:1.25rem; --text-2xl:1.5rem; --text-3xl:1.875rem;
+  --weight-read:400; --weight-emph:510; --weight-announce:590;
+  --weight-emph-cjk:500; --weight-announce-cjk:600;
+  --leading-tight:1.2; --leading-snug:1.35; --leading-body:1.55; --leading-prose:1.75;
+  --tracking-caps:0.08em; --tracking-body:0; --tracking-title:-0.011em; --tracking-display:-0.021em;
+
+  /* 间距 4px 网格 */
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px;
+  --space-6:24px; --space-8:32px; --space-10:40px; --space-12:48px; --space-16:64px;
+
+  /* 圆角 */
+  --radius-xs:3px; --radius-sm:6px; --radius-md:12px; --radius-lg:16px; --radius-pill:9999px;
+
+  /* 布局 */
+  --topbar-h:52px; --container-app:1280px; --gutter-desktop:24px; --gutter-phone:16px;
+  --section-y-desktop:48px;
+
+  /* 中性色阶 */
+  --bg:#F3F3E9; --surface:#ffffff; --surface-2:#F7F7EF; --surface-3:#EAEAE0;
+  --fg:#222222; --fg-2:#3d4540; --muted:#606864; --meta:#8a928d;
+  --border:#DDDFD6; --border-soft:#E8E9E0; --border-strong:#c5c7bb;
+
+  /* A2 派生 */
+  --accent-hover:#466B60; --accent-active:#3a564d; --accent-soft:#E1EBE4; --accent-border:#b8cfc0;
+  --ink-solid:var(--brand-ink); --ink-solid-hover:#3d4d44; --ink-solid-active:#1d2922;
+  --fg-on-ink:#edf2ee; --fg-2-on-ink:#bcc8c0; --meta-on-ink:#8fa396;
+  --success:#15803d; --success-soft:#e6f4ea; --success-border:#b0dcc0;
+  --warn:#b45309; --warn-soft:#fdf1e3;
+  --danger:#b91c1c;
+
+  /* 工厂四阶段语义色（只做小面积点缀） */
+  --phase-plan:#3A6EA5; --phase-production:#A9701D; --phase-qc:#5A7D2E; --phase-logistics:#6B63A6;
+  --phase-plan-soft:color-mix(in srgb,var(--phase-plan) 10%,var(--surface));
+  --phase-production-soft:color-mix(in srgb,var(--phase-production) 10%,var(--surface));
+  --phase-qc-soft:color-mix(in srgb,var(--phase-qc) 10%,var(--surface));
+  --phase-logistics-soft:color-mix(in srgb,var(--phase-logistics) 10%,var(--surface));
+
+  /* 层级 */
+  --elev-flat:none;
+  --elev-ring:0 0 0 1px var(--border);
+  --elev-card:0 0 0 0 transparent;
+  --elev-card-hover:0 4px 12px -2px rgba(15,27,38,.1),0 1px 3px rgba(15,27,38,.06);
+  --elev-modal:0 16px 40px -8px rgba(15,27,38,.18),0 4px 12px -4px rgba(15,27,38,.08);
+  --glass-bg:color-mix(in srgb,var(--surface) 92%,transparent);
+  --glass-border:color-mix(in srgb,var(--border) 70%,transparent);
+  --z-sticky:100; --z-modal:1200;
+
+  /* 焦点与动效（禁 bounce） */
+  --focus-ring:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
+  --motion-instant:80ms; --motion-fast:150ms; --motion-base:220ms; --motion-slow:320ms;
+  --ease-out:cubic-bezier(0.22,1,0.36,1);
+  --ease-standard:cubic-bezier(0.2,0,0,1);
+  --state-hover-bg:color-mix(in srgb,var(--accent) 8%,var(--surface));
+
+  /* B-slot */
+  --btn-primary-bg:var(--ink-solid); --btn-primary-fg:#ffffff;
+  --btn-primary-bg-hover:var(--ink-solid-hover); --btn-primary-bg-active:var(--ink-solid-active);
+  --btn-secondary-bg:var(--surface); --btn-secondary-fg:var(--fg-2);
+  --btn-secondary-border:var(--border-strong); --btn-secondary-bg-hover:var(--surface-2);
+  --card-bg:var(--surface); --card-border:var(--border); --card-border-hover:var(--border-strong);
+  --tag-bg:var(--surface-2); --tag-fg:var(--muted); --tag-border:var(--border);
+  --progress-track:var(--surface-3); --progress-fill:var(--accent); --progress-fill-done:var(--success);
+  --icon-sm:16px; --icon-md:20px; --icon-lg:24px; --icon-stroke:2;
+
+  /* C-extension · 本预览专属骨架 */
+  --scrim:color-mix(in srgb,var(--brand-ink) 38%,transparent);
+  --drawer-w:456px;
+  --rail-h:6px;
+  --lane-min:216px;
+}
+
+/* ==========================================================================
+   基线
+   ========================================================================== */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--fg);
+  font-family:var(--font-body);font-size:var(--text-base);
+  line-height:var(--leading-body);letter-spacing:var(--tracking-body);
+  font-weight:var(--weight-read);-webkit-font-smoothing:antialiased;
+}
+:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+.icon{
+  width:var(--icon-sm);height:var(--icon-sm);flex:none;display:block;
+  fill:none;stroke:currentColor;stroke-width:var(--icon-stroke);
+  stroke-linecap:round;stroke-linejoin:round;
+}
+.icon-md{width:var(--icon-md);height:var(--icon-md)}
+.icon-lg{width:var(--icon-lg);height:var(--icon-lg)}
+.caps{text-transform:uppercase;letter-spacing:var(--tracking-caps);font-size:var(--text-xs);
+  font-weight:var(--weight-emph);color:var(--meta)}
+.tabular{font-variant-numeric:tabular-nums}
+
+/* ==========================================================================
+   顶栏（上下文，不是主角）
+   ========================================================================== */
+.topbar{
+  position:sticky;top:0;z-index:var(--z-sticky);height:var(--topbar-h);
+  display:flex;align-items:center;gap:var(--space-4);
+  padding:0 var(--gutter-desktop);
+  background:var(--glass-bg);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--glass-border);
+}
+.crumb{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--muted)}
+.crumb b{font-weight:var(--weight-emph-cjk);color:var(--fg)}
+.crumb .sep{color:var(--border-strong)}
+.topbar-spacer{flex:1}
+.topbar-search{
+  display:flex;align-items:center;gap:var(--space-2);min-width:200px;
+  border:1px solid var(--border);background:var(--surface);border-radius:var(--radius-sm);
+  padding:var(--space-1) var(--space-3);color:var(--meta);font-size:var(--text-sm);
+}
+.icon-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);
+  min-height:32px;padding:var(--space-1) var(--space-2);border:none;background:none;
+  color:var(--muted);border-radius:var(--radius-sm);
+  transition:background var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard);
+}
+.icon-btn:hover{background:var(--surface-2);color:var(--fg)}
+.avatar{
+  width:28px;height:28px;border-radius:var(--radius-pill);background:var(--accent-soft);
+  color:var(--accent);display:grid;place-items:center;font-size:var(--text-xs);
+  font-weight:var(--weight-announce-cjk);
+}
+
+/* ==========================================================================
+   页面骨架
+   ========================================================================== */
+.page{max-width:var(--container-app);margin:0 auto;padding:var(--space-8) var(--gutter-desktop) var(--space-16)}
+
+/* ── 首屏：工厂身份 + 一个动作 + 一条进度 ── */
+.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-6);flex-wrap:wrap}
+.hero-id{min-width:0}
+.hero-kicker{display:flex;align-items:center;gap:var(--space-2);color:var(--meta);margin-bottom:var(--space-2)}
+.hero-kicker .caps{color:var(--meta)}
+.hero h1{
+  margin:0;font-size:var(--text-2xl);font-weight:var(--weight-announce-cjk);
+  letter-spacing:var(--tracking-title);line-height:var(--leading-tight);
+}
+.hero p{margin:var(--space-2) 0 0;color:var(--muted);font-size:var(--text-sm);max-width:52ch}
+.hero-act{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:var(--space-2);min-height:36px;
+  padding:var(--space-2) var(--space-4);border-radius:var(--radius-sm);
+  font-size:var(--text-sm);font-weight:var(--weight-emph-cjk);border:1px solid transparent;
+  transition:background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard);
+}
+.btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-fg)}
+.btn-primary:hover{background:var(--btn-primary-bg-hover)}
+.btn-primary:active{background:var(--btn-primary-bg-active)}
+.btn-secondary{background:var(--btn-secondary-bg);color:var(--btn-secondary-fg);border-color:var(--btn-secondary-border)}
+.btn-secondary:hover{background:var(--btn-secondary-bg-hover)}
+.btn .goal{color:color-mix(in srgb,var(--btn-primary-fg) 72%,transparent);font-weight:var(--weight-read)}
+
+/* ── 进度：一条 12 格轨道 = 全厂索引 ── */
+.rail-wrap{
+  margin-top:var(--space-6);padding:var(--space-4) var(--space-5);
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);
+}
+.rail-head{display:flex;align-items:baseline;gap:var(--space-3);flex-wrap:wrap;margin-bottom:var(--space-3)}
+.rail-num{font-size:var(--text-lg);font-weight:var(--weight-announce-cjk);font-variant-numeric:tabular-nums}
+.rail-num em{font-style:normal;color:var(--meta);font-weight:var(--weight-read);font-size:var(--text-sm)}
+.rail-note{font-size:var(--text-sm);color:var(--muted)}
+.rail-note .dotsep{color:var(--border-strong);margin:0 var(--space-2)}
+.rail{display:flex;gap:var(--space-1);align-items:center}
+.tick{
+  flex:1;height:var(--rail-h);border-radius:var(--radius-pill);background:var(--progress-track);
+  border:none;padding:0;position:relative;
+  transition:background var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard);
+}
+.tick:hover{transform:scaleY(1.6)}
+.tick.is-done{background:var(--progress-fill)}
+.tick.is-next{background:var(--accent-soft);box-shadow:0 0 0 2px var(--accent-border)}
+.tick.is-current{background:var(--accent-border)}
+
+/* ── 地图区头：阶段泳道 + 系统视角（图例已并入泳道，不再单独成块） ── */
+.map-head{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
+  flex-wrap:wrap;margin:var(--space-10) 0 var(--space-4);
+}
+.map-head h2{margin:0;font-size:var(--text-xl);font-weight:var(--weight-announce-cjk);
+  letter-spacing:var(--tracking-title)}
+.map-head .hint{color:var(--muted);font-size:var(--text-sm);margin-top:2px}
+.sysfilter{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.sysfilter .lbl{font-size:var(--text-xs);color:var(--meta)}
+.chip{
+  display:inline-flex;align-items:center;gap:var(--space-1);
+  background:var(--tag-bg);color:var(--tag-fg);border:1px solid var(--tag-border);
+  border-radius:var(--radius-xs);padding:2px var(--space-2);font-size:var(--text-xs);
+  transition:background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard);
+}
+button.chip{min-height:24px}
+button.chip:hover{border-color:var(--border-strong);color:var(--fg-2)}
+button.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-border);color:var(--accent-active)}
+</style>
+<style>
+/* ==========================================================================
+   工厂地图：4 条阶段泳道 · 无步骤编号 · 无节点间箭头 · 无独立图例块
+   ========================================================================== */
+/* 泳道宽度按环节数分配：计划段本来就占半个工厂，如实呈现比强行等宽诚实 */
+.map{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:var(--space-5)}
+.lane{min-width:0;display:flex;flex-direction:column}
+.lane-body{display:flex;flex-direction:column;gap:var(--space-2)}
+.lane[data-phase="plan"] .lane-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
+.lane-head{
+  display:flex;align-items:center;gap:var(--space-2);
+  padding:0 var(--space-1) var(--space-2);border-bottom:1px solid var(--border-soft);
+  margin-bottom:var(--space-1);
+}
+.lane-dot{width:8px;height:8px;border-radius:var(--radius-pill);background:var(--ph);flex:none}
+.lane-name{font-size:var(--text-sm);font-weight:var(--weight-emph-cjk);color:var(--fg-2)}
+.lane-count{margin-left:auto;font-size:var(--text-xs);color:var(--meta);font-variant-numeric:tabular-nums}
+.lane[data-phase="plan"]{--ph:var(--phase-plan)}
+.lane[data-phase="production"]{--ph:var(--phase-production)}
+.lane[data-phase="qc"]{--ph:var(--phase-qc)}
+.lane[data-phase="logistics"]{--ph:var(--phase-logistics)}
+
+.node{
+  position:relative;width:100%;text-align:left;display:flex;align-items:center;gap:var(--space-3);
+  background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-md);
+  padding:var(--space-3) var(--space-3) var(--space-3) var(--space-4);min-height:62px;overflow:hidden;
+  transition:border-color var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),opacity var(--motion-base) var(--ease-standard);
+}
+.node::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ph);opacity:.75}
+.node:hover{border-color:var(--card-border-hover);background:var(--surface-2)}
+.node[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.node.is-next{border-color:var(--accent-border);box-shadow:0 0 0 3px var(--accent-soft)}
+.node .nic{color:var(--muted);display:flex;flex:none;transition:color var(--motion-fast) var(--ease-standard)}
+.node:hover .nic,.node[aria-pressed="true"] .nic{color:var(--accent)}
+.node .ntx{min-width:0;flex:1}
+.node .ntitle{
+  display:block;font-size:var(--text-base);font-weight:var(--weight-emph-cjk);
+  line-height:var(--leading-snug);color:var(--fg);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.node .nmeta{
+  display:block;margin-top:2px;font-size:var(--text-xs);color:var(--meta);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.node .nmeta .here{color:var(--accent);font-weight:var(--weight-emph-cjk)}
+.node .nstate{flex:none;display:flex;color:var(--success)}
+.node .nstate.is-todo{color:var(--border-strong)}
+.map.is-filtered .node:not(.is-hit){opacity:.34}
+.map.is-filtered .node:not(.is-hit)::before{opacity:.25}
+
+.map-foot{
+  display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;
+  margin-top:var(--space-4);color:var(--muted);font-size:var(--text-xs);
+}
+.map-foot .k{display:inline-flex;align-items:center;gap:var(--space-1)}
+.map-foot .k .ok{color:var(--success);display:flex}
+.map-foot .sep{color:var(--border-strong)}
+
+/* ==========================================================================
+   节点抽屉（右侧滑出 · 桌面覆盖层 / 移动端底部抽屉）
+   ========================================================================== */
+.scrim{
+  position:fixed;inset:0;background:var(--scrim);opacity:0;pointer-events:none;
+  transition:opacity var(--motion-base) var(--ease-standard);z-index:calc(var(--z-modal) - 1);
+}
+.scrim.show{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:var(--drawer-w);max-width:94vw;
+  background:var(--surface);border-left:1px solid var(--border);box-shadow:var(--elev-modal);
+  transform:translateX(100%);transition:transform var(--motion-slow) var(--ease-standard);
+  z-index:var(--z-modal);display:flex;flex-direction:column;
+}
+.drawer.open{transform:translateX(0)}
+.dr-head{
+  display:flex;align-items:flex-start;gap:var(--space-3);
+  padding:var(--space-5) var(--space-5) var(--space-4);border-bottom:1px solid var(--border-soft);
+}
+.dr-mark{
+  width:36px;height:36px;border-radius:var(--radius-sm);flex:none;display:grid;place-items:center;
+  background:var(--surface-2);color:var(--fg-2);border:1px solid var(--border);
+}
+.dr-title{min-width:0;flex:1}
+.dr-title h2{margin:0;font-size:var(--text-lg);font-weight:var(--weight-announce-cjk);
+  letter-spacing:var(--tracking-title);line-height:var(--leading-snug)}
+.dr-sub{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-1);
+  font-size:var(--text-xs);color:var(--muted);flex-wrap:wrap}
+.dr-sub .pdot{width:8px;height:8px;border-radius:var(--radius-pill);background:var(--ph);flex:none}
+.dr-sub .sep{color:var(--border-strong)}
+.dr-body{padding:var(--space-5);overflow-y:auto;flex:1}
+.dr-sec{margin-bottom:var(--space-6)}
+.dr-sec:last-child{margin-bottom:0}
+.dr-sec-h{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-bottom:var(--space-3)}
+.dr-sec-h .caps{color:var(--meta)}
+.dr-know{margin:0;color:var(--fg-2);font-size:var(--text-base);line-height:var(--leading-prose)}
+.dr-chips{display:flex;gap:var(--space-2);flex-wrap:wrap}
+.dr-chips .chip{cursor:pointer}
+.sys-note{
+  margin-top:var(--space-3);padding:var(--space-3) var(--space-4);
+  background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius-sm);
+  font-size:var(--text-sm);color:var(--fg-2);line-height:var(--leading-body);
+}
+.sys-note b{font-weight:var(--weight-emph-cjk);color:var(--fg)}
+
+.drill{
+  display:flex;align-items:center;gap:var(--space-3);width:100%;text-align:left;
+  border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);
+  padding:var(--space-3);
+  transition:background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+.drill+.drill{margin-top:var(--space-2)}
+.drill:hover{background:var(--surface-2);border-color:var(--border-strong)}
+.drill .di{color:var(--muted);display:flex;flex:none}
+.drill:hover .di{color:var(--accent)}
+.drill .dtx{min-width:0;flex:1}
+.drill .dl{display:block;font-size:var(--text-sm);font-weight:var(--weight-emph-cjk);color:var(--fg)}
+.drill .dk{display:block;font-size:var(--text-xs);color:var(--meta);margin-top:1px}
+.drill .dgo{margin-left:auto;color:var(--border-strong);display:flex;flex:none}
+.drill:hover .dgo{color:var(--accent)}
+.drill.is-done{background:var(--surface-2)}
+.drill.is-done .dgo{color:var(--success)}
+.drill.is-done .dl{color:var(--muted)}
+.dr-foot{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
+  padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-soft);background:var(--surface-2);
+}
+.dr-foot .step-link{display:inline-flex;align-items:center;gap:var(--space-1);
+  font-size:var(--text-sm);color:var(--muted)}
+.dr-foot .step-link:hover{color:var(--accent)}
+.dr-foot .step-link[disabled]{opacity:.45;pointer-events:none}
+
+/* ==========================================================================
+   低调二级入口 + 说明区
+   ========================================================================== */
+.quiet{
+  margin-top:var(--space-12);border-top:1px solid var(--border);padding-top:var(--space-5);
+  display:flex;align-items:center;gap:var(--space-5);flex-wrap:wrap;
+}
+.quiet .qlabel{font-size:var(--text-xs);color:var(--meta)}
+.qlink{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--muted);
+  padding:var(--space-1) 0;transition:color var(--motion-fast) var(--ease-standard)}
+.qlink:hover{color:var(--fg)}
+.qlink .qi{display:flex;color:var(--border-strong)}
+.qlink:hover .qi{color:var(--accent)}
+
+.compare{margin-top:var(--space-12);border:1px solid var(--border);border-radius:var(--radius-md);
+  background:var(--surface);padding:var(--space-6)}
+.compare h2{margin:0 0 var(--space-1);font-size:var(--text-lg);font-weight:var(--weight-announce-cjk)}
+.compare .lede{margin:0 0 var(--space-5);color:var(--muted);font-size:var(--text-sm)}
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6)}
+.cmp-col h3{margin:0 0 var(--space-3);font-size:var(--text-sm);font-weight:var(--weight-emph-cjk);color:var(--fg-2)}
+.cmp-item{display:flex;gap:var(--space-2);padding:var(--space-2) 0;border-bottom:1px solid var(--border-soft);
+  font-size:var(--text-sm);color:var(--fg-2);line-height:var(--leading-body)}
+.cmp-item:last-child{border-bottom:none}
+.cmp-item .ci{flex:none;display:flex;margin-top:2px}
+.cmp-old .ci{color:var(--danger)}
+.cmp-new .ci{color:var(--success)}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media(max-width:1080px){
+  .map{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-6) var(--space-5)}
+  .lane[data-phase="plan"]{grid-column:span 2}
+}
+@media(max-width:720px){
+  .page{padding:var(--space-6) var(--gutter-phone) var(--space-16)}
+  .map{grid-template-columns:1fr}
+  .lane[data-phase="plan"]{grid-column:auto}
+  .lane[data-phase="plan"] .lane-body{grid-template-columns:1fr}
+  .cmp-grid{grid-template-columns:1fr;gap:var(--space-5)}
+  .topbar-search{display:none}
+  .hero-act{width:100%}
+  .hero-act .btn{flex:1;justify-content:center}
+  .drawer{
+    top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;height:88vh;
+    border-left:none;border-top:1px solid var(--border);
+    border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+    transform:translateY(100%);
+  }
+  .drawer.open{transform:translateY(0)}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important;
+  }
+}
+</style>
+</head>
+<body>
+<!-- ══ 图标精灵（stroke 风格，对齐 lucide 24 栅格 / stroke 2 / currentColor；零 emoji） ══ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="i-factory" viewBox="0 0 24 24"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1M12 18h1M7 18h1"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 1.9-1.6L22 7H5"/></symbol>
+  <symbol id="i-clipboard-check" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></symbol>
+  <symbol id="i-calculator" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.6a1 1 0 0 0-.2-.6l-3.5-4.4a1 1 0 0 0-.8-.4H14"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+  <symbol id="i-git-branch" viewBox="0 0 24 24"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="m7.5 4.3 9 5.1"/><path d="M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M14.5 21.7a.5.5 0 0 0 .94-.02l6.5-19a.5.5 0 0 0-.64-.64l-19 6.5a.5.5 0 0 0-.02.94l7.93 3.18a2 2 0 0 1 1.11 1.11z"/><path d="m21.85 2.15-10.94 10.94"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></symbol>
+  <symbol id="i-warehouse" viewBox="0 0 24 24"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35a2 2 0 0 1 1.26-1.85l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12M6 14h12"/><rect x="6" y="10" width="12" height="12"/></symbol>
+  <symbol id="i-log-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></symbol>
+  <symbol id="i-list-checks" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4M3 7l2 2 4-4"/><path d="M13 6h8M13 12h8M13 18h8"/></symbol>
+  <symbol id="i-file-text" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M15 2v5h5"/><path d="M10 9H8M16 13H8M16 17H8"/></symbol>
+  <symbol id="i-workflow" viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/><path d="M6 9v3a2 2 0 0 0 2 2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.2 2.2M17.6 17.6l2.2 2.2M2 12h3M19 12h3M4.2 19.8l2.2-2.2M17.6 6.4l2.2-2.2"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4"/></symbol>
+  <symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+</defs></svg>
+
+<!-- ══ 顶栏（上下文条，不与工厂争主角） ══ -->
+<header class="topbar">
+  <nav class="crumb" aria-label="面包屑">
+    <svg class="icon" style="color:var(--muted)"><use href="#i-factory"/></svg>
+    <b>工厂</b><span class="sep">/</span><span>通用离散制造厂</span>
+  </nav>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-search"><svg class="icon"><use href="#i-search"/></svg><span>搜索环节、章节、SQL 题</span></div>
+  <button class="icon-btn" aria-label="个人中心"><span class="avatar">学</span></button>
+  <button class="icon-btn" aria-label="打开导航菜单"><svg class="icon icon-md"><use href="#i-menu"/></svg></button>
+</header>
+
+<main class="page">
+  <!-- ══ 首屏：工厂是谁 + 一个主动作 + 一条进度 ══ -->
+  <section class="hero">
+    <div class="hero-id">
+      <div class="hero-kicker">
+        <svg class="icon icon-md" style="color:var(--muted)"><use href="#i-factory"/></svg>
+        <span class="caps">Factory Panorama</span>
+      </div>
+      <h1>通用离散制造厂 · 全景</h1>
+      <p>从客户下单到发货出库的 12 个真实环节。点任意环节，看它在干什么、归哪套系统管，就地动手练。</p>
+    </div>
+    <div class="hero-act">
+      <button class="btn btn-primary" id="resumeBtn">
+        <svg class="icon"><use href="#i-arrow-right"/></svg>
+        <span>继续：<span id="resumeName">生产派工</span></span>
+      </button>
+      <a class="btn btn-secondary" href="#">
+        <svg class="icon"><use href="#i-workflow"/></svg>搭建产线
+      </a>
+    </div>
+  </section>
+
+  <!-- ══ 进度：一条 12 格轨道，一个指标 ══ -->
+  <div class="rail-wrap">
+    <div class="rail-head">
+      <span class="rail-num"><span id="doneNum">7</span> / 12 <em>个环节已练过</em></span>
+      <span class="rail-note">
+        练过 = 在这个环节做完了 SQL 或测验<span class="dotsep">·</span>只看不算
+      </span>
+    </div>
+    <div class="rail" id="rail" role="img" aria-label="工厂 12 个环节的完成进度"></div>
+  </div>
+
+  <!-- ══ 地图头：泳道即图例；系统视角作为筛选，不再单独成块 ══ -->
+  <div class="map-head">
+    <div>
+      <h2>工厂全景地图</h2>
+      <div class="hint">从左到右就是物料与信息的流向：计划 → 生产 → 质检 → 出库</div>
+    </div>
+    <div class="sysfilter" id="sysFilter">
+      <span class="lbl">按系统看：</span>
+      <button class="chip" data-sys="MES" aria-pressed="false"><svg class="icon" style="width:12px;height:12px"><use href="#i-cog"/></svg>MES</button>
+      <button class="chip" data-sys="ERP" aria-pressed="false"><svg class="icon" style="width:12px;height:12px"><use href="#i-building"/></svg>ERP</button>
+      <button class="chip" data-sys="WMS" aria-pressed="false"><svg class="icon" style="width:12px;height:12px"><use href="#i-warehouse"/></svg>WMS</button>
+      <button class="chip" data-sys="QMS" aria-pressed="false"><svg class="icon" style="width:12px;height:12px"><use href="#i-shield-check"/></svg>QMS</button>
+    </div>
+  </div>
+
+  <div class="map" id="map"></div>
+
+  <div class="map-foot">
+    <span class="k"><span class="ok"><svg class="icon"><use href="#i-check-circle"/></svg></span>已练过</span>
+    <span class="sep">·</span>
+    <span class="k">浅绿描边 = 建议从这里继续</span>
+    <span class="sep">·</span>
+    <span class="k">节点第二行是这一环归哪套系统管</span>
+  </div>
+
+  <!-- ══ 学习中心：退出工厂壳，降级为一行低调入口 ══ -->
+  <nav class="quiet" aria-label="学习中心入口">
+    <span class="qlabel">想按课表学？</span>
+    <a class="qlink" href="#"><span class="qi"><svg class="icon"><use href="#i-book-open"/></svg></span>课程目录</a>
+    <a class="qlink" href="#"><span class="qi"><svg class="icon"><use href="#i-route"/></svg></span>学习路径</a>
+    <a class="qlink" href="#"><span class="qi"><svg class="icon"><use href="#i-target"/></svg></span>岗位路线</a>
+    <a class="qlink" href="#"><span class="qi"><svg class="icon"><use href="#i-database"/></svg></span>SQL 沙盒</a>
+  </nav>
+
+  <!-- ══ 给产品负责人的对照说明 ══ -->
+  <section class="compare">
+    <h2>这版改了什么</h2>
+    <p class="lede">同一批内容，砍掉两层 Tab 与一整块课程仪表盘，工厂重新变回首屏主角。</p>
+    <div class="cmp-grid">
+      <div class="cmp-col cmp-old">
+        <h3>现在（/factory 线上）</h3>
+        <div class="cmp-item"><span class="ci"><svg class="icon"><use href="#i-x"/></svg></span>外层「全景 / 搭建」+ 内层「全景 / 课程 / 路径 / 职业」两层 Tab，进页要先做两次选择</div>
+        <div class="cmp-item"><span class="ci"><svg class="icon"><use href="#i-x"/></svg></span>首屏是续学 CTA + 总完成度 + 课程列表，工厂被压到第三屏</div>
+        <div class="cmp-item"><span class="ci"><svg class="icon"><use href="#i-x"/></svg></span>地图上有步骤编号、节点间箭头、四色图例、底部提示行、绿框下一步，五套指示语打架</div>
+        <div class="cmp-item"><span class="ci"><svg class="icon"><use href="#i-x"/></svg></span>点节点内联展开，整行插入把下方节点顶走，位置漂移</div>
+        <div class="cmp-item"><span class="ci"><svg class="icon"><use href="#i-x"/></svg></span>MES / ERP / WMS / QMS 另起一段四张卡，与流程割裂</div>
+      </div>
+      <div class="cmp-col cmp-new">
+        <h3>重设计后</h3>
+        <div class="cmp-item"><span class="ci"><svg class="icon"><use href="#i-check-circle"/></svg></span>零 Tab。/factory 只有一件事：工厂全景。搭建与课程降为侧栏工具和页脚入口</div>
+        <div class="cmp-item"><span class="ci"><svg class="icon"><use href="#i-check-circle"/></svg></span>首屏 = 工厂名 + 一句话 + 一个「继续」按钮 + 一条 12 格进度，一屏内看见地图</div>
+        <div class="cmp-item"><span class="ci"><svg class="icon"><use href="#i-check-circle"/></svg></span>删编号、删箭头、删独立图例、删提示行；阶段色只剩泳道圆点 + 3px 左色条</div>
+        <div class="cmp-item"><span class="ci"><svg class="icon"><use href="#i-check-circle"/></svg></span>点节点右侧抽屉滑出，地图纹丝不动；手机上变底部抽屉</div>
+        <div class="cmp-item"><span class="ci"><svg class="icon"><use href="#i-check-circle"/></svg></span>系统降为节点第二行文字 + 抽屉里的 chip，点 chip 就地解释它在这一环干什么</div>
+      </div>
+    </div>
+  </section>
+</main>
+<!-- ══ 节点抽屉：右侧滑出，地图不位移；手机变底部抽屉 ══ -->
+<div class="scrim" id="scrim" aria-hidden="true"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drTitle" aria-hidden="true">
+  <div class="dr-head">
+    <span class="dr-mark"><svg class="icon icon-md" id="drIcon"><use href="#i-factory" id="drIconUse"/></svg></span>
+    <div class="dr-title">
+      <h2 id="drTitle">环节</h2>
+      <div class="dr-sub" id="drSub"></div>
+    </div>
+    <button class="icon-btn" id="drClose" aria-label="关闭环节详情"><svg class="icon icon-md"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="dr-body" id="drBody"></div>
+  <div class="dr-foot">
+    <button class="step-link" id="drPrev"><svg class="icon"><use href="#i-chevron-left"/></svg><span>上一环节</span></button>
+    <button class="step-link" id="drNext"><span>下一环节</span><svg class="icon"><use href="#i-chevron-right"/></svg></button>
+  </div>
+</aside>
+
+<script>
+/* ══ 数据：与 factoryFlow.data.ts 的 DEFAULT_FLOW / SYSTEM_HINTS 对齐 ══ */
+const PHASES = [
+  { key:'plan',        label:'计划 / 仓储' },
+  { key:'production',  label:'生产执行' },
+  { key:'qc',          label:'质量检验' },
+  { key:'logistics',   label:'物流出库' },
+];
+const KIND = { entry:'流程起点', process:'生产环节', exit:'流程终点' };
+
+const NODES = [
+  { key:'cust-order', label:'客户下单', icon:'i-cart', phase:'plan', kind:'entry',
+    desc:'销售订单录入：客户要什么、要多少、什么时候要。订单号一旦生成，后面的工单、领料、发货全都挂在它下面。',
+    sys:['ERP','CRM'],
+    drills:[
+      { t:'chapter', title:'读懂一张销售订单的 6 个必填字段', note:'知识 · 3 分钟' },
+      { t:'sql',     title:'查出本周新增、交期在 14 天内的订单', note:'SQL 实战 · 单表查询' },
+      { t:'quiz',    title:'判断这 3 张订单哪张不该接', note:'随堂测验 · 3 题' },
+    ] },
+  { key:'order-review', label:'订单评审', icon:'i-clipboard-check', phase:'plan', kind:'process',
+    desc:'评审交期、产能与物料齐套性，决定接不接单、承诺哪一天交货。评审拍脑袋，后面全线救火。',
+    sys:['ERP'],
+    drills:[
+      { t:'chapter', title:'看懂齐套率是怎么算出来的', note:'知识 · 4 分钟' },
+      { t:'sql',     title:'算出每张待评审订单的物料齐套率', note:'SQL 实战 · 多表联查' },
+    ] },
+  { key:'mps', label:'主生产计划', icon:'i-calendar', phase:'plan', kind:'process',
+    desc:'把已接订单摊成月度 / 周度可执行的生产节奏（MPS）：哪一周做哪个型号、做多少。',
+    sys:['ERP'],
+    drills:[
+      { t:'chapter', title:'分清 MPS 和排产的边界', note:'知识 · 5 分钟' },
+      { t:'quiz',    title:'给这 4 张订单排出一版周计划', note:'随堂测验 · 4 题' },
+    ] },
+  { key:'mrp', label:'物料需求计划', icon:'i-calculator', phase:'plan', kind:'process',
+    desc:'按 BOM 逐层展开，算出自制件与外购件各要多少、什么时候要到货（MRP）。',
+    sys:['ERP'],
+    drills:[
+      { t:'chapter', title:'手算一次两层 BOM 的净需求', note:'知识 · 6 分钟' },
+      { t:'sql',     title:'用递归查询展开三层 BOM', note:'SQL 实战 · 递归 CTE' },
+    ] },
+  { key:'purchase', label:'采购与供应商', icon:'i-truck', phase:'plan', kind:'process',
+    desc:'下采购单、盯供应商交期、到货登记与进料检验（IQC）。外购件晚到一天，整条线等一天。',
+    sys:['ERP','SRM'],
+    drills:[
+      { t:'sql',   title:'找出交期已逾期未到货的采购行', note:'SQL 实战 · 日期比较' },
+      { t:'quiz',  title:'判断这批来料该不该放行', note:'随堂测验 · 3 题' },
+    ] },
+  { key:'bom-route', label:'BOM 与工艺路线', icon:'i-git-branch', phase:'plan', kind:'process',
+    desc:'定义产品物料清单与每道工序的加工顺序、工时、工作中心。工艺路线错，派工全错。',
+    sys:['ERP','PLM'],
+    drills:[
+      { t:'chapter', title:'读懂一条工艺路线的工序卡', note:'知识 · 4 分钟' },
+      { t:'sql',     title:'查出缺少工艺路线的在产物料', note:'SQL 实战 · 反连接' },
+    ] },
+  { key:'picking', label:'领料发料', icon:'i-package', phase:'plan', kind:'process',
+    desc:'仓库按工单把物料发到线边仓 / 工位，库存从原料仓扣减、转到在制。',
+    sys:['WMS','MES'],
+    drills:[
+      { t:'sql',  title:'核对这张工单的应发与实发差异', note:'SQL 实战 · 聚合对账' },
+      { t:'quiz', title:'超领 200 个螺丝该怎么处理', note:'随堂测验 · 2 题' },
+    ] },
+  { key:'dispatch', label:'生产派工', icon:'i-send', phase:'production', kind:'process',
+    desc:'把生产指令下达到具体工作中心与班组，生成可扫码的工单任务（MES 工单）。',
+    sys:['MES'],
+    drills:[
+      { t:'chapter', title:'看懂一张 MES 工单的状态机', note:'知识 · 5 分钟' },
+      { t:'sql',     title:'查出今天已下达但没人开工的工单', note:'SQL 实战 · 状态过滤' },
+      { t:'quiz',    title:'插单来了，这 3 张工单怎么调', note:'随堂测验 · 3 题' },
+    ] },
+  { key:'shopfloor', label:'车间执行', icon:'i-factory', phase:'production', kind:'process',
+    desc:'工序加工、扫码报工、在制品与设备数据采集。这里产生的数据决定了后面所有报表的真假。',
+    sys:['MES'],
+    drills:[
+      { t:'sql',  title:'按工序统计今天的产出与不良数', note:'SQL 实战 · 分组统计' },
+      { t:'quiz', title:'漏报工会让哪几个数字失真', note:'随堂测验 · 4 题' },
+    ] },
+  { key:'qc', label:'质量检验', icon:'i-check-circle', phase:'qc', kind:'process',
+    desc:'首检、巡检、终检与不合格品隔离，质量数据沿工单号往回追溯到批次和人。',
+    sys:['QMS','MES'],
+    drills:[
+      { t:'chapter', title:'分清首检 / 巡检 / 终检的卡点', note:'知识 · 4 分钟' },
+      { t:'sql',     title:'追溯这批不良品用了哪批原料', note:'SQL 实战 · 批次追溯' },
+    ] },
+  { key:'stock-in', label:'生产入库', icon:'i-warehouse', phase:'logistics', kind:'process',
+    desc:'成品办理入库、贴标、上架，库存从在制转成品。账实不符大多在这一步埋下。',
+    sys:['WMS'],
+    drills:[
+      { t:'sql',  title:'找出报工数与入库数对不上的工单', note:'SQL 实战 · 差异比对' },
+    ] },
+  { key:'shipping', label:'发货出库', icon:'i-log-out', phase:'logistics', kind:'exit',
+    desc:'按发货单拣货、复核、装车，回写实际发货数量与物流单号，订单闭环。',
+    sys:['WMS'],
+    drills:[
+      { t:'sql',  title:'统计本月准时交付率', note:'SQL 实战 · 日期差 + 占比' },
+      { t:'quiz', title:'少发 2 件，先动哪张单', note:'随堂测验 · 2 题' },
+    ] },
+];
+
+const SYS = {
+  MES:{ n:'MES · 制造执行', r:'管「怎么把东西做出来」' },
+  ERP:{ n:'ERP · 企业资源', r:'管「要花多少、值多少」' },
+  WMS:{ n:'WMS · 仓储管理', r:'管「东西放哪、怎么拣」' },
+  QMS:{ n:'QMS · 质量管理', r:'管「合不合格、为什么」' },
+  CRM:{ n:'CRM · 客户关系', r:'管「客户和订单从哪来」' },
+  PLM:{ n:'PLM · 产品数据', r:'管「图纸和 BOM 的版本」' },
+  SRM:{ n:'SRM · 供应商协同', r:'管「供应商交期与对账」' },
+};
+const SYS_IN_NODE = {
+  'ERP:cust-order':'订单头与行项目在这里落库，之后每一张工单、每一次发料都引用这个订单号。',
+  'CRM:cust-order':'客户档案、历史成交与信用额度来自这里，决定这张订单敢不敢接。',
+  'ERP:order-review':'调用可用产能与库存快照，给出承诺交期（ATP/CTP）。',
+  'ERP:mps':'MPS 在 ERP 里生成，是计划层的输出、执行层的输入。',
+  'ERP:mrp':'按 BOM 展开净需求，自动生成采购申请与自制工单建议。',
+  'ERP:purchase':'采购订单、到货与应付都在 ERP 里闭环。',
+  'SRM:purchase':'供应商在门户上确认交期、上传送货单，减少电话催料。',
+  'ERP:bom-route':'BOM 与工艺路线主数据存在 ERP，MES 派工时读取它。',
+  'PLM:bom-route':'图纸与工程变更（ECN）在 PLM 定版，变更后要同步给 ERP 和 MES。',
+  'WMS:picking':'按波次生成拣货任务，指定库位与批次，扫码确认发出。',
+  'MES:picking':'工单在 MES 里触发领料需求，发料回执写回工单的物料齐套状态。',
+  'MES:dispatch':'把计划工单拆成工序任务，下达到工作中心并锁定工艺版本。',
+  'MES:shopfloor':'报工、在制品流转、设备采集全部在 MES，是全厂数据的源头。',
+  'QMS:qc':'检验标准、判定规则与不合格品处置流程由 QMS 定义。',
+  'MES:qc':'质检结果卡在工序上：不合格就流不到下一道，这是 MES 的强制点。',
+  'WMS:stock-in':'成品入库上架、库位分配与库存账更新。',
+  'WMS:shipping':'拣货、复核、发运回写，出库单与物流单号在这里对齐。',
+};
+const RES = {
+  chapter:{ icon:'i-file-text', label:'知识' },
+  sql:{ icon:'i-database', label:'SQL 实战' },
+  quiz:{ icon:'i-list-checks', label:'随堂测验' },
+};
+
+/* 预置进度：前 7 个环节已练过 → 下一步落在「生产派工」 */
+const done = new Set();
+NODES.slice(0,7).forEach(n => n.drills.forEach(d => { if (d.t !== 'chapter') done.add(n.key+':'+d.t+':'+d.title); }));
+
+const dkey = (n,d) => n.key+':'+d.t+':'+d.title;
+const isDone = (n,d) => done.has(dkey(n,d));
+const nodeDone = n => { const p = n.drills.filter(d => d.t !== 'chapter'); return p.length > 0 && p.every(d => isDone(n,d)); };
+const nextNode = () => NODES.find(n => !nodeDone(n)) || null;
+
+/* ══ 渲染：进度轨道 ══ */
+const railEl = document.getElementById('rail');
+function renderRail(){
+  const nx = nextNode();
+  railEl.innerHTML = '';
+  NODES.forEach(n => {
+    const b = document.createElement('button');
+    const state = nodeDone(n) ? 'is-done' : (nx && nx.key === n.key ? 'is-next' : '');
+    b.className = 'tick ' + state;
+    b.type = 'button';
+    b.title = n.label + (nodeDone(n) ? ' · 已练过' : (nx && nx.key === n.key ? ' · 建议从这里继续' : ' · 未练'));
+    b.setAttribute('aria-label', b.title);
+    b.addEventListener('click', () => openNode(n.key));
+    railEl.appendChild(b);
+  });
+  document.getElementById('doneNum').textContent = NODES.filter(nodeDone).length;
+  document.getElementById('resumeName').textContent = nx ? nx.label : '全部环节已练完';
+}
+
+/* ══ 渲染：泳道地图 ══ */
+const mapEl = document.getElementById('map');
+function renderMap(){
+  const nx = nextNode();
+  mapEl.innerHTML = '';
+  PHASES.forEach(p => {
+    const list = NODES.filter(n => n.phase === p.key);
+    const lane = document.createElement('section');
+    lane.className = 'lane';
+    lane.dataset.phase = p.key;
+    lane.innerHTML =
+      '<header class="lane-head"><span class="lane-dot"></span>' +
+      '<span class="lane-name">' + p.label + '</span>' +
+      '<span class="lane-count tabular">' + list.filter(nodeDone).length + '/' + list.length + '</span></header>' +
+      '<div class="lane-body"></div>';
+    const body = lane.querySelector('.lane-body');
+    list.forEach(n => {
+      const d = nodeDone(n);
+      const isNext = nx && nx.key === n.key;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'node' + (isNext ? ' is-next' : '');
+      btn.dataset.key = n.key;
+      btn.setAttribute('aria-pressed', String(current === n.key));
+      btn.innerHTML =
+        '<span class="nic"><svg class="icon icon-md"><use href="#' + n.icon + '"/></svg></span>' +
+        '<span class="ntx"><span class="ntitle">' + n.label + '</span>' +
+        '<span class="nmeta">' + n.sys.join(' · ') +
+          (isNext ? ' <span class="here">· 从这里继续</span>' : '') + '</span></span>' +
+        '<span class="nstate' + (d ? '' : ' is-todo') + '"><svg class="icon"><use href="#' +
+          (d ? 'i-check-circle' : 'i-circle') + '"/></svg></span>';
+      btn.addEventListener('click', () => openNode(n.key));
+      body.appendChild(btn);
+    });
+    mapEl.appendChild(lane);
+  });
+  applyFilter();
+}
+
+/* ══ 系统视角筛选（横切系统不再单独成块） ══ */
+let activeSys = null;
+function applyFilter(){
+  mapEl.classList.toggle('is-filtered', !!activeSys);
+  mapEl.querySelectorAll('.node').forEach(el => {
+    const n = NODES.find(x => x.key === el.dataset.key);
+    el.classList.toggle('is-hit', !!activeSys && n.sys.includes(activeSys));
+  });
+}
+document.getElementById('sysFilter').addEventListener('click', e => {
+  const btn = e.target.closest('button.chip');
+  if (!btn) return;
+  const s = btn.dataset.sys;
+  activeSys = activeSys === s ? null : s;
+  document.querySelectorAll('#sysFilter .chip').forEach(c =>
+    c.setAttribute('aria-pressed', String(c.dataset.sys === activeSys)));
+  applyFilter();
+});
+
+/* ══ 抽屉 ══ */
+const drawer = document.getElementById('drawer');
+const scrim  = document.getElementById('scrim');
+let current = null, lastFocus = null;
+
+function renderDrawer(n){
+  document.getElementById('drIconUse').setAttribute('href', '#' + n.icon);
+  document.getElementById('drTitle').textContent = n.label;
+  const d = nodeDone(n);
+  document.getElementById('drSub').innerHTML =
+    '<span class="pdot" style="--ph:var(--phase-' + n.phase + ')"></span>' +
+    '<span>' + PHASES.find(p => p.key === n.phase).label + '</span>' +
+    '<span class="sep">·</span><span>' + KIND[n.kind] + '</span>' +
+    '<span class="sep">·</span><span style="color:var(--' + (d ? 'success' : 'meta') + ')">' +
+    (d ? '已练过' : '未练') + '</span>';
+
+  const doneCount = n.drills.filter(x => isDone(n,x)).length;
+  let html =
+    '<section class="dr-sec"><div class="dr-sec-h"><span class="caps">这一环在干什么</span></div>' +
+    '<p class="dr-know">' + n.desc + '</p></section>' +
+    '<section class="dr-sec"><div class="dr-sec-h"><span class="caps">归谁管</span></div><div class="dr-chips">' +
+      n.sys.map(s => '<button class="chip" data-sysinfo="' + s + '">' + s + '</button>').join('') +
+    '</div><div id="sysNote"></div></section>' +
+    '<section class="dr-sec"><div class="dr-sec-h"><span class="caps">在这里动手练</span>' +
+      '<span style="font-size:var(--text-xs);color:var(--meta)" class="tabular">' +
+      doneCount + ' / ' + n.drills.length + '</span></div>';
+  n.drills.forEach(x => {
+    const done1 = isDone(n,x);
+    html +=
+      '<button class="drill' + (done1 ? ' is-done' : '') + '" data-drill="' + x.t + '|' + x.title + '">' +
+      '<span class="di"><svg class="icon icon-md"><use href="#' + RES[x.t].icon + '"/></svg></span>' +
+      '<span class="dtx"><span class="dl">' + x.title + '</span><span class="dk">' + x.note + '</span></span>' +
+      '<span class="dgo"><svg class="icon"><use href="#' + (done1 ? 'i-check-circle' : 'i-chevron-right') + '"/></svg></span>' +
+      '</button>';
+  });
+  html += '</section>';
+  document.getElementById('drBody').innerHTML = html;
+
+  const i = NODES.indexOf(n);
+  const prev = document.getElementById('drPrev'), next = document.getElementById('drNext');
+  prev.toggleAttribute('disabled', i === 0);
+  next.toggleAttribute('disabled', i === NODES.length - 1);
+  prev.querySelector('span').textContent = i > 0 ? NODES[i-1].label : '上一环节';
+  next.querySelector('span').textContent = i < NODES.length - 1 ? NODES[i+1].label : '下一环节';
+}
+
+function openNode(key){
+  const n = NODES.find(x => x.key === key);
+  if (!n) return;
+  if (!current) lastFocus = document.activeElement;
+  current = key;
+  renderDrawer(n);
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden','false');
+  scrim.classList.add('show');
+  mapEl.querySelectorAll('.node').forEach(el =>
+    el.setAttribute('aria-pressed', String(el.dataset.key === key)));
+  document.getElementById('drClose').focus({ preventScroll:true });
+}
+function closeDrawer(){
+  current = null;
+  drawer.classList.remove('open');
+  drawer.setAttribute('aria-hidden','true');
+  scrim.classList.remove('show');
+  mapEl.querySelectorAll('.node').forEach(el => el.setAttribute('aria-pressed','false'));
+  if (lastFocus) lastFocus.focus({ preventScroll:true });
+}
+
+document.getElementById('drClose').addEventListener('click', closeDrawer);
+scrim.addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && current) closeDrawer(); });
+document.getElementById('drPrev').addEventListener('click', () => {
+  const i = NODES.findIndex(x => x.key === current); if (i > 0) openNode(NODES[i-1].key);
+});
+document.getElementById('drNext').addEventListener('click', () => {
+  const i = NODES.findIndex(x => x.key === current); if (i < NODES.length - 1) openNode(NODES[i+1].key);
+});
+document.getElementById('resumeBtn').addEventListener('click', () => {
+  const nx = nextNode(); if (nx) openNode(nx.key);
+});
+
+/* 抽屉内交互：chip 就地解释系统；实战行点一下当作做完（原型内演示进度语义） */
+document.getElementById('drBody').addEventListener('click', e => {
+  const chip = e.target.closest('[data-sysinfo]');
+  if (chip){
+    const s = chip.dataset.sysinfo, n = NODES.find(x => x.key === current);
+    const box = document.getElementById('sysNote');
+    const on = chip.getAttribute('aria-pressed') === 'true';
+    document.querySelectorAll('#drBody .chip').forEach(c => c.setAttribute('aria-pressed','false'));
+    if (on){ box.innerHTML = ''; return; }
+    chip.setAttribute('aria-pressed','true');
+    box.innerHTML = '<div class="sys-note"><b>' + SYS[s].n + '</b> ' + SYS[s].r + '。' +
+      (SYS_IN_NODE[s + ':' + n.key] || '') + '</div>';
+    return;
+  }
+  const drill = e.target.closest('[data-drill]');
+  if (drill){
+    const n = NODES.find(x => x.key === current);
+    const [t, title] = drill.dataset.drill.split('|');
+    const d = n.drills.find(x => x.t === t && x.title === title);
+    const k = dkey(n,d);
+    if (done.has(k)) done.delete(k); else done.add(k);
+    renderDrawer(n); renderRail(); renderMap();
+  }
+});
+
+renderRail();
+renderMap();
+</script>
+</body>
+</html>
