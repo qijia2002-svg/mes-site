@@ -105,7 +105,7 @@ export function TermPopover({ term, anchor, onClose, centered = false }: TermPop
             <div className="term-popover-head">
               <span className="term-popover-word">{entry.value}</span>
               {entry.pos && <span className="term-popover-pos">{entry.pos}</span>}
-              <VoiceButton text={entry.value} className="term-popover-speak" lang="zh" />
+              <VoiceButton text={entry.value} className="term-popover-speak" lang="zh-CN" />
             </div>
 
             {entry.zh && <div className="term-popover-zh">{entry.zh}</div>}

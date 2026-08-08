@@ -5,10 +5,18 @@
  * 本组件在净化之后、由前端 JS 遍历文本节点，把命名词典的术语包成
  * <span class="term-link" data-term="...">，点击时弹出解释卡（TermPopover）。
  *
- * 安全边界：我们只对「已净化的文本节点」做子串包裹，注入的 span 文本来自原 DOM 文本，
+ * 关键架构决策（修复"高亮用一次就消失"）：
+ *  - 旧实现用 dangerouslySetInnerHTML 渲染原文，再在 useEffect 里手动 replaceChildren 注入 span。
+ *    这会让 React 记录的 __html 与真实 DOM 失同步：任何把 html 引用换掉的重渲染都会把 innerHTML
+ *    复位成原始 HTML，高亮被拆掉且不再回来。
+ *  - 新实现：在同一 effect 里计算出"已注入高亮的 HTML 字符串"，存进 state（highlighted），
+ *    由 React 通过 dangerouslySetInnerHTML 渲染这个 state。这样 React 真正拥有带 span 的 DOM，
+ *    重渲染永远不会把高亮拆没；词典未就绪时回落原始 html，就绪后自动出高亮。
+ *
+ * 安全边界：我们只对"已净化的文本节点"做子串包裹，注入的 span 文本来自原 DOM 文本，
  * 不引入任何外部输入；data-term 仅作查询键，由 GlossaryProvider 的 lookup 以受控词典查表。
  */
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { useGlossarySafe } from './glossary.context';
 import { TermPopover } from './TermPopover';
 
@@ -18,27 +26,26 @@ interface TermAwareHtmlProps {
 }
 
 export function TermAwareHtml({ html, className }: TermAwareHtmlProps) {
-  const ref = useRef<HTMLDivElement>(null);
   const ctx = useGlossarySafe();
   const termPattern = ctx?.termPattern ?? null;
   const lookup = ctx?.lookup ?? ((_: string) => undefined);
   const [active, setActive] = useState<{ term: string; rect: DOMRect } | null>(null);
+  // 已注入高亮的 HTML 存进 state，让 React 真正拥有带 span 的 DOM（重渲染不会拆没）。
+  const [highlighted, setHighlighted] = useState<string | null>(null);
 
   useEffect(() => {
-    const root = ref.current;
-    if (!root) return;
-    // 每个实例克隆独立正则（用 source 重建），杜绝 g 标志 lastIndex 跨实例污染；
-    // 这是"点一次后高亮消失"的根因之一：原本 termPattern 是 context 共享的同一 RegExp 对象。
     const re = termPattern ? new RegExp(termPattern.source, termPattern.flags) : null;
-    if (!re) return; // 词典未就绪：保留当前 DOM（不拆已有高亮）
-
+    if (!re) {
+      // 词典未就绪：回落原始 HTML（不渲染高亮，也不丢已有高亮）。
+      setHighlighted(null);
+      return;
+    }
     try {
-      // 在离屏克隆上处理：处理中途任何异常都不会破坏线上已渲染的高亮，
-      // 只有处理成功才整体换上带高亮的新结构（避免"拆了又没装上"导致正文空白）。
-      const work = root.cloneNode(true) as HTMLDivElement;
+      const host = document.createElement('div');
+      host.innerHTML = html;
 
-      // 还原克隆里已有的 term-link，避免重复包裹（html 变化重渲染时）。
-      work.querySelectorAll('span.term-link').forEach((el) => {
+      // 先还原已有 term-link（避免重复包裹 / 二次注入）。
+      host.querySelectorAll('span.term-link').forEach((el) => {
         const parent = el.parentNode;
         if (parent) {
           parent.replaceChild(document.createTextNode(el.textContent ?? ''), el);
@@ -47,7 +54,7 @@ export function TermAwareHtml({ html, className }: TermAwareHtmlProps) {
       });
 
       // 收集需要处理的文本节点（含词典词）。
-      const walker = document.createTreeWalker(work, NodeFilter.SHOW_TEXT);
+      const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
       const textNodes: Text[] = [];
       let n: Node | null;
       while ((n = walker.nextNode())) {
@@ -88,12 +95,14 @@ export function TermAwareHtml({ html, className }: TermAwareHtmlProps) {
         }
       }
 
-      // 处理成功，整体换上带高亮的新结构。
-      root.replaceChildren(...Array.from(work.childNodes));
+      setHighlighted(host.innerHTML);
     } catch {
-      // 任何异常都保持原样（原高亮仍在），不把正文拆没。
+      // 任何异常都回落原始 HTML（至少正文可见）。
+      setHighlighted(null);
     }
   }, [html, termPattern, lookup]);
+
+  const display = highlighted ?? html;
 
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
     const target = (e.target as HTMLElement).closest('.term-link') as HTMLElement | null;
@@ -111,10 +120,9 @@ export function TermAwareHtml({ html, className }: TermAwareHtmlProps) {
   return (
     <>
       <div
-        ref={ref}
         className={className}
         onClick={onClick}
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: display }}
       />
       {active && (
         <TermPopover term={active.term} anchor={active.rect} onClose={() => setActive(null)} />
