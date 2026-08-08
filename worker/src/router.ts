@@ -30,6 +30,7 @@ import {
 import {
   listQuestions,
   listTopicQuestions,
+  getQuestion,
   gradeAnswer,
   aiGrade,
   getSqlExercise,
@@ -118,6 +119,7 @@ export const routes: Route[] = [
   { method: 'POST', path: '/api/v1/admin/import/content', admin: true, handler: importContent },
 
   // Phase 2 题库 / SQL 实训（题面与答案分离，防缓存泄露 R6）
+  { method: 'GET', path: '/api/v1/quiz/questions/:id', handler: getQuestion },
   { method: 'GET', path: '/api/v1/quiz/questions', handler: listQuestions },
   { method: 'GET', path: '/api/v1/quiz/topic-questions', handler: listTopicQuestions },
   { method: 'POST', path: '/api/v1/quiz/grade', middlewares: [trace, security, writeLimit(), validate], handler: gradeAnswer, noAuth: true },

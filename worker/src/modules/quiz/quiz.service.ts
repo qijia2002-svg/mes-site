@@ -22,6 +22,18 @@ export async function listQuestionsSvc(c: Ctx, chapterId: number) {
   }));
 }
 
+/** 单题深链（不含答案，DTO 白名单） */
+export async function getQuestionSvc(c: Ctx, id: number) {
+  const r = await quizRepo.getQuestion(c.db, id);
+  if (!r) return null;
+  return {
+    id: r.id,
+    type: r.type,
+    stem: r.stem,
+    options: parseJson(r.options) as string[],
+  };
+}
+
 /** 模块汇总：按 topic 查所有章节的题目（不含答案） */
 export async function listTopicQuestionsSvc(c: Ctx, topicId: number) {
   const rows = await quizRepo.listQuestionsByTopic(c.db, topicId);

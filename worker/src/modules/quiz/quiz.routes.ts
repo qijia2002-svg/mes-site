@@ -28,6 +28,15 @@ export async function gradeAnswer(c: Ctx): Promise<Response> {
   return ok(c, result);
 }
 
+/** GET /api/v1/quiz/questions/:id — 单题深链（不含答案） */
+export async function getQuestion(c: Ctx): Promise<Response> {
+  const id = Number(c.params.id);
+  if (!Number.isInteger(id)) return fail(c, Err.paramMissing());
+  const d = await svc.getQuestionSvc(c, id);
+  if (!d) return fail(c, Err.notFound());
+  return ok(c, d);
+}
+
 /** GET /api/v1/sql-exercises/:id — SQL 实训题（不含答案） */
 export async function getSqlExercise(c: Ctx): Promise<Response> {
   const id = Number(c.params.id);

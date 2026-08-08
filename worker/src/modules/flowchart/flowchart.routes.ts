@@ -51,6 +51,7 @@ export async function getFlowchart(c: Ctx): Promise<Response> {
       type: r.res_type,
       refId: r.ref_id,
       title: r.title,
+      sort: r.sort,
     })),
   });
 }

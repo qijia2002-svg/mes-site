@@ -63,6 +63,13 @@ export const quizRepo = {
       cursor,
     ),
 
+  /** 单题深链（**不含 answer**，R6 防泄露）；工厂全景节点内嵌测验用 */
+  getQuestion: (db: DbSession, id: number) =>
+    db.first<QuestionRow>(
+      `SELECT id, chapter_id, type, stem, options FROM questions WHERE id = ?1`,
+      id,
+    ),
+
   /** 答案校验专用：查 answer + explanation + options（R6 例外：仅在服务端校验逻辑内使用，不通过 API 下发） */
   getAnswer: (db: DbSession, id: number) =>
     db.first<{ id: number; type: string; answer: string; explanation: string; options: string }>(
