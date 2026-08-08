@@ -88,6 +88,14 @@ export const SYSTEMS: { id: string; name: string; icon: IconName; role: string; 
 export type LaidNode = FlowNodeDTO & { phase: Phase };
 
 /**
+ * 「什么算实战」的全项目单点定义：非 chapter 的资源即实战入口。
+ * 完成度语义（C1：只认动手练）依赖它——要改判据只改这一处，不要在组件里各写各的。
+ */
+export function practicesOf(res: NodeResourceDTO[]): NodeResourceDTO[] {
+  return res.filter((r) => r.type !== 'chapter');
+}
+
+/**
  * 按最长路径算深度，把节点切成「步骤」。深度相同 = 流程上并行的分支。
  * 有环或数据异常时回退为「按输入顺序每个节点一步」，保证永远能渲染。
  */

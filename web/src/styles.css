@@ -2192,3 +2192,236 @@ body,
   .reveal { opacity: 1; transform: none; }
   .skeleton { animation: none; background: var(--surface-3); }
 }
+
+/* ==========================================================================
+   工厂节点抽屉 .nd-*（features/factory/NodeDrawer.tsx）
+   形态由 JS 的 matchMedia 定档，CSS 只负责各档的位置与位移方向：
+     .nd-side     ≥1024   右侧 min(420px,38vw)，non-modal，无遮罩，可继续点地图
+     .nd-overlay  768–1023 右侧 420px + 遮罩
+     .nd-sheet    <768    底部 86vh + 遮罩（body 滚动由 JS 锁）
+   只动 transform + opacity；reduced-motion 降为纯 opacity（见文末覆盖）。
+   ========================================================================== */
+.nd-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-modal) - 1);
+  background: var(--app-scrim);
+  opacity: 0;
+  transition: opacity var(--motion-slow) var(--ease-standard);
+}
+.nd-scrim.is-open { opacity: 1; }
+
+.nd {
+  position: fixed;
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  box-shadow: var(--elev-modal);
+  transition:
+    transform var(--motion-slow) var(--ease-standard),
+    opacity var(--motion-slow) var(--ease-standard);
+}
+
+.nd-side,
+.nd-overlay {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+}
+.nd-side { width: min(420px, 38vw); }
+.nd-overlay { width: 420px; max-width: 94vw; }
+.nd-side.is-open,
+.nd-overlay.is-open { transform: translateX(0); }
+
+.nd-sheet {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 86vh;
+  border-top: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  transform: translateY(100%);
+}
+.nd-sheet.is-open { transform: translateY(0); }
+
+/* ── 抽屉头 ── */
+.nd-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--border-soft);
+}
+.nd-mark {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--fg-2);
+}
+.nd-title { min-width: 0; flex: 1; }
+.nd-title h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-announce-cjk);
+  letter-spacing: var(--tracking-title);
+  line-height: var(--leading-snug);
+}
+.nd-title h2:focus { outline: none; }
+.nd-sub {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+.nd-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--radius-pill);
+}
+.nd-sep { color: var(--border-strong); }
+.nd-ok { color: var(--success); font-weight: var(--weight-emph-cjk); }
+.nd-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+.nd-close:hover {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--fg);
+}
+
+/* ── 抽屉主体 ── */
+.nd-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-5);
+  -webkit-overflow-scrolling: touch;
+}
+.nd-sec { margin-bottom: var(--space-6); }
+.nd-sec:last-child { margin-bottom: 0; }
+.nd-sec-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.nd-sec-h .caps { color: var(--meta); }
+.nd-count { font-size: var(--text-xs); color: var(--meta); }
+.nd-know {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: var(--text-base);
+  line-height: var(--leading-prose);
+}
+.nd-chips { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.nd-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--tag-bg);
+  border: 1px solid var(--tag-border);
+  color: var(--tag-fg);
+  font-size: var(--text-xs);
+}
+
+/* ── 实战入口行 ── */
+.nd-drill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: left;
+  text-decoration: none;
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+.nd-drill + .nd-drill { margin-top: var(--space-2); }
+.nd-drill:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.nd-di { flex: none; display: flex; color: var(--muted); }
+.nd-drill:hover .nd-di { color: var(--accent); }
+.nd-dtx { min-width: 0; flex: 1; }
+.nd-dl {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-emph-cjk);
+  color: var(--fg);
+}
+.nd-dk { display: block; margin-top: 1px; font-size: var(--text-xs); color: var(--meta); }
+.nd-dgo { flex: none; margin-left: auto; display: flex; color: var(--border-strong); }
+.nd-drill:hover .nd-dgo { color: var(--accent); }
+.nd-drill.is-done { background: var(--surface-2); }
+.nd-drill.is-done .nd-dl { color: var(--muted); }
+.nd-drill.is-done .nd-dgo { color: var(--success); }
+
+/* ── 上/下一环节 ── */
+.nd-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface-2);
+}
+.nd-step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  max-width: 48%;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+.nd-step span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nd-step:hover:not(:disabled) { color: var(--accent); border-color: var(--accent-border); }
+.nd-step:disabled { opacity: 0.45; cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nd { transform: none !important; opacity: 0; }
+  .nd.is-open { opacity: 1; }
+}

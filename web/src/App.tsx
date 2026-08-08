@@ -22,6 +22,10 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const DictionaryPage = lazy(() => import('./pages/DictionaryPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+// v13 拆壳：搭建器恢复独立路由，课程/路径/职业各自成页，/factory 只画工厂全景。
+const SimulatorPage = lazy(() => import('./features/simulator/SimulatorPage'));
+const LearningPathsPage = lazy(() => import('./pages/LearningPathsPage'));
+const CareerPage = lazy(() => import('./pages/CareerPage'));
 
 export default function App() {
   return (
@@ -34,13 +38,13 @@ export default function App() {
             <AppShell>
               <Suspense fallback={<LoadingState label="加载页面…" />}>
                 <Routes>
-                  {/* 融合重构：单一「工厂」主壳。旧入口重定向兼容 */}
+                  {/* /factory 只干一件事：工厂全景。其余各自独立成页，不再塞进双层 Tab */}
                   <Route path="/" element={<Navigate to="/factory" replace />} />
                   <Route path="/factory" element={<FactoryPage />} />
                   <Route path="/engine" element={<Navigate to="/factory" replace />} />
-                  <Route path="/roadmap" element={<Navigate to="/factory?view=career" replace />} />
-                  <Route path="/learning-paths" element={<Navigate to="/factory?view=paths" replace />} />
-                  <Route path="/simulator" element={<Navigate to="/factory?mode=build" replace />} />
+                  <Route path="/simulator" element={<SimulatorPage />} />
+                  <Route path="/learning-paths" element={<LearningPathsPage />} />
+                  <Route path="/roadmap" element={<CareerPage />} />
                   <Route path="/tracks/:slug" element={<TrackDetailPage />} />
                   <Route path="/courses" element={<CoursesPage />} />
                   <Route path="/courses/:topicId" element={<CourseDetailPage />} />

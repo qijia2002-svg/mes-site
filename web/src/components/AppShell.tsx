@@ -111,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </NavLink>
             </li>
             <li>
-              <NavLink to="/factory?mode=build" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
+              <NavLink to="/simulator" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
                 <Icon name="routing" size={20} className="nav-glyph" />
                 <span className="nav-label">工厂搭建</span>
               </NavLink>
@@ -189,7 +189,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <nav className="mobile-tabbar only-mobile" aria-label="主导航">
         {[
           { to: '/factory', label: '工厂', icon: 'factory' as IconName },
-          { to: '/factory?mode=build', label: '搭建', icon: 'routing' as IconName },
+          { to: '/simulator', label: '搭建', icon: 'routing' as IconName },
           { to: '/sql-space', label: 'SQL', icon: 'sql' as IconName },
           { to: '/dictionary', label: '名称翻译', icon: 'dictionary' as IconName },
           { to: '/profile', label: '我的', icon: 'user' as IconName },
