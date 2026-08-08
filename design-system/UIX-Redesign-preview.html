@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UIX-Redesign-v1 · 预览</title>
+<style>
+  :root{
+    /* v3 真源 token（design-tokens.css） */
+    --accent:#547C70; --accent-on:#fff; --bg:#F3F3E9; --ink:#2d3a33;
+    --surface:#ffffff; --meta:#6b7d74; --border-soft:#e2e6e1;
+    --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    /* 本 redesign 提案新增（§B） */
+    --state-hover-bg: color-mix(in srgb, var(--accent) 8%, var(--surface));
+    --state-active-bg: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    --state-focus-ring: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+    --state-disabled-opacity:.45;
+    --radius-sm:8px; --radius:12px;
+    --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px;
+    --font-display:'Archivo Variable','Noto Sans SC Variable','Noto Sans SC',system-ui,sans-serif;
+    --text-sm:13px; --text-base:15px; --text-lg:18px; --text-xl:20px;
+    /* Motion3（禁用 bounce） */
+    --motion-fast150:150ms; --motion-base220:220ms; --motion-slow320:320ms;
+    --ease-out:cubic-bezier(.16,1,.3,1); --ease-standard:cubic-bezier(.4,0,.2,1);
+    --dur-micro:var(--motion-fast150); --dur-state:var(--motion-base220);
+    --shadow-hover:0 1px 2px rgba(45,58,51,.06),0 4px 12px rgba(45,58,51,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-display);
+    font-size:var(--text-base);line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:960px;margin:0 auto;padding:var(--space-5) var(--space-5) 80px;}
+  header.top{padding:var(--space-5) 0;border-bottom:1px solid var(--border-soft);margin-bottom:var(--space-5);}
+  .brand{display:flex;align-items:center;gap:var(--space-3);}
+  .brand-logo{width:40px;height:40px;border-radius:10px;background:var(--accent);color:var(--accent-on);
+    display:grid;place-items:center;}
+  h1{font-size:26px;margin:0;font-weight:700;letter-spacing:-.01em}
+  .sub{color:var(--meta);font-size:var(--text-sm);margin-top:2px}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:var(--space-4)}
+  .badge{font-size:11px;padding:3px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);
+    border:1px solid color-mix(in srgb,var(--accent) 22%,transparent)}
+  section{margin:42px 0}
+  h2{font-size:var(--text-xl);margin:0 0 var(--space-4);display:flex;align-items:center;gap:10px}
+  h2 .idx{width:26px;height:26px;border-radius:7px;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:13px}
+  .grid{display:grid;gap:var(--space-4);grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .swatch{border:1px solid var(--border-soft);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+  .swatch .chip{height:64px}
+  .swatch .meta{padding:10px 12px;font-size:12px}
+  .swatch .meta b{display:block;font-size:13px;margin-bottom:2px}
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+
+  /* 按钮（§C.2） */
+  .btn{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:var(--text-base);
+    padding:9px 16px;border-radius:var(--radius-sm);border:1px solid transparent;cursor:pointer;
+    transition:background-color var(--dur-micro) var(--ease-standard),
+               transform var(--dur-micro) var(--ease-standard),
+               box-shadow var(--dur-micro) var(--ease-standard),
+               border-color var(--dur-micro) var(--ease-standard);}
+  .btn:focus-visible{outline:none;box-shadow:var(--state-focus-ring)}
+  .btn-primary{background:var(--ink);color:#fff}
+  .btn-primary:hover{background:color-mix(in srgb,var(--ink) 88%,#000)}
+  .btn-primary:active{transform:translateY(1px)}
+  .btn-secondary{background:transparent;color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+  .btn-secondary:hover{background:var(--state-hover-bg)}
+  .btn-secondary:active{transform:translateY(1px)}
+  .btn-ghost{background:transparent;color:var(--meta)}
+  .btn-ghost:hover{background:var(--state-hover-bg);color:var(--ink)}
+  .btn[disabled]{opacity:var(--state-disabled-opacity);cursor:not-allowed}
+
+  /* 导航项（§C.2 左条形变） */
+  .nav{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:8px}
+  .nav-item{position:relative;display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:var(--radius-sm);
+    color:var(--meta);text-decoration:none;font-size:var(--text-base);
+    transition:background-color var(--dur-micro) var(--ease-standard),color var(--dur-micro) var(--ease-standard)}
+  .nav-item::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2px;border-radius:2px;
+    background:var(--accent);transform:scaleY(0);transform-origin:center;transition:transform var(--dur-micro) var(--ease-out)}
+  .nav-item:hover{background:var(--state-hover-bg);color:var(--ink)}
+  .nav-item.is-active{color:var(--accent);background:var(--accent-soft)}
+  .nav-item.is-active::before{transform:scaleY(1)}
+
+  /* 卡片 hover（§D.2） */
+  .card{border:1px solid var(--border-soft);border-radius:var(--radius);background:var(--surface);padding:var(--space-4);
+    transition:background-color var(--dur-micro) var(--ease-standard),box-shadow var(--dur-micro) var(--ease-standard),
+               transform var(--dur-micro) var(--ease-standard)}
+  .card:hover{background:var(--state-hover-bg);box-shadow:var(--shadow-hover);transform:translateY(-2px)}
+  .card h3{margin:0 0 4px;font-size:var(--text-lg)}
+  .card p{margin:0;color:var(--meta);font-size:var(--text-sm)}
+
+  /* 图标（锁定 SVG，替换 🔒） */
+  .icon{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .icon.s16{width:16px;height:16px}.icon.s24{width:24px;height:24px}
+
+  /* Before / After（§F 根除 🔒 债） */
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+  .ba .card{position:relative}
+  .ba .tag{position:absolute;top:10px;right:10px;font-size:10px;padding:2px 8px;border-radius:999px}
+  .tag.before{background:#fbeaea;color:#b4452f;border:1px solid #ecc9c0}
+  .tag.after{background:var(--accent-soft);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent)}
+  .row{display:flex;align-items:center;gap:8px;font-size:var(--text-sm)}
+  .row.bad{color:#b4452f}.row.good{color:var(--accent)}
+
+  /* 进度填充（§C.5） */
+  .track{height:8px;border-radius:999px;background:var(--border-soft);overflow:hidden;margin-top:10px}
+  .fill{height:100%;width:0;background:var(--accent);border-radius:999px;
+    transition:width var(--motion-base220) var(--ease-standard)}
+  .fill.on{width:72%}
+
+  /* 揭示（§C.4） */
+  .reveal{opacity:0;transform:translateY(8px);
+    transition:opacity var(--motion-slow320) var(--ease-out),transform var(--motion-slow320) var(--ease-out)}
+  .reveal.in{opacity:1;transform:none}
+
+  table.gap{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);overflow:hidden}
+  table.gap th,table.gap td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border-soft);vertical-align:top}
+  table.gap th{background:var(--accent-soft);color:var(--accent);font-weight:600}
+  table.gap tr:last-child td{border-bottom:none}
+  .foot{margin-top:48px;padding-top:var(--space-4);border-top:1px solid var(--border-soft);color:var(--meta);font-size:12px}
+  a{color:var(--accent)}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
+      transition-duration:.001ms!important;scroll-behavior:auto!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/></svg>
+      </div>
+      <div>
+        <h1>UIX-Redesign v1 · 预览</h1>
+        <div class="sub">MES 实训平台整体 UI/UX 重新设计 · 高级现代化 · 强互动感 · doc-only</div>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge">P0 守红线</span>
+      <span class="badge">禁 emoji 图标</span>
+      <span class="badge">禁紫粉渐变</span>
+      <span class="badge">禁裸 hex</span>
+      <span class="badge">禁 bounce 缓动</span>
+      <span class="badge">reduced-motion 友好</span>
+    </div>
+  </header>
+
+  <section>
+    <h2><span class="idx">A</span>品牌 Token 板（森绿学术 · v3 真源）</h2>
+    <div class="grid">
+      <div class="swatch"><div class="chip" style="background:var(--accent)"></div>
+        <div class="meta"><b>--accent</b><span class="mono">#547C70</span> 低饱和森绿 · 唯一品牌锚点</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--bg)"></div>
+        <div class="meta"><b>--bg</b><span class="mono">#F3F3E9</span> 暖米底</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--ink)"></div>
+        <div class="meta"><b>--ink</b><span class="mono">#2d3a33</span> 深墨绿文字</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--surface)"></div>
+        <div class="meta"><b>--surface</b> 卡片/面板底</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--accent-soft)"></div>
+        <div class="meta"><b>--accent-soft</b> 提案：accent 10% 叠底</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--state-hover-bg)"></div>
+        <div class="meta"><b>--state-hover-bg</b> 提案：交互态</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="idx">C</span>微交互（§C.2 · 纯 CSS，零依赖）</h2>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+      <button class="btn btn-primary">主按钮 <svg class="icon"><path d="m9 6 6 6-6 6"/></svg></button>
+      <button class="btn btn-secondary">次按钮</button>
+      <button class="btn btn-ghost">幽灵按钮</button>
+      <button class="btn btn-primary" disabled>禁用态</button>
+    </div>
+    <div class="nav" style="margin-bottom:20px">
+      <a class="nav-item" href="#">首页</a>
+      <a class="nav-item is-active" href="#">学习中心</a>
+      <a class="nav-item" href="#">课程体系</a>
+      <a class="nav-item" href="#">职业路径</a>
+    </div>
+    <div class="grid">
+      <div class="card"><h3>阶段卡</h3><p>hover 上抬 + 极轻阴影（Hairline First）</p></div>
+      <div class="card"><h3>课程行</h3><p>锁定态 opacity .45，标识走图标</p></div>
+      <div class="card"><h3>KPI 卡</h3><p>数字滚动 + 进度环过渡</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="idx">D</span>图标替换 · 🔒 → Lock（§D.3 根除 P0 债）</h2>
+    <div class="ba">
+      <div class="card">
+        <span class="tag before">BEFORE · 违规</span>
+        <div class="row bad" style="margin-top:14px"><span style="font-size:20px">🔒</span> 需先完成：前置课程 A → B</div>
+        <div class="row bad" style="margin-top:10px"><span style="font-size:20px">🔒</span> 阶段卡「未解锁」</div>
+        <div class="row bad" style="margin-top:10px"><span style="font-size:20px">🔒</span> 操作位禁用态</div>
+        <p style="margin-top:12px;color:#b4452f">emoji 当功能图标 = 违反 P0-1</p>
+      </div>
+      <div class="card">
+        <span class="tag after">AFTER · 合规</span>
+        <div class="row good" style="margin-top:14px"><svg class="icon"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 需先完成：前置课程 A → B</div>
+        <div class="row good" style="margin-top:10px"><svg class="icon"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 阶段卡「未解锁」</div>
+        <div class="row good" style="margin-top:10px"><svg class="icon"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 操作位禁用态</div>
+        <p style="margin-top:12px;color:var(--accent)">统一走锁定 SVG 库（lucide Lock · 需架构师注册 lock）</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="idx">C</span>状态变更 / 揭示动效（§C.4 / §C.5）</h2>
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span>学习进度</span><b>72%</b></div>
+      <div class="track"><div class="fill" id="pfill"></div></div>
+      <p style="margin-top:8px;color:var(--meta);font-size:12px">进度填充走 --ease-standard，禁 bounce</p>
+    </div>
+    <div class="reveal" id="reveal">
+      <div class="card"><h3>滚动揭示卡片</h3><p>入场位移仅 8px / 320ms / --ease-out，克制不浮夸；reduced-motion 下静止</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="idx">F</span>Before / After 差距（节选）</h2>
+    <table class="gap">
+      <tr><th>维度</th><th>现状</th><th>提案</th></tr>
+      <tr><td>功能图标</td><td>EnginePage.tsx:224/250/336 用 🔒 emoji</td><td>三处统一 &lt;Icon name="lock"&gt;</td></tr>
+      <tr><td>动效库</td><td>零库，互动克制</td><td>纯 CSS + useInView/useCountUp（零依赖）</td></tr>
+      <tr><td>路由转场</td><td>&lt;Navigate&gt; 闪切</td><td>View Transitions 形变</td></tr>
+      <tr><td>交互态</td><td>散落 :hover</td><td>--state-* token 统一</td></tr>
+    </table>
+  </section>
+
+  <div class="foot">
+    本预览为 UIX-Redesign-v1.md 的可视化演示（单文件 HTML，未改动项目源码）。完整规范见
+    <a href="UIX-Redesign-v1.md">design-system/UIX-Redesign-v1.md</a>。动效全部尊重 prefers-reduced-motion。
+  </div>
+</div>
+<script>
+  // 进度填充 + 揭示：用原生 IntersectionObserver（§C.4），零库
+  addEventListener('load',()=>{
+    setTimeout(()=>document.getElementById('pfill').classList.add('on'),200);
+    const io=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in')}),{threshold:.2});
+    io.observe(document.getElementById('reveal'));
+  });
+</script>
+</body>
+</html>
