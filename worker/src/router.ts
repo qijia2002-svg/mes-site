@@ -7,7 +7,7 @@ import { auth, guardAdmin, guardAll } from './middleware/auth';
 import { validate } from './middleware/validate';
 import { loginRateLimit, ratelimit } from './middleware/ratelimit';
 
-import { healthHandler } from './modules/health';
+import { healthHandler, netinfoHandler } from './modules/health';
 import { listTopics, getTopic, listChapters, getChapter } from './modules/content/content.routes';
 import { loginHandler, logoutHandler, whoamiHandler } from './modules/auth/auth.routes';
 import { recordProgress, listProgress, todayProgress } from './modules/progress/progress.routes';
@@ -75,6 +75,11 @@ const aiLimit = ratelimit({ key: (c) => c.req.headers.get('cf-connecting-ip') ??
 
 export const routes: Route[] = [
   { method: 'GET', path: '/api/v1/health', handler: healthHandler, noAuth: true },
+
+  // 网络自检页：手机打不开站点时，用能打开的入口访问这里看实际连接信息。
+  // 刻意不挂 security——地址栏直接访问是导航请求，不带 Origin，同源校验会
+  // 直接拒掉，那这页就永远打不开了。只读连接元数据，不碰 DB、不出业务数据。
+  { method: 'GET', path: '/api/v1/netinfo', middlewares: [trace, validate], handler: netinfoHandler, noAuth: true },
 
   // 认证：登录/登出/身份查询
   {
