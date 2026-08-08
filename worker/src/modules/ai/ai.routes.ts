@@ -99,8 +99,9 @@ export async function studyTip(c: Ctx): Promise<Response> {
  *
  * 设计：
  *  - 默认需登录（auth 管线），以便读取云端词典（D1）。
- *  - 云端词典优先：D1 命中即返回，即时、稳定、零 AI 成本（覆盖「名称翻译」全部词条）。
- *  - AI 调用失败或返回无法解析 → 退化到通用兜底提示，绝不让前端报错（与 study-tip 一致）。
+ *  - 云端词典优先：D1 命中即返回，即时、稳定、零 AI 成本（覆盖绝大多数行业缩写）。
+ *  - AI 兜底（生僻词）：解析结构化 JSON；解析失败时从自由文本抽取中文释义；
+ *    仍无则低温度重试一次；全部失败才退化到通用兜底提示——绝不让前端报错。
  */
 interface WordResult {
   word: string;
@@ -124,6 +125,28 @@ function extractJson(s: string): Partial<WordResult> | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * JSON 解析失败时的最后兜底：从模型的自由文本里抽取中文释义片段。
+ * 优先匹配「中文：xxx / 意思是 xxx / 指 xxx」等显式结构，否则取首个连续中文片段。
+ */
+function extractMeaningFromText(raw: string): string {
+  if (!raw) return '';
+  const text = raw
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/[#*`>]/g, ' ')
+    .replace(/[A-Za-z0-9_]+/g, ' '); // 去掉英文/数字，突出中文
+  const patterns = [
+    /(?:中文|释义|解释|含义|意思|说明)[：:]\s*([一-龥]{2,40})/,
+    /(?:意思是|即|指|表示)\s*([一-龥]{2,40})/,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) return m[1].trim();
+  }
+  const cn = text.match(/[一-龥]{4,40}/);
+  return cn ? cn[0].trim() : '';
 }
 
 function strOf(v: unknown, max = 120): string {
@@ -157,16 +180,32 @@ function toResult(word: string, raw: Partial<WordResult> | null): WordResult {
 
 function buildWordPrompt(word: string): string {
   return [
-    `你是 MES 数字化学习平台的英文词典助手。请解释英文单词"${word}"，优先结合数据库 / SQL / 编程场景（若适用）。`,
+    `你是 MES 数字化学习平台的英文词典助手。请解释英文单词或缩写"${word}"，优先结合数据库 / SQL / 编程 / 制造场景（若适用）。`,
     '只输出一个 JSON 对象，不要任何额外文字、不要 markdown 代码块。字段定义：',
     '- pos: 词性缩写，如 "v." "n." "prep." "conj." "adj." "adv."',
     '- zh: 简洁中文释义，不超过 30 个汉字',
-    '- example: 一句英文例句（尽量是 SQL / 编程用法），不超过 50 个字符',
+    '- example: 一句英文例句（尽量是 SQL / 编程 / 制造用法），不超过 50 个字符',
     '- exampleZh: 该例句的中文翻译，不超过 40 个汉字',
-    '- category: 2-4 字中文分类标签，如 "查询" "数据对象" "条件" "写入"',
+    '- category: 2-4 字中文分类标签，如 "查询" "数据对象" "条件" "写入" "制造" "质量"',
     '- detail: 一句中文详解，不超过 50 个汉字',
+    '重要：即使是极常见的英文单词（如 order、inventory、lead time），也必须给出它在数据库 / 制造 / SQL / 编程语境下最贴切的中文释义，不要说"太常见"或拒绝解释。',
     '示例：{"pos":"v.","zh":"从数据库中查询数据","example":"SELECT * FROM table","exampleZh":"从表中选择所有数据","category":"查询","detail":"SELECT 是数据库查询语句的关键字，用于从数据库中获取数据。"}',
   ].join('\n');
+}
+
+/** 调一次 Workers AI 并解析；返回 {parsed, raw}。 */
+async function callAiWord(c: Ctx, word: string, temperature: number): Promise<{ parsed: Partial<WordResult> | null; raw: string }> {
+  try {
+    const resp = await c.env.AI.run(MODEL, { prompt: buildWordPrompt(word), temperature });
+    const raw =
+      typeof (resp as { response?: unknown }).response === 'string'
+        ? (resp as { response: string }).response
+        : '';
+    return { parsed: extractJson(raw), raw };
+  } catch (e) {
+    c.log.error({ msg: 'ai explain-word failed', word, temperature, err: String(e) });
+    return { parsed: null, raw: '' };
+  }
 }
 
 export async function explainWord(c: Ctx): Promise<Response> {
@@ -178,7 +217,7 @@ export async function explainWord(c: Ctx): Promise<Response> {
   if (!wordRaw) return fail(c, Err.paramMissing());
   const word = wordRaw.slice(0, 40);
 
-  // 1) 云端词典优先（D1，即时、稳定、零 AI 成本）
+  // 1) 云端词典优先（D1，即时、稳定、零 AI 成本，覆盖绝大多数行业缩写）
   try {
     const hit = await dictRepo.findByValue(c.db, word);
     if (hit) {
@@ -196,20 +235,34 @@ export async function explainWord(c: Ctx): Promise<Response> {
     c.log.error({ msg: 'dict lookup failed', word, err: String(e) });
   }
 
-  // 2) 调 Workers AI 生成结构化解释（生僻词兜底）
-  try {
-    const resp = await c.env.AI.run(MODEL, { prompt: buildWordPrompt(word), temperature: 0.3 });
-    const raw =
-      typeof (resp as { response?: unknown }).response === 'string'
-        ? (resp as { response: string }).response
-        : '';
-    const parsed = extractJson(raw);
-    if (parsed) return ok(c, toResult(word, parsed));
-  } catch (e) {
-    c.log.error({ msg: 'ai explain-word failed', word, err: String(e) });
+  // 2) AI 兜底（生僻词）：先 0.1 温度，结构化解析失败再 0 温度重试
+  let parsed: Partial<WordResult> | null = null;
+  let rawText = '';
+  for (const temp of [0.1, 0]) {
+    const r = await callAiWord(c, word, temp);
+    rawText = r.raw || rawText;
+    if (r.parsed && (r.parsed.zh || r.parsed.example)) {
+      parsed = r.parsed;
+      break;
+    }
+  }
+  if (parsed && (parsed.zh || parsed.example)) return ok(c, toResult(word, parsed));
+
+  // 3) 自由文本兜底：模型没给 JSON 但说了中文释义
+  const freeZh = extractMeaningFromText(rawText);
+  if (freeZh) {
+    return ok(c, {
+      word,
+      pos: '',
+      zh: freeZh,
+      example: '',
+      exampleZh: '',
+      category: 'AI',
+      detail: '',
+    });
   }
 
-  // 3) 最终兜底：通用提示
+  // 4) 最终兜底：通用提示
   return ok(c, {
     word,
     pos: '',
