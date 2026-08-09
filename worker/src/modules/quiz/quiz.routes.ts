@@ -17,7 +17,11 @@ export async function listTopicQuestions(c: Ctx): Promise<Response> {
   return ok(c, await svc.listTopicQuestionsSvc(c, topicId));
 }
 
-/** POST /api/v1/quiz/grade — 答案校验（返回对错+解析，不下发正确答案直到提交后） */
+/**
+ * POST /api/v1/quiz/grade — 答案校验。
+ * 契约：**必须登录**，且只有真正提交作答才会拿到 correctAnswer + explanation
+ * （答错也给，错题反馈是教学动作）。列表/深链接口一律不含答案，这里是唯一出口。
+ */
 export async function gradeAnswer(c: Ctx): Promise<Response> {
   const body = ((await c.req.json().catch(() => ({}))) ?? {}) as Record<string, unknown>;
   const questionId = Number(body.question_id ?? body.questionId);

@@ -33,6 +33,9 @@ export const Err = {
   // 4xxx 业务规则
   draftHidden: () => new AppError(4001, 404, '内容不存在或尚未发布'),
   notFound: () => new AppError(4002, 404, '题目不存在'),
+  /** 拦住「用空内容覆盖已有正文」这类不可逆写入，要清空必须显式声明 */
+  refuseBlankOverwrite: (field: string) =>
+    new AppError(4003, 409, '拒绝用空内容覆盖已有正文', { field }),
   // 5xxx 依赖故障
   d1Overloaded: () => new AppError(5001, 503, '服务暂时不可用，请稍后重试'),
   budgetExceeded: () => new AppError(5002, 500, '请求过于复杂'),

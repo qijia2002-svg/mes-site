@@ -2,7 +2,7 @@
  * 内容后台：主题 CRUD + 章节管理 + Markdown/JSON 导入。
  * 零后端改动——全部 API 已就绪（updateTopic/deleteTopic/adminChapters/updateChapter/deleteChapter）。
  */
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
@@ -233,17 +233,46 @@ function ChapterEditForm({ topicId, chapter, onClose }: { topicId: number; chapt
   const [md, setMd] = useState('');
   const [chStatus, setChStatus] = useState(chapter?.status ?? 'published');
 
-  const detailQ = chapter ? useQuery({ queryKey: ['chapter', chapter.id], queryFn: () => api.chapter(chapter.id), enabled: !!chapter }) : null;
-  const [mdLoaded, setMdLoaded] = useState(false);
-  if (detailQ?.data && !mdLoaded) { setMd(detailQ.data.md); setMdLoaded(true); }
+  // 新建章没有历史正文要等，直接视为「已加载」
+  const [mdLoaded, setMdLoaded] = useState(!chapter);
+
+  /**
+   * 取正文走**后台**接口。三处坑一次性堵掉：
+   * 1) Hook 不能挂在三元里——新建/编辑必须走同一条 Hook 序列，用 enabled 控制发不发请求；
+   * 2) 必须用 api.adminChapter：公开接口对草稿章返回 null，正文会停在空串；
+   * 3) queryKey 与阅读页的 ['chapter', id] 分开，两边 DTO 形状不同，共用会互相污染缓存。
+   */
+  const detailQ = useQuery({
+    queryKey: ['admin-chapter', chapter?.id ?? 0],
+    queryFn: () => api.adminChapter(chapter!.id),
+    enabled: !!chapter,
+  });
+
+  useEffect(() => {
+    if (!mdLoaded && detailQ.data) {
+      setMd(detailQ.data.md ?? '');
+      setMdLoaded(true);
+    }
+  }, [detailQ.data, mdLoaded]);
 
   const saveMut = useMutation({
     mutationFn: () => {
       if (chapter) return api.updateChapter(chapter.id, { topic_id: topicId, title, sort: chapter.sort, status: chStatus, md_text: md, schema_version: 1 });
       return api.createChapter({ topic_id: topicId, title, sort: 99, status: chStatus, md_text: md, schema_version: 1 });
     },
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['admin-chapters', topicId] }); onClose(); },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin-chapters', topicId] });
+      if (chapter) {
+        void qc.invalidateQueries({ queryKey: ['admin-chapter', chapter.id] });
+        void qc.invalidateQueries({ queryKey: ['chapter', chapter.id] });
+      }
+      onClose();
+    },
   });
+
+  // 正文没到位就禁用保存：抢跑一次就把整章正文覆盖成空串，且不可撤销
+  const loadFailed = !!chapter && detailQ.isError;
+  const canSave = mdLoaded && !loadFailed && !saveMut.isPending;
 
   return (
     <div style={{ padding: 'var(--space-3)', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-2)' }}>
@@ -253,9 +282,16 @@ function ChapterEditForm({ topicId, chapter, onClose }: { topicId: number; chapt
       </div>
       <Field label="Markdown 正文"><textarea className="input" rows={8} value={md} onChange={(e) => setMd(e.target.value)} style={{ minHeight: 160, width: '100%', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', background: 'var(--code-bg)', color: 'var(--code-fg)', border: '1px solid var(--code-border)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-3)' }} /></Field>
       <div className="btn-row" style={{ marginTop: 'var(--space-2)' }}>
-        <button className="btn btn-primary btn-sm" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>{saveMut.isPending ? '保存中' : '保存'}</button>
+        <button className="btn btn-primary btn-sm" onClick={() => saveMut.mutate()} disabled={!canSave}>
+          {saveMut.isPending ? '保存中' : !mdLoaded ? '正文加载中…' : '保存'}
+        </button>
         <button className="btn btn-ghost btn-sm" onClick={onClose}>取消</button>
       </div>
+      {loadFailed && (
+        <p className="panel-fallback" style={{ color: 'var(--danger)' }}>
+          正文加载失败，已锁定保存以免覆盖原内容。请关闭重开或刷新页面。
+        </p>
+      )}
       {saveMut.isError && <ErrorState error={saveMut.error} />}
     </div>
   );

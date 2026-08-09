@@ -65,8 +65,13 @@ export async function listTopicQuestionsSvc(c: Ctx, topicId: number) {
  * 例如 options=["A","B","C","D"]、answer="1" 表示正确答案是 B。
  * 前端提交的是选项**文本**，因此这里先把索引映射回选项文本再比对；
  * 同时兼容 answer 直接存文本的老数据（opts.includes 命中即按文本比）。
+ *
+ * 下发口径（别再改回去）：**答完这一题**才给 correctAnswer + explanation，
+ * 答错也给——错题反馈是这个产品的教学价值本身。但「答完」的前提是登录，
+ * 下面这道闸是第二道防线：即使路由哪天被人误挂回 noAuth，服务层照样不吐答案。
  */
 export async function gradeAnswerSvc(c: Ctx, questionId: number, userAnswer: string) {
+  if (!c.auth?.sub) throw Err.unauthorized();
   const row = await quizRepo.getAnswer(c.db, questionId);
   if (!row) return null;
 
@@ -210,8 +215,10 @@ function parseAiResponse(raw: string): AiGradeResult {
  * AI 判读：用户写自由理解 → 调 Workers AI 评分。
  * 仅 open 题型可调用；reference_answer 从服务端读取，API 层不下发，避免泄题。
  * AI 调用失败时不抛错，返回兜底结果保证前端可用。
+ * 同 gradeAnswerSvc：必须登录——既读参考答案，又直接消耗 Workers AI 配额。
  */
 export async function aiGradeSvc(c: Ctx, questionId: number, userText: string): Promise<AiGradeResult | null> {
+  if (!c.auth?.sub) throw Err.unauthorized();
   const row = await quizRepo.getReference(c.db, questionId);
   if (!row || row.type !== 'open') return null;
 

@@ -372,6 +372,15 @@ export const api = {
   deleteTopic: (id: number) => apiDelete(`/api/v1/admin/topics/${id}`),
   adminChapters: (topicId: number) =>
     apiGet<Chapter[]>(`/api/v1/admin/chapters?topicId=${topicId}`),
+  /**
+   * 后台单章详情（含 md 正文）。**编辑器必须用这个，不能用公开的 api.chapter()**：
+   * 公开接口对 status !== 'published' 一律返回 null，草稿章拿不到正文，
+   * 编辑框会停在空串，一点保存就把正文清空写回去。列表接口的 DTO 也不带 md。
+   */
+  adminChapter: (id: number) =>
+    apiGet<{ id: number; topicId: number; title: string; sort: number; status: string; md: string; schemaVersion: number; updatedAt: number }>(
+      `/api/v1/admin/chapters/${id}`,
+    ),
   createChapter: (body: unknown) => apiPost('/api/v1/admin/chapters', body),
   updateChapter: (id: number, body: unknown) => apiPut(`/api/v1/admin/chapters/${id}`, body),
   deleteChapter: (id: number) => apiDelete(`/api/v1/admin/chapters/${id}`),

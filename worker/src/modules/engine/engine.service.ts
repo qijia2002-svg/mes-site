@@ -15,7 +15,7 @@
  *   ⊘ skipped     继承后主动跳过
  */
 import type { Ctx } from '../../core/context';
-import type { ChapterRow } from '../../data/repositories/chapter.repo';
+import type { ChapterLiteRow } from '../../data/repositories/chapter.repo';
 import { lpRepo } from '../../data/repositories/lp.repo';
 import { chapterRepo } from '../../data/repositories/chapter.repo';
 import { progressRepo } from '../../data/repositories/progress.repo';
@@ -81,17 +81,31 @@ function parseStages(s: string): { name: string; courses: number[] }[] {
   catch { return []; }
 }
 
+/**
+ * 章节缓存：一次批量灌满，后续 get() 只读内存。
+ *
+ * 早期实现是「每个话题查一次」，33 门课就是 33 条语句，叠加话题查询后
+ * 直接撞穿 DbSession 的 40 条预算 → 5002「请求过于复杂」500。
+ * 现在 preload 走 IN 批量，未命中的 get() 也只按需补一次批量，不再有循环查库。
+ */
 class ChapterCache {
-  cache = new Map<number, ChapterRow[]>();
+  cache = new Map<number, ChapterLiteRow[]>();
   constructor(private db: Ctx['db']) {}
-  async get(tid: number): Promise<ChapterRow[]> {
-    if (this.cache.has(tid)) return this.cache.get(tid)!;
-    const rows = await chapterRepo.listByTopic(this.db, tid);
-    this.cache.set(tid, rows);
-    return rows;
+  async get(tid: number): Promise<ChapterLiteRow[]> {
+    if (!this.cache.has(tid)) await this.preload([tid]);
+    return this.cache.get(tid) ?? [];
   }
   async preload(tids: number[]): Promise<void> {
-    await Promise.all([...new Set(tids)].map(id => this.get(id)));
+    const missing = [...new Set(tids)].filter(id => !this.cache.has(id));
+    if (missing.length === 0) return;
+    // 先占位空数组：没有章节的话题也要命中缓存，否则 get() 会反复回源
+    for (const id of missing) this.cache.set(id, []);
+    const rows = await chapterRepo.listChaptersByTopicIds(this.db, missing);
+    for (const r of rows) this.cache.get(r.topic_id)?.push(r);
+    // 续学锚点依赖 sort 升序；sort 相同时用 id 兜底保证稳定
+    for (const id of missing) {
+      this.cache.get(id)?.sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0) || a.id - b.id);
+    }
   }
 }
 
@@ -106,7 +120,7 @@ type TopicDoneMap = Map<number, { allDone: boolean }>;
 
 function computeCourseState(
   topic: TopicInfo,
-  chapters: ChapterRow[],
+  chapters: ChapterLiteRow[],
   completedChapterIds: Set<string>,
   skippedIds: Set<number>,
   firstPathName: string | undefined,
@@ -199,18 +213,17 @@ export async function computeEngineStatus(c: Ctx, body: EngineStatusBody): Promi
     for (const tid of tids) allTopicIds.add(tid);
   }
 
-  // 加载所有话题 + 章节
+  // 加载所有话题 + 章节（都必须批量：未选路径时 allTopicIds 是全库课程，
+  // 逐条查会瞬间超出 40 条语句预算，这是「课程页一直 500」的根因）
   const allTopics = new Map<number, TopicInfo>();
-  for (const tid of allTopicIds) {
-    const t = await chapterRepo.getTopicById(c.db, tid);
-    if (t) {
-      allTopics.set(tid, {
-        id: t.id, slug: t.slug, title: t.title, modules: parseModules(t.modules),
-        prerequisites: parseIds(t.prerequisites),
-        difficulty: t.difficulty || 'beginner',
-        estimatedHours: t.estimated_hours || 4,
-      });
-    }
+  const topicRows = await chapterRepo.listTopicsByIds(c.db, [...allTopicIds]);
+  for (const t of topicRows) {
+    allTopics.set(t.id, {
+      id: t.id, slug: t.slug, title: t.title, modules: parseModules(t.modules),
+      prerequisites: parseIds(t.prerequisites),
+      difficulty: t.difficulty || 'beginner',
+      estimatedHours: t.estimated_hours || 4,
+    });
   }
   await chapterCache.preload([...allTopicIds]);
 

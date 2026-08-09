@@ -126,13 +126,30 @@ export async function createChapterSvc(c: Ctx, b: Record<string, unknown>) {
   return { ok: true };
 }
 
+/**
+ * 更新章节。
+ *
+ * 这里有一条硬闸：**不允许用空正文覆盖已有正文**。
+ * 触发过一次真实事故——编辑器用公开接口取正文，草稿章拿回 null，输入框停在空串，
+ * 一点保存就把整章 md_text 写成 ''，且没有任何版本历史可回滚。
+ * 前端已经修好（改用 /admin/chapters/:id + 加载完成前禁用保存），
+ * 但这类「静默毁数据」不能只靠前端守，服务端必须也拒绝。
+ * 确实要清空时显式传 `allow_empty_md: true`。
+ */
 export async function updateChapterSvc(c: Ctx, id: number, b: Record<string, unknown>) {
+  const mdText = asStr(b.md_text);
+  if (mdText.trim() === '' && b.allow_empty_md !== true) {
+    const cur = await adminRepo.getChapter(c.db, id);
+    if (cur && asStr(cur.md_text).trim() !== '') {
+      throw Err.refuseBlankOverwrite('md_text');
+    }
+  }
   await adminRepo.updateChapter(c.db, id, {
     topic_id: asNum(b.topic_id),
     title: asStr(b.title),
     sort: asNum(b.sort),
     status: asStr(b.status, 'draft'),
-    md_text: asStr(b.md_text),
+    md_text: mdText,
     schema_version: asNum(b.schema_version, 1),
   });
   await adminRepo.bumpContentVersion(c.db);
