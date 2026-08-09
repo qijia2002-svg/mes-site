@@ -14,9 +14,11 @@ interface Props {
   activeNodeId?: string | null;
   bottleneckId?: string | null;
   edgeFlow?: Record<string, number>;
+  wip?: Record<string, number>;
+  congestedEdges?: string[];
 }
 
-export default function SimCanvas({ nodes, edges, selectedId, selectedEdgeId, connectingFrom, connectingPort, dispatch, activeNodeId, bottleneckId, edgeFlow }: Props) {
+export default function SimCanvas({ nodes, edges, selectedId, selectedEdgeId, connectingFrom, connectingPort, dispatch, activeNodeId, bottleneckId, edgeFlow, wip, congestedEdges }: Props) {
   // edgePairs 需要带节点的边对象，构造临时 state 形状（仅取用到字段）
   const pairs = edgePairs({ nodes, edges } as any);
 
@@ -63,12 +65,13 @@ export default function SimCanvas({ nodes, edges, selectedId, selectedEdgeId, co
             const isSel = selectedEdgeId === edge.id;
             const flow = edgeFlow?.[edge.id];
             const labelText = flow && flow > 0.5 ? String(Math.round(flow)) : edge.label ?? '';
+            const isCongested = congestedEdges?.includes(edge.id) ?? false;
             const lp = edgeLabelPos(from, to);
             return (
               <g key={edge.id} className="sim-edge-g">
                 <path
                   d={d}
-                  className={`sim-edge${edge.dashed ? ' is-dashed' : ''}${activeNodeId === from.id || activeNodeId === to.id ? ' is-flowing' : ''}${isSel ? ' is-selected' : ''}`}
+                  className={`sim-edge${edge.dashed ? ' is-dashed' : ''}${activeNodeId === from.id || activeNodeId === to.id ? ' is-flowing' : ''}${isSel ? ' is-selected' : ''}${isCongested ? ' is-congested' : ''}`}
                   markerEnd="url(#sim-arrow)"
                   onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SELECT_EDGE', id: edge.id }); }}
                 />
@@ -96,6 +99,7 @@ export default function SimCanvas({ nodes, edges, selectedId, selectedEdgeId, co
               isConnecting={isConnecting}
               isActive={isActive}
               isBottleneck={isBottleneck}
+              wipValue={wip?.[node.id] ?? 0}
               onSelect={() => dispatch({ type: 'SELECT', id: node.id })}
               onMove={(x, y) => dispatch({ type: 'MOVE_NODE', id: node.id, x, y })}
               onPortClick={(side) => {

@@ -16,6 +16,8 @@ import SimCanvas from './SimCanvas';
 import SimProps from './SimProps';
 import SimEdgeEditor from './SimEdgeEditor';
 import SimLog from './SimLog';
+import SimLevels from './SimLevels';
+import type { LevelContext } from './simLevelDefs';
 import type { SimRunState, SimNodeDef } from './simTypes';
 import { NODE_LIBRARY } from './simTypes';
 import { Icon } from '../../components/Icon';
@@ -30,7 +32,7 @@ function addCustomNodeDef(def: SimNodeDef) {
 
 const BASE_DELAY = 650; // 基础动画间隔(ms)
 
-const EMPTY_RUN: SimRunState = { active: false, activeNodeId: null, logs: [], metrics: null, progress: 0 };
+const EMPTY_RUN: SimRunState = { active: false, activeNodeId: null, logs: [], metrics: null, progress: 0, wip: {}, congestedEdges: [] };
 
 export default function SimulatorPage() {
   // 接住流程图节点传来的 ?from=<node.key>，把沙盒预载成「同一个通用工厂」的对应切片。
@@ -54,6 +56,9 @@ export default function SimulatorPage() {
     // 而非早期原型的离散制造示例线。保证用户在流程图和仿真间看到同一个工厂。
     return buildGenericFactory();
   });
+
+  // 训练关卡：当前选中的关卡（左侧 SimLevels 面板驱动，验收随最近一次仿真实时刷新）
+  const [activeLevelId, setActiveLevelId] = useState('connect');
 
   // 自动存档：工厂 / 产线拓扑变化时写回云端镜像（userData），下次进沙盒即恢复。
   // 首帧挂载不写——避免从流程节点 ?from= 进来就把已存的自定义工厂覆盖成通用工厂。
@@ -197,6 +202,8 @@ export default function SimulatorPage() {
       nodeOutflow: result.nodeOutflow,
       bottleneckId: result.bottleneckId,
       bottleneck: result.bottleneck,
+      wip: result.wip,
+      congestedEdges: result.congestedEdges,
     });
 
     for (let i = 0; i < result.order.length; i++) {
@@ -270,6 +277,14 @@ export default function SimulatorPage() {
       )}
       <div className="sim-body">
         <SimFactoryPanel state={state} dispatch={dispatch} />
+        <SimLevels
+          activeLevelId={activeLevelId}
+          onSelect={setActiveLevelId}
+          ctx={{ nodes, edges, metrics: run.metrics, bottleneck: run.bottleneck ?? null }}
+          onClear={() => dispatch({ type: 'CLEAR' })}
+          nodeCount={nodes.length}
+          edgeCount={edges.length}
+        />
         <SimPalette onCreate={handleAddNode} onCustomNode={addCustomNodeDef} scene={scene} onSceneChange={setScene} />
         <div className="sim-main">
           <SimCanvas
@@ -283,6 +298,8 @@ export default function SimulatorPage() {
             activeNodeId={run.activeNodeId}
             bottleneckId={run.bottleneckId}
             edgeFlow={run.edgeFlow}
+            wip={run.wip}
+            congestedEdges={run.congestedEdges}
           />
           {state.selectedEdgeId && selectedEdge ? (
             <SimEdgeEditor
@@ -336,7 +353,8 @@ export default function SimulatorPage() {
           </div>
           <div className="sim-kpi">
             <span className="sim-kpi-value">{run.metrics.leadTimeMin.toFixed(1)}</span>
-            <span className="sim-kpi-label">生产工时 (min)</span>
+            <span className="sim-kpi-label">理论加工工时 (min)</span>
+            <span className="sim-kpi-sub">不含排队/搬运/换型</span>
           </div>
           <div className="sim-kpi">
             <span className="sim-kpi-value" style={{ color: 'var(--warn)' }}>{run.bottleneck?.label ?? '—'}</span>

@@ -54,11 +54,12 @@ function buildLog(nodes: Props['nodes'], edges: Props['edges']): StaticLog[] {
   return logs;
 }
 
-function MetricRow({ label, value, accent }: { label: string; value: string; accent?: string }) {
+function MetricRow({ label, value, accent, hint }: { label: string; value: string; accent?: string; hint?: string }) {
   return (
     <div className="sim-metric">
       <span className="sim-metric-label">{label}</span>
       <span className="sim-metric-value" style={accent ? { color: accent } : undefined}>{value}</span>
+      {hint && <span className="sim-metric-hint">{hint}</span>}
     </div>
   );
 }
@@ -80,7 +81,7 @@ export default function SimLog({ nodes, edges, runLogs, running, metrics }: Prop
           <MetricRow label="不良" value={`${metrics.defective}`} accent="var(--warn)" />
           <MetricRow label="返工" value={`${metrics.reworked}`} />
           <MetricRow label="报废" value={`${metrics.scrapped}`} accent="var(--danger)" />
-          <MetricRow label="累计工时" value={`${metrics.leadTimeMin} 分`} />
+          <MetricRow label="理论加工工时" value={`${metrics.leadTimeMin} 分`} hint="仅各工序标准工时之和，不含排队/搬运/换型" />
         </div>
       )}
 

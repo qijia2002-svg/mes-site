@@ -85,7 +85,62 @@
 .sim-palette-item:hover { background: var(--surface-3); border-color: var(--accent-border); color: var(--fg); }
 .sim-palette-item:active { cursor: grabbing; }
 .sim-palette-name { flex: 1; }
-.sim-critical-mark { color: var(--warn); flex: none; }
+
+/* ---------- 左侧训练关卡面板 ---------- */
+.sim-levels {
+  width: 200px; flex: none;
+  border-right: 1px solid var(--border);
+  padding: var(--space-3); overflow-y: auto;
+  background: var(--surface-2);
+}
+.sim-levels-title {
+  font-size: var(--text-xs); font-weight: var(--weight-announce-cjk);
+  color: var(--fg); text-transform: uppercase; letter-spacing: var(--tracking-caps);
+  margin-bottom: var(--space-2);
+}
+.sim-levels-list { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sim-level-tab {
+  width: 100%; text-align: left; cursor: pointer;
+  padding: 6px 8px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface);
+  font-family: inherit; font-size: var(--text-sm); color: var(--fg-2);
+  transition: background var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+.sim-level-tab:hover { background: var(--surface-3); color: var(--fg); }
+.sim-level-tab.is-active { border-color: var(--accent-border); background: var(--surface-3); color: var(--fg); font-weight: var(--weight-announce-cjk); }
+.sim-level-brief { font-size: 11px; line-height: 1.45; color: var(--fg-2); margin: 0 0 var(--space-3); }
+.sim-level-constraints { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sim-level-constraints li { display: flex; align-items: flex-start; gap: 6px; font-size: 11px; color: var(--meta); line-height: 1.35; }
+.sim-level-constraints li svg { flex: none; margin-top: 1px; color: var(--accent); }
+.sim-level-checks {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: var(--space-2); margin-bottom: var(--space-3); background: var(--surface);
+}
+.sim-level-checks.is-pass { border-color: var(--success-border, var(--accent-border)); background: var(--surface-3); }
+.sim-level-checks-title { display: flex; align-items: center; gap: 6px; font-size: var(--text-sm); font-weight: var(--weight-announce-cjk); color: var(--fg); margin-bottom: 6px; }
+.sim-level-checks.is-pass .sim-level-checks-title { color: var(--success, var(--accent)); }
+.sim-level-check { display: flex; align-items: baseline; gap: 6px; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+.sim-level-check svg { flex: none; color: var(--meta); }
+.sim-level-check.is-ok { color: var(--fg); }
+.sim-level-check.is-ok svg { color: var(--success, var(--accent)); }
+.sim-level-check-label { flex: none; }
+.sim-level-detail { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--meta); }
+.sim-wip-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: var(--weight-announce);
+  color: #fff;
+  background: var(--danger);
+  border-radius: var(--radius-pill, 999px);
+  padding: 1px 6px;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
 
 /* 形状预览小图标 */
 .sim-shape-rect, .sim-shape-diamond, .sim-shape-oval, .sim-shape-storage {
@@ -201,6 +256,8 @@
 .sim-edge.is-flowing { stroke: var(--accent); stroke-width: 3; animation: edgeFlow 0.9s var(--ease-standard) infinite; }
 @keyframes edgeFlow { 0%, 100% { stroke-dashoffset: 0; } 50% { stroke-dashoffset: -12; } }
 .sim-edge.is-dashed.is-flowing { stroke: var(--warn); }
+.sim-edge.is-congested { stroke: var(--danger); stroke-width: 3.5; }
+.sim-edge.is-congested.is-flowing { animation: none; }
 
 /* ---------- 底部属性 ---------- */
 .sim-props {
@@ -276,6 +333,7 @@
 }
 .sim-metric-label { font-size: 10px; color: var(--meta); }
 .sim-metric-value { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: var(--weight-announce); color: var(--fg); }
+.sim-metric-hint { font-size: 9px; line-height: 1.3; color: var(--muted); }
 
 /* 底部运行进度条 */
 .sim-run-bar {
@@ -454,7 +512,7 @@
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 1024px) {
-  .sim-tasks { width: 160px; }
+  .sim-levels { width: 180px; }
   .sim-factory-panel { width: 180px; }
   .sim-log { width: 180px; }
 }
@@ -469,6 +527,7 @@
   .sim-canvas { min-height: 46vh; }
   .sim-factory-panel,
   .sim-palette,
+  .sim-levels,
   .sim-log {
     display: block;
     width: auto;

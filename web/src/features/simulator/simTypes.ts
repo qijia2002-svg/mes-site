@@ -156,6 +156,10 @@ export interface SimRunState {
   nodeInflow?: Record<string, number>;
   nodeOutflow?: Record<string, number>;
   bottleneckId?: string | null;
+  /** 在制堆积（WIP）：每节点一班清不掉的 backlog，瓶颈及上游节点有值 */
+  wip?: Record<string, number>;
+  /** 拥堵边：指向在制 > 0 节点的入边 id 列表 */
+  congestedEdges?: string[];
   /** C 档：瓶颈工序分析结果（产能最低的在制工序），供 KPI 卡片展示 */
   bottleneck?: import('./simEngine').SimBottleneck | null;
 }

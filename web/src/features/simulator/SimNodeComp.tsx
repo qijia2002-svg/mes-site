@@ -8,6 +8,7 @@ interface Props {
   isConnecting: boolean;
   isActive: boolean;
   isBottleneck?: boolean;
+  wipValue?: number;
   onSelect: () => void;
   onMove: (x: number, y: number) => void;
   onPortClick: (side: 'in' | 'out' | 'out2') => void;
@@ -20,7 +21,7 @@ const SHAPE_CLS: Record<SimShape, string> = {
   storage: 'sim-node-storage',
 };
 
-export default function SimNodeComp({ node, isSelected, isConnecting, isActive, isBottleneck, onSelect, onMove, onPortClick }: Props) {
+export default function SimNodeComp({ node, isSelected, isConnecting, isActive, isBottleneck, wipValue, onSelect, onMove, onPortClick }: Props) {
   const def = node.def ?? NODE_LIBRARY[node.nodeType];
   if (!def) return null;
 
@@ -55,6 +56,12 @@ export default function SimNodeComp({ node, isSelected, isConnecting, isActive, 
         {node.label}
         {def.critical && <Icon name="quality" size={16} className="sim-critical-mark" />}
       </span>
+
+      {wipValue && wipValue > 0 && (
+        <span className="sim-wip-badge" title={`在制堆积 ${wipValue} 件：本工序一班清不掉，前面工序只能堆料`}>
+          在制 {wipValue}
+        </span>
+      )}
 
       {/* IN ports */}
       {def.ports.in > 0 && (

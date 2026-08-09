@@ -27,7 +27,7 @@ export interface SimMetrics {
   defective: number; // 累计检验发现的不良
   reworked: number; // 回流返工数量
   scrapped: number; // 报废数量
-  leadTimeMin: number; // 累计标准工时
+  leadTimeMin: number; // 理论加工工时：仅各工序标准工时之和，不含排队/搬运/换型/检验等待。真实生产周期中排队常占 80% 以上，此值会严重偏小，切勿当成交期。
 }
 
 /** 仿真计划（拓扑序 + 回流映射 + 校验错误） */
@@ -241,6 +241,10 @@ export interface SimSimulateResult {
   nodeOutflow: Record<string, number>;
   bottleneck: SimBottleneck | null;
   bottleneckId: string | null;
+  /** 在制堆积（WIP）：每节点一班清不掉的 backlog；瓶颈及其上游会冒出数值，说明产能被最慢工序卡死 */
+  wip: Record<string, number>;
+  /** 拥堵边：指向在制 > 0 节点的入边，画布标红加粗 */
+  congestedEdges: string[];
 }
 
 function emptyMetrics(batch: number): SimMetrics {
@@ -255,7 +259,7 @@ function emptyMetrics(batch: number): SimMetrics {
 export function simulate(nodes: SimNode[], edges: SimEdge[], batch = DEFAULT_BATCH): SimSimulateResult {
   const plan = planSimulation(nodes, edges, batch);
   if (plan.errors.length) {
-    return { ok: false, errors: plan.errors, logs: [], order: [], metrics: emptyMetrics(batch), edgeFlow: {}, nodeInflow: {}, nodeOutflow: {}, bottleneck: null, bottleneckId: null };
+    return { ok: false, errors: plan.errors, logs: [], order: [], metrics: emptyMetrics(batch), edgeFlow: {}, nodeInflow: {}, nodeOutflow: {}, bottleneck: null, bottleneckId: null, wip: {}, congestedEdges: [] };
   }
 
   const inEdges = new Map<string, SimEdge[]>();
@@ -379,5 +383,26 @@ export function simulate(nodes: SimNode[], edges: SimEdge[], batch = DEFAULT_BAT
     }
   }
 
-  return { ok: true, errors: [], logs, order: plan.order, metrics, edgeFlow, nodeInflow, nodeOutflow, bottleneck, bottleneckId: bottleneck?.id ?? null };
+  // 在制堆积（WIP）：每节点一班清不掉的 backlog。瓶颈（产能最低）及其上游会冒出数值，
+  // 直观说明「非瓶颈开再快也没用」——产线吞吐被最慢工序卡死，前面的工序只能堆在制品。
+  const wip: Record<string, number> = {};
+  const congestedEdges: string[] = [];
+  for (const node of plan.order) {
+    const def = nodeDef(node);
+    if (!def || def.category === 'endpoint') { wip[node.id] = 0; continue; }
+    const cap = node.props.capacity && node.props.capacity > 0
+      ? node.props.capacity
+      : node.props.hours && node.props.hours > 0
+        ? 60 / node.props.hours
+        : Infinity;
+    const through = cap === Infinity ? Infinity : cap * SHIFT_HOURS;
+    const inflow = nodeInflow[node.id] ?? 0;
+    wip[node.id] = through === Infinity ? 0 : Math.max(0, Math.round(inflow - through));
+  }
+  const congestedNodeIds = new Set(Object.keys(wip).filter((k) => wip[k] > 0));
+  for (const e of edges) {
+    if (congestedNodeIds.has(e.to)) congestedEdges.push(e.id);
+  }
+
+  return { ok: true, errors: [], logs, order: plan.order, metrics, edgeFlow, nodeInflow, nodeOutflow, bottleneck, bottleneckId: bottleneck?.id ?? null, wip, congestedEdges };
 }
