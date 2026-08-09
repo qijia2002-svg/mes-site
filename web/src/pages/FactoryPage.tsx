@@ -9,7 +9,7 @@
  * 本文件只做壳与编排：拉数据 → 派生状态 → 交给 FactoryHeader / FactoryFlow / FactoryExtras。
  * 选中节点同步在 ?node=<key> 上，抽屉的开合就是 URL 的开合。
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
@@ -17,6 +17,7 @@ import { LoadingState } from '../components/StateBlock';
 import { api } from '../api/endpoints';
 import type { FlowNodeDTO, FlowStageDTO, NodeResourceDTO } from '../api/endpoints';
 import FactoryFlow from '../features/factory/FactoryFlow';
+import FactoryJourney from '../features/factory/FactoryJourney';
 import FactoryExtras from '../features/factory/FactoryExtras';
 import { DEFAULT_FLOW, PHASE_BY_KEY, buildSteps, type LaidNode, type Phase } from '../features/factory/factoryFlow.data';
 import { useNodeProgress } from '../features/factory/useNodeProgress';
@@ -164,6 +165,11 @@ export default function FactoryPage() {
   const stageProgress = useStageProgress(stages, nodes, resourcesByNode, isDone);
 
   const selectedKey = sp.get('node');
+
+  // 双模式：窄屏默认「旅程」（竖向单手浏览），宽屏默认「全景」（四泳道）。用户可随时切换。
+  const [view, setView] = useState<'journey' | 'panorama'>(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'journey' : 'panorama',
+  );
   const select = useCallback(
     (key: string | null) => {
       const next = new URLSearchParams(sp);
@@ -198,14 +204,70 @@ export default function FactoryPage() {
       {stageProgress.enabled && (
         <MainlineStepper stages={stageProgress.stages} onGoto={select} />
       )}
-      <FactoryFlow
-        nodes={nodes}
-        resourcesByNode={resourcesByNode}
-        isDone={isDone}
-        status={status}
-        selectedKey={selectedKey}
-        onSelect={select}
-      />
+
+      <div className="ff-viewbar">
+        <style>{`
+          .ff-viewbar{display:flex;align-items:center;gap:var(--space-3);margin:0 0 var(--space-5);
+            flex-wrap:wrap}
+          .ff-viewbar-lbl{font-size:var(--text-xs);color:var(--meta);letter-spacing:.04em}
+          .ff-seg{display:inline-flex;background:var(--surface);border:1px solid var(--border);
+            border-radius:var(--radius-pill);padding:3px}
+          .ff-seg-btn{display:inline-flex;align-items:center;gap:var(--space-1);min-height:36px;
+            padding:0 var(--space-4);border:0;background:none;font-family:inherit;font-size:var(--text-sm);
+            color:var(--muted);border-radius:var(--radius-pill);cursor:pointer;
+            transition:background var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard)}
+          .ff-seg-btn.is-on{background:var(--accent);color:#fff}
+          .ff-seg-btn:not(.is-on):active{background:var(--surface-2)}
+          @media(max-width:480px){
+            .ff-viewbar-lbl{display:none}
+            .ff-seg{flex:1}
+            .ff-seg-btn{flex:1;justify-content:center}
+          }
+        `}</style>
+        <span className="ff-viewbar-lbl">视图</span>
+        <div className="ff-seg" role="group" aria-label="切换工厂视图">
+          <button
+            type="button"
+            className={`ff-seg-btn${view === 'journey' ? ' is-on' : ''}`}
+            aria-pressed={view === 'journey'}
+            onClick={() => setView('journey')}
+          >
+            <Icon name="list" size={16} />
+            旅程
+          </button>
+          <button
+            type="button"
+            className={`ff-seg-btn${view === 'panorama' ? ' is-on' : ''}`}
+            aria-pressed={view === 'panorama'}
+            onClick={() => setView('panorama')}
+          >
+            <Icon name="columns" size={16} />
+            全景
+          </button>
+        </div>
+      </div>
+
+      {view === 'panorama' ? (
+        <FactoryFlow
+          nodes={nodes}
+          resourcesByNode={resourcesByNode}
+          isDone={isDone}
+          status={status}
+          selectedKey={selectedKey}
+          onSelect={select}
+        />
+      ) : (
+        <FactoryJourney
+          nodes={nodes}
+          stages={stages}
+          isDone={isDone}
+          status={status}
+          resourcesByNode={resourcesByNode}
+          selectedKey={selectedKey}
+          onSelect={select}
+        />
+      )}
       <FactoryExtras />
     </section>
   );

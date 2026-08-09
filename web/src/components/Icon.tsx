@@ -129,6 +129,9 @@ const REGISTRY = {
   'sidebar-close': PanelLeftClose,
   'sidebar-open': PanelLeftOpen,
   menu: Menu,
+  list: List,
+  columns: Columns3,
+  compass: Compass,
   close: X,
 
   // 方向
