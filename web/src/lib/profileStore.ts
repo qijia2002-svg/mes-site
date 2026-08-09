@@ -35,7 +35,9 @@ export function subscribeProfile(cb: () => void): () => void {
 
 export interface UserProfile {
   nickname: string;
-  /** 每日学习目标（章/天），用于首页学习分析对比 */
+  /** 学习方向（MES 实施 / 开发 / 生产管理 / 质量…），仅本地偏好，无后端用户表 */
+  direction: string;
+  /** 每日学习目标（个/天），用于个人中心设定 */
   dailyGoal: number;
   /** 学习提醒时间 HH:MM */
   reminderTime: string;
@@ -43,6 +45,7 @@ export interface UserProfile {
 
 const DEFAULTS: UserProfile = {
   nickname: '',
+  direction: '',
   dailyGoal: 3,
   reminderTime: '20:00',
 };
@@ -51,6 +54,7 @@ export function getProfile(): UserProfile {
   const parsed = peek<Partial<UserProfile>>('profile', {});
   return {
     nickname: typeof parsed?.nickname === 'string' ? parsed.nickname : DEFAULTS.nickname,
+    direction: typeof parsed?.direction === 'string' ? parsed.direction : DEFAULTS.direction,
     dailyGoal:
       typeof parsed?.dailyGoal === 'number' && parsed.dailyGoal > 0
         ? parsed.dailyGoal

@@ -164,6 +164,11 @@ export default function FactoryFlow({
         @media(max-width:640px){
           .ff-node{min-height:58px;padding:var(--space-3)}
           .ff-node .ntitle{white-space:normal}
+          /* 系统筛选在窄屏改为横向滚动，避免按钮挤成两行难点 */
+          .ff-sys{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin;
+            -webkit-overflow-scrolling:touch;padding-bottom:var(--space-1)}
+          .ff-sys .lbl{flex:none}
+          .ff-sys button{flex:none;min-height:36px}
         }
       `}</style>
 

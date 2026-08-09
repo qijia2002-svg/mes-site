@@ -78,6 +78,8 @@ export default function NodeDrawer({
 }: NodeDrawerProps) {
   const layout = useDrawerLayout();
   const modal = layout !== 'side';
+  // SQL 沙盒就地展开时抽屉加宽（NodeDrawerBody 上报）。收起即还原，避免长期挡住地图。
+  const [wide, setWide] = useState(false);
   const panelRef = useRef<HTMLElement | null>(null);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -179,7 +181,7 @@ export default function NodeDrawer({
       )}
       <aside
         ref={panelRef}
-        className={`nd nd-${layout}${shown ? ' is-open' : ''}`}
+        className={`nd nd-${layout}${shown ? ' is-open' : ''}${wide ? ' is-wide' : ''}`}
         role="dialog"
         aria-modal={modal || undefined}
         aria-labelledby="nd-title"
@@ -203,7 +205,14 @@ export default function NodeDrawer({
           </button>
         </header>
 
-        <NodeDrawerBody node={node} resources={resources} isDone={isDone} />
+        {/* key=node.key：换节点时重挂，已展开的内联实战自动收起、宽态自动复位 */}
+        <NodeDrawerBody
+          key={node.key}
+          node={node}
+          resources={resources}
+          isDone={isDone}
+          onWideChange={setWide}
+        />
 
         <footer className="nd-foot">
           <button

@@ -5,7 +5,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Icon } from './Icon';
 import { api, type QuizQuestion } from '../api/endpoints';
-import './FlashCardDeck.css';
+import './flash-deck.css';
 
 interface QuizDeckProps {
   questions: QuizQuestion[];
@@ -34,6 +34,9 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
   const [openResult, setOpenResult] = useState<{ score: number; feedback: string; keyPoints: string[] } | null>(null);
 
   const q = questions[current];
+  // 后端理论上恒回数组，但库里出现过双重编码的 options（解出来是字符串），
+  // 直接 .map 会整页崩。这里统一收口，脏数据最多让某题无选项，不许白屏。
+  const opts: string[] = Array.isArray(q?.options) ? q.options : [];
 
   const reset = useCallback(() => {
     setSel([]);
@@ -116,7 +119,7 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
       if (finished) return;
       if (!graded && e.key >= '1' && e.key <= '9') {
         const idx = Number(e.key) - 1;
-        const opt = q.options[idx];
+        const opt = opts[idx];
         if (!opt) return;
         if (q.type === 'multi') {
           setSel((prev) => (prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]));
@@ -250,7 +253,7 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
           <>
             {/* 选项 */}
             <div className="quiz-options">
-              {q.options.map((opt, i) => {
+              {opts.map((opt, i) => {
                 const isSelected = sel.includes(opt);
                 const isCorrect = graded && result?.correctAnswer.includes(opt);
                 const isWrong = graded && isSelected && !result?.correct;

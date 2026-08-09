@@ -94,14 +94,6 @@
   letter-spacing: var(--tracking-title);
   color: var(--fg);
 }
-.flash-card-body {
-  font-size: var(--text-prose);
-  line-height: var(--leading-prose);
-}
-.flash-card-body.prose {
-  max-width: none;
-}
-
 /* ---------- 底部操作栏 ---------- */
 .flash-controls {
   display: flex;
@@ -109,39 +101,6 @@
   justify-content: space-between;
   gap: var(--space-3);
 }
-.flash-mark-group {
-  display: flex;
-  gap: var(--space-2);
-}
-.flash-mark {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--muted);
-  font-family: inherit;
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: all var(--motion-fast) var(--ease-standard);
-}
-.flash-mark:hover {
-  border-color: var(--border-strong);
-  color: var(--fg-2);
-}
-.flash-mark.is-mastered {
-  border-color: var(--success);
-  color: var(--success);
-  background: var(--success-soft);
-}
-.flash-mark.is-review {
-  border-color: var(--warn);
-  color: var(--warn);
-  background: var(--warn-soft);
-}
-
 /* ---------- 完成提示 ---------- */
 .flash-complete {
   display: flex;
@@ -154,12 +113,6 @@
   color: var(--success);
   font-size: var(--text-base);
   font-weight: var(--weight-emph-cjk);
-}
-.flash-complete-stats {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-read);
 }
 /* 堆叠居中变体（QuizDeck 完成页 / 移动端） */
 .flash-complete-stacked {
@@ -192,35 +145,6 @@
   font-size: var(--text-xs);
   color: var(--meta);
   letter-spacing: var(--tracking-caps);
-}
-
-/* ---------- 卡片/文档模式切换 ---------- */
-.mode-toggle {
-  display: flex;
-  gap: 2px;
-  padding: 2px;
-  background: var(--surface-3);
-  border-radius: var(--radius-sm);
-}
-.mode-toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-3);
-  border: 0;
-  border-radius: var(--radius-xs);
-  background: transparent;
-  color: var(--meta);
-  font-family: inherit;
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: all var(--motion-fast) var(--ease-standard);
-}
-.mode-toggle-btn.is-active {
-  background: var(--surface);
-  color: var(--fg);
-  font-weight: var(--weight-emph-cjk);
-  box-shadow: 0 1px 2px rgba(15, 27, 38, 0.06);
 }
 
 /* ---------- 答题卡（下拉导航网格） ---------- */

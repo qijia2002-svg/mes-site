@@ -625,7 +625,7 @@ a.nav-item {
 /* 移动端：纵向阶梯转顶部横向 chip 条，当前站自动滚入视野 */
 @media (max-width: 768px) {
   :root {
-    --ml-row-h: 36px;
+    --ml-row-h: 44px;
     --ml-rail-w: 100%;
     --ml-row-gap: var(--space-2);
   }

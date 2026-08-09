@@ -174,7 +174,7 @@ export const SANDBOX_CHALLENGES: SandboxChallenge[] = [
     title: '工单进度一眼看',
     scenario: '班前会要贴一张表：每张工单计划做多少、已经做了多少、现在什么状态。',
     starterSql: 'SELECT wo_no, qty_plan, qty_done, state\nFROM work_orders\nORDER BY wo_id;',
-    expected: '6 张工单，状态分别是 released / running / finished 等。',
+    expected: '7 张工单，状态分别是 released / running / finished 等（含 WO-2026-001 正在车间执行）。',
   },
   {
     id: 'c3',
@@ -183,7 +183,7 @@ export const SANDBOX_CHALLENGES: SandboxChallenge[] = [
     title: '每个产品计划总产量',
     scenario: '生产计划员问：把工单按产品归类，算每个产品「计划造多少台」？',
     starterSql: 'SELECT p.name AS 产品, SUM(w.qty_plan) AS 计划总量\nFROM work_orders w\nJOIN products p ON w.product_id = p.product_id\n-- TODO: 补上 GROUP BY，让每个产品一行\nORDER BY 计划总量 DESC;',
-    expected: '减速机 320、伺服电机 100、PLC控制器 150、变频器 80（按样例数据）。',
+    expected: '减速机 420、伺服电机 100、PLC控制器 150、变频器 80（含 WO-2026-001 的 100 台）。',
   },
   {
     id: 'c4',
@@ -229,5 +229,14 @@ export const SANDBOX_CHALLENGES: SandboxChallenge[] = [
     scenario: '班组长要算每个操作工的良率（合格数 / 总数量），谁最稳？',
     starterSql: 'SELECT operator AS 操作工,\n       SUM(qty_ok) AS 合格,\n       SUM(qty_ng) AS 不良,\n       -- TODO: 计算良率百分比，保留两位小数\n       ROUND(100.0 * SUM(qty_ok) / (SUM(qty_ok) + SUM(qty_ng)), 2) AS 良率\nFROM production_records\nGROUP BY operator\nORDER BY 良率 DESC;',
     expected: '陆明辉、甘若彤、邱敬川三人，按良率从高到低。',
+  },
+  {
+    id: 'c9',
+    category: '综合实战',
+    difficulty: '高级',
+    title: '追踪工单 WO-2026-001 走到了哪一步',
+    scenario: '仿真沙盒里正跑着工单 WO-2026-001。先在 SQL 这边查清楚：它现在什么状态、在哪个车间、领料齐了没、质检过了没。把 SQL 查到的状态，和仿真里看到的对上。',
+    starterSql: "SELECT w.wo_no AS 工单, w.state AS 状态, w.workshop AS 车间,\n       (SELECT COUNT(*) FROM pick_lists p WHERE p.wo_id = w.wo_id AND p.state = 'done') AS 已齐套领料数,\n       (SELECT result FROM quality_checks q WHERE q.wo_id = w.wo_id ORDER BY q.check_time DESC LIMIT 1) AS 最近质检\nFROM work_orders w\nWHERE w.wo_no = 'WO-2026-001';",
+    expected: '1 行：WO-2026-001，state=running（正在车间执行），一号车间，已齐套领料 2 笔，最近质检 合格。说明料已领齐、首检已过，正卡在车间加工阶段——这正是仿真里工单开始沿主线往下流的位置。',
   },
 ];

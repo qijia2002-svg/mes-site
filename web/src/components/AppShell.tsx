@@ -2,45 +2,33 @@
  * App Shell v5 — 智造学院风格重设计。
  * 白侧栏改为「右上角浮动按钮 + 左侧滑出抽屉」，默认不占横向空间，内容全宽。
  */
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { useQuery, useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Icon, type IconName } from './Icon';
 import { Breadcrumb } from './Breadcrumb';
 import { NetworkBanner } from './NetworkBanner';
 import { api } from '../api/endpoints';
 import { ScrollProgress } from './ScrollProgress';
-import { getNickname } from './GreetingBar';
+import { getNickname } from '../lib/profileStore';
+import { useFactorySummary } from '../features/factory/useFactorySummary';
+import { TopbarSearch } from './TopbarSearch';
 
 function SidebarProgress() {
-  const progressQ = useQuery({ queryKey: ['progress'], queryFn: api.progress, staleTime: 60_000 });
-  const topicsQ = useQuery({ queryKey: ['topics'], queryFn: api.topics, staleTime: 60_000 });
-  const chapterQs = useQueries({
-    queries: (topicsQ.data ?? []).map((t) => ({
-      queryKey: ['chapters', t.id],
-      queryFn: () => api.chapters(t.id),
-      staleTime: 5 * 60_000,
-    })),
-  });
-  const { doneChapters, totalChapters, pct } = useMemo(() => {
-    const completedSet = new Set((progressQ.data?.completedChapterIds ?? []).map(String));
-    const total = chapterQs.reduce((sum, q) => sum + (q.data?.length ?? 0), 0);
-    const done = completedSet.size;
-    return { doneChapters: done, totalChapters: total, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
-  }, [progressQ.data, chapterQs]);
+  const { total, touched, pct } = useFactorySummary();
 
   return (
     <div className="sidebar-progress">
       <div className="sidebar-progress-head">
-        <span className="sidebar-progress-label">学习进度</span>
+        <span className="sidebar-progress-label">工厂进度</span>
         <span className="sidebar-progress-pct">{pct}%</span>
       </div>
       <div className="sidebar-progress-track">
         <div className="sidebar-progress-fill" style={{ width: `${pct}%` }} />
       </div>
-      <div className="sidebar-progress-meta">已读 {doneChapters} / {totalChapters} 章</div>
-      <Link className="sidebar-progress-cta" to="/courses">
-        继续学习 <Icon name="run" size={16} />
+      <div className="sidebar-progress-meta">走过 {touched} / {total} 个环节</div>
+      <Link className="sidebar-progress-cta" to="/factory">
+        进入工厂全景 <Icon name="arrow-right" size={16} />
       </Link>
     </div>
   );
@@ -147,19 +135,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="topbar">
           <Breadcrumb />
 
-          <div className="topbar-search">
-            <div className="topbar-search-wrap">
-              <span className="topbar-search-icon"><Icon name="search" size={16} /></span>
-              <input type="text" placeholder="搜索课程、章节…" />
-            </div>
-          </div>
+          <TopbarSearch />
 
           <div className="topbar-right">
-            <button className="topbar-notify" aria-label="通知">
-              <Icon name="warn" size={20} />
-              <span className="topbar-notify-dot" />
-            </button>
-
             <Link to="/profile" className="topbar-avatar" aria-label="个人中心">
               <span>{userInitial}</span>
             </Link>

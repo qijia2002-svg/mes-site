@@ -65,6 +65,19 @@ export const NODE_LIBRARY: Record<string, SimNodeDef> = {
   // ═══ 起止类（椭圆）═══
   material:  { type: 'material',  label: '来料',     shape: 'oval', category: 'endpoint', ports: { in: 0, out: 1 } },
   ship:      { type: 'ship',      label: '发货',     shape: 'oval', category: 'endpoint', ports: { in: 1, out: 0 } },
+  // ═══ 通用工厂主线（与 flowchart generic-factory 同源，仿真沙盒即流程图）═══
+  'cust-order':  { type: 'cust-order',  label: '客户下单',       shape: 'oval',    category: 'endpoint', ports: { in: 0, out: 1 } },
+  'order-review':{ type: 'order-review',label: '订单评审',       shape: 'rect',    category: 'process',  ports: { in: 1, out: 1 } },
+  'mps':         { type: 'mps',         label: '主生产计划',     shape: 'rect',    category: 'process',  ports: { in: 1, out: 1 } },
+  'mrp':         { type: 'mrp',         label: '物料需求计划',   shape: 'rect',    category: 'process',  ports: { in: 1, out: 1 } },
+  'purchase':    { type: 'purchase',    label: '采购与供应商',   shape: 'rect',    category: 'process',  ports: { in: 1, out: 1 } },
+  'bom-route':   { type: 'bom-route',   label: 'BOM 与工艺路线', shape: 'rect',    category: 'process',  ports: { in: 1, out: 1 } },
+  'picking':     { type: 'picking',     label: '领料发料',       shape: 'storage', category: 'storage',  ports: { in: 1, out: 1 } },
+  'dispatch':    { type: 'dispatch',    label: '生产派工',       shape: 'rect',    category: 'process',  ports: { in: 1, out: 1 } },
+  'shopfloor':   { type: 'shopfloor',   label: '车间执行',       shape: 'rect',    category: 'process', critical: true, ports: { in: 1, out: 1 } },
+  'qc':          { type: 'qc',          label: '质量检验',       shape: 'diamond', category: 'inspect',  ports: { in: 1, out: 2 } },
+  'stock-in':    { type: 'stock-in',    label: '生产入库',       shape: 'storage', category: 'storage',  ports: { in: 1, out: 1 } },
+  'shipping':    { type: 'shipping',    label: '发货出库',       shape: 'oval',    category: 'endpoint', ports: { in: 1, out: 0 } },
 };
 
 /** 画布节点 */
@@ -164,6 +177,7 @@ export type SimAction =
   | { type: 'CANCEL_CONNECT' }
   | { type: 'AUTO_LAYOUT' }
   | { type: 'LOAD_PROJECT'; project: SimProject }
+  | { type: 'LOAD_STATE'; state: SimState }
   | { type: 'CLEAR' }
   // 工厂 / 产线管理
   | { type: 'ADD_FACTORY'; name: string }

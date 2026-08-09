@@ -269,6 +269,13 @@ export function simulate(nodes: SimNode[], edges: SimEdge[], batch = DEFAULT_BAT
     if (outEdges.has(e.from)) outEdges.get(e.from)!.push(e);
   });
 
+  // 投料源 / 发货汇按拓扑判定，而非写死 nodeType：
+  // 入度为 0 的 endpoint（material 或 cust-order）都是投料起点；
+  // 出度为 0 的 endpoint（ship 或 shipping）都是发货终点。
+  // 这样通用工厂（cust-order→…→shipping）和离散制造示例线（material→…→ship）都能正确仿真。
+  const isSource = (n: SimNode) => nodeDef(n)?.category === 'endpoint' && (inEdges.get(n.id)?.length ?? 0) === 0;
+  const isSink = (n: SimNode) => nodeDef(n)?.category === 'endpoint' && (outEdges.get(n.id)?.length ?? 0) === 0;
+
   const edgeFlow: Record<string, number> = {};
   edges.forEach((e) => (edgeFlow[e.id] = 0));
   const nodeInflow: Record<string, number> = {};
@@ -286,8 +293,8 @@ export function simulate(nodes: SimNode[], edges: SimEdge[], batch = DEFAULT_BAT
     for (const node of plan.order) {
       const def = nodeDef(node);
       const cat = def?.category;
-      if (cat === 'endpoint' && node.nodeType === 'material') newOut[node.id] = batch;
-      else if (cat === 'endpoint' && node.nodeType === 'ship') newOut[node.id] = nodeInflow[node.id];
+      if (cat === 'endpoint' && isSource(node)) newOut[node.id] = batch;
+      else if (cat === 'endpoint' && isSink(node)) newOut[node.id] = nodeInflow[node.id];
       else newOut[node.id] = computeStep(node, nodeInflow[node.id], plan, now).outGood;
     }
     // 3. 由出流重新分配边流量（合格往前、返工回流）
@@ -326,10 +333,10 @@ export function simulate(nodes: SimNode[], edges: SimEdge[], batch = DEFAULT_BAT
     if (!def) continue;
     const cat = def.category;
     const inflow = nodeInflow[node.id];
-    if (cat === 'endpoint' && node.nodeType === 'material') {
-      logs.push({ ts: now.toLocaleTimeString('zh-CN', { hour12: false }), type: 'run', msg: `来料入库 ${batch} 件，工单 ${woId(now)} 下发` });
-    } else if (cat === 'endpoint' && node.nodeType === 'ship') {
-      logs.push({ ts: now.toLocaleTimeString('zh-CN', { hour12: false }), type: 'ok', msg: `成品发货 ${Math.round(inflow)} 件，订单履约完成` });
+    if (cat === 'endpoint' && isSource(node)) {
+      logs.push({ ts: now.toLocaleTimeString('zh-CN', { hour12: false }), type: 'run', msg: `「${node.label}」下发工单 ${woId(now)}，投料 ${batch} 件` });
+    } else if (cat === 'endpoint' && isSink(node)) {
+      logs.push({ ts: now.toLocaleTimeString('zh-CN', { hour12: false }), type: 'ok', msg: `成品「${node.label}」发货 ${Math.round(inflow)} 件，订单履约完成` });
     } else if (cat === 'inspect') {
       const st = computeStep(node, inflow, plan, now);
       defective += st.defective;
@@ -342,9 +349,9 @@ export function simulate(nodes: SimNode[], edges: SimEdge[], batch = DEFAULT_BAT
     }
   }
 
-  const materialCount = nodes.filter((n) => nodeDef(n)?.category === 'endpoint' && n.nodeType === 'material').length || 1;
-  const total = batch * materialCount;
-  const shipNodes = nodes.filter((n) => nodeDef(n)?.category === 'endpoint' && n.nodeType === 'ship');
+  const sourceCount = nodes.filter(isSource).length || 1;
+  const total = batch * sourceCount;
+  const shipNodes = nodes.filter(isSink);
   const passed = shipNodes.reduce((s, n) => s + (nodeOutflow[n.id] ?? 0), 0);
   const metrics: SimMetrics = {
     total,

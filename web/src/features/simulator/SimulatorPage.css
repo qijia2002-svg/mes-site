@@ -484,3 +484,17 @@
   .sim-props { order: 1; }
   .sim-run-bar { order: 5; }
 }
+
+/* ---------- 来源节点横幅（流程图 → 沙盒 的衔接提示）---------- */
+.sim-from-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--accent-soft, var(--surface-2));
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--fg-2);
+  font-size: var(--text-sm);
+  flex: none;
+}
+.sim-from-banner svg { color: var(--accent); flex: none; }

@@ -5,7 +5,8 @@
  * 支持「运行仿真」：工单沿工艺路线流转，实时日志 + 指标。
  */
 import { useReducer, useState, useCallback, useRef, useEffect } from 'react';
-import { simReducer, initialSimState, seedExampleState, getActiveLine, createNode } from './simReducer';
+import { useSearchParams } from 'react-router-dom';
+import { simReducer, initialSimState, getActiveLine, createNode } from './simReducer';
 import { loadFromStorage } from './simStorage';
 import { simulate, startLog, DEFAULT_BATCH, type SimLogEntry } from './simEngine';
 import SimToolbar from './SimToolbar';
@@ -17,6 +18,9 @@ import SimEdgeEditor from './SimEdgeEditor';
 import SimLog from './SimLog';
 import type { SimRunState, SimNodeDef } from './simTypes';
 import { NODE_LIBRARY } from './simTypes';
+import { Icon } from '../../components/Icon';
+import { buildGenericFactory, WO_DEMO, FLOW_KEYS, SIM_REF_ID, FLOW_LABELS } from './simScenario';
+import { NODE_RESOURCE_DONE } from '../factory/useNodeProgress';
 import './SimulatorPage.css';
 
 // 运行时扩展工序库：直接写入 NODE_LIBRARY
@@ -29,7 +33,14 @@ const BASE_DELAY = 650; // 基础动画间隔(ms)
 const EMPTY_RUN: SimRunState = { active: false, activeNodeId: null, logs: [], metrics: null, progress: 0 };
 
 export default function SimulatorPage() {
+  // 接住流程图节点传来的 ?from=<node.key>，把沙盒预载成「同一个通用工厂」的对应切片。
+  const [params] = useSearchParams();
+  const fromRaw = params.get('from');
+  const from = fromRaw && FLOW_KEYS.has(fromRaw) ? fromRaw : null;
+  const fromLabel = from ? FLOW_LABELS[from] : null;
+
   const [state, dispatch] = useReducer(simReducer, null, () => {
+    if (from) return buildGenericFactory(from);
     const saved = loadFromStorage();
     if (saved && saved.factories?.length) {
       return {
@@ -39,7 +50,9 @@ export default function SimulatorPage() {
         activeLineId: saved.activeLineId,
       };
     }
-    return seedExampleState();
+    // 工厂优先（Factory-First）：默认加载与流程图同一套通用工厂，
+    // 而非早期原型的离散制造示例线。保证用户在流程图和仿真间看到同一个工厂。
+    return buildGenericFactory();
   });
 
   const activeLine = getActiveLine(state);
@@ -88,6 +101,12 @@ export default function SimulatorPage() {
     setRun((r) => ({ ...r, active: false, activeNodeId: null }));
   }, []);
 
+  // 重置本环节：停掉仿真，把沙盒整体恢复到该节点对应的通用工厂默认（替代旧「清空」）。
+  const resetFactory = useCallback(() => {
+    stopRun();
+    dispatch({ type: 'LOAD_STATE', state: buildGenericFactory(from) });
+  }, [from, stopRun]);
+
   const runSim = useCallback(async () => {
     const result = simulate(nodes, edges, DEFAULT_BATCH);
     stopRef.current = false;
@@ -107,7 +126,14 @@ export default function SimulatorPage() {
       return;
     }
 
-    const initLogs = [startLog(DEFAULT_BATCH)];
+    const initLogs: SimLogEntry[] = [
+      {
+        ts: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+        type: 'info',
+        msg: `工单 ${WO_DEMO} 开始沿通用工厂主线流转（客户下单 → 发货出库）`,
+      },
+      startLog(DEFAULT_BATCH),
+    ];
     setRun({
       active: true,
       activeNodeId: null,
@@ -150,7 +176,14 @@ export default function SimulatorPage() {
       metrics: { ...m },
       logs: [...initLogs, ...result.logs, done],
     }));
-  }, [nodes, edges]);
+
+    // 仿真跑完即该节点的 sim 实战完成：派发完成事件，进度落进 factory.progress。
+    if (from && SIM_REF_ID[from]) {
+      window.dispatchEvent(
+        new CustomEvent(NODE_RESOURCE_DONE, { detail: { type: 'sim', refId: SIM_REF_ID[from] } }),
+      );
+    }
+  }, [nodes, edges, from]);
 
   return (
     <section className="sim-page" ref={pageRef}>
@@ -164,7 +197,14 @@ export default function SimulatorPage() {
         onStop={stopRun}
         isFullscreen={isFs}
         onToggleFullscreen={toggleFs}
+        onReset={resetFactory}
       />
+      {fromLabel && (
+        <div className="sim-from-banner">
+          <Icon name="routing" size={16} />
+          <span>你正从「{fromLabel}」进入通用工厂 · 点「运行仿真」看工单 {WO_DEMO} 怎么流转</span>
+        </div>
+      )}
       <div className="sim-body">
         <SimFactoryPanel state={state} dispatch={dispatch} />
         <SimPalette onCreate={handleAddNode} onCustomNode={addCustomNodeDef} scene={scene} onSceneChange={setScene} />

@@ -111,7 +111,7 @@ export async function getChapterSvc(c: Ctx, id: number) {
 }
 
 export async function createChapterSvc(c: Ctx, b: Record<string, unknown>) {
-  const topicId = asNum(b.topicId);
+  const topicId = asNum(b.topic_id);
   const title = asStr(b.title);
   if (!topicId || !title) throw Err.paramMissing();
   await adminRepo.createChapter(c.db, {
@@ -119,8 +119,8 @@ export async function createChapterSvc(c: Ctx, b: Record<string, unknown>) {
     title,
     sort: asNum(b.sort),
     status: asStr(b.status, 'draft'),
-    md_text: asStr(b.md),
-    schema_version: asNum(b.schemaVersion, 1),
+    md_text: asStr(b.md_text),
+    schema_version: asNum(b.schema_version, 1),
   });
   await adminRepo.bumpContentVersion(c.db);
   return { ok: true };
@@ -128,12 +128,12 @@ export async function createChapterSvc(c: Ctx, b: Record<string, unknown>) {
 
 export async function updateChapterSvc(c: Ctx, id: number, b: Record<string, unknown>) {
   await adminRepo.updateChapter(c.db, id, {
-    topic_id: asNum(b.topicId),
+    topic_id: asNum(b.topic_id),
     title: asStr(b.title),
     sort: asNum(b.sort),
     status: asStr(b.status, 'draft'),
-    md_text: asStr(b.md),
-    schema_version: asNum(b.schemaVersion, 1),
+    md_text: asStr(b.md_text),
+    schema_version: asNum(b.schema_version, 1),
   });
   await adminRepo.bumpContentVersion(c.db);
   return { ok: true };

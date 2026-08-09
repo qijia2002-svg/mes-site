@@ -1,6 +1,7 @@
 /**
  * 章节阅读页（F2 / AC-02）。
- * v2：加卡片/文档模式切换。卡片模式把长文按 ## 拆成知识卡片。
+ * v3：删掉卡片模式，只保留文档阅读。卡片把长文切成碎片，读者拿不到上下文，
+ * 反而比顺着读更累；正文里的内联实战锚点才是"看练同屏"的正解。
  * 正文来自后台可编辑的 markdown = 不可信输入，一律经 renderChapterMarkdown
  * （markdown-it html:false + DOMPurify 白名单）后再注入。
  */
@@ -10,7 +11,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { useCrumbTail } from '../components/Breadcrumb';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
-import { FlashCardDeck } from '../components/FlashCardDeck';
 import { QuizDeck } from '../components/QuizDeck';
 import { renderChapterMarkdown } from '../lib/markdown';
 import { api } from '../api/endpoints';
@@ -18,8 +18,6 @@ import { NODE_RESOURCE_DONE } from '../features/factory/useNodeProgress';
 import { GlossaryProvider } from '../features/glossary/glossary.context';
 import { TermAwareHtml } from '../features/glossary/TermAwareHtml';
 import { GlossarySearch } from '../features/glossary/GlossarySearch';
-
-type ReadMode = 'doc' | 'card';
 
 /** 停留满这个时长才算"读过"，避免误点一下就记完成。 */
 const READ_DWELL_MS = 2000;
@@ -57,7 +55,6 @@ export default function ChapterPage() {
   );
 
   const [readState, setReadState] = useState<'idle' | 'done' | 'failed'>('idle');
-  const [mode, setMode] = useState<ReadMode>('card');
   // StrictMode 双挂载 + 重渲染都可能重复上报，用 ref 锁死"每章一次"。
   const reportedRef = useRef<number | null>(null);
 
@@ -123,29 +120,6 @@ export default function ChapterPage() {
           </p>
         </div>
         <div className="page-head-actions">
-          {/* 卡片/文档模式切换 */}
-          <div className="mode-toggle" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              className={`mode-toggle-btn ${mode === 'card' ? 'is-active' : ''}`}
-              onClick={() => setMode('card')}
-              aria-selected={mode === 'card'}
-            >
-              <Icon name="chapter" size={16} />
-              卡片
-            </button>
-            <button
-              type="button"
-              role="tab"
-              className={`mode-toggle-btn ${mode === 'doc' ? 'is-active' : ''}`}
-              onClick={() => setMode('doc')}
-              aria-selected={mode === 'doc'}
-            >
-              <Icon name="toc" size={16} />
-              文档
-            </button>
-          </div>
           <GlossarySearch />
           <ReadBadge state={readState} />
         </div>
@@ -154,19 +128,12 @@ export default function ChapterPage() {
       <div className="chapter-layout">
         <div className="chapter-main">
           {rendered.html ? (
-            mode === 'card' ? (
-              <FlashCardDeck
-                mdText={chapter.data.md ?? ''}
-                chapterTitle={chapter.data.title}
-              />
-            ) : (
-              <TermAwareHtml html={rendered.html} className="prose" />
-            )
+            <TermAwareHtml html={rendered.html} className="prose" />
           ) : (
             <EmptyState title="正文为空" hint="这一章只有标题，内容待补充。" icon="chapter" />
           )}
 
-          {/* 章节测试（如果有题且切换到考试模式） */}
+          {/* 章节测试：正文读完后按需展开，不默认占位 */}
           {quizQ.data && quizQ.data.length > 0 && (
             <div className="section" style={{ marginTop: 'var(--space-8)' }}>
               <div className="section-head">
@@ -203,7 +170,7 @@ export default function ChapterPage() {
           </footer>
         </div>
 
-        {mode === 'doc' && rendered.toc.length > 1 && (
+        {rendered.toc.length > 1 && (
           <nav className="chapter-aside" aria-label="本章目录">
             <p className="toc-title">
               <Icon name="toc" size={16} />

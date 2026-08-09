@@ -1,9 +1,6 @@
-import { useRef } from 'react';
 import type { SimState, SimRunState } from './simTypes';
 import { getActiveLine } from './simReducer';
 import { Icon } from '../../components/Icon';
-import { saveToStorage, exportJSON, importJSON } from './simStorage';
-import { addPortfolioItem } from '../../lib/portfolioStore';
 
 interface Props {
   state: SimState;
@@ -15,26 +12,27 @@ interface Props {
   onStop: () => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
+  /** 重置本环节：把沙盒恢复到来源节点对应的通用工厂默认（替代旧「清空」）。 */
+  onReset?: () => void;
 }
 
 const SPEEDS = [1, 2, 4];
 
-export default function SimToolbar({ state, dispatch, run, speed, onSpeedChange, onRun, onStop, isFullscreen, onToggleFullscreen }: Props) {
-  const fileRef = useRef<HTMLInputElement>(null);
+export default function SimToolbar({ state, dispatch, run, speed, onSpeedChange, onRun, onStop, isFullscreen, onToggleFullscreen, onReset }: Props) {
   const activeLine = getActiveLine(state);
 
   return (
     <div className="sim-toolbar">
       <span className="sim-toolbar-title">
         <Icon name="routing" size={20} />
-        车间仿真沙盒
+        通用工厂 · 仿真沙盒
       </span>
 
       <span className="sim-toolbar-stats">
         {activeLine?.nodes.length ?? 0} 节点 · {activeLine?.edges.length ?? 0} 连线
       </span>
 
-      {/* 速度选择 */}
+      {/* 速度选择：控制工单流转动画节奏 */}
       <div className="sim-speed-group">
         {SPEEDS.map((s) => (
           <button
@@ -60,62 +58,17 @@ export default function SimToolbar({ state, dispatch, run, speed, onSpeedChange,
             <span className="sim-toolbar-label">运行仿真</span>
           </button>
         )}
-        <button className="sim-toolbar-btn" title="保存到本地" onClick={() => {
-          saveToStorage(state);
-          const el = document.getElementById('sim-save-hint');
-          if (el) { el.style.opacity = '1'; setTimeout(() => { el.style.opacity = '0'; }, 1500); }
-        }}>
-          <Icon name="confirm" size={16} />
-          <span className="sim-toolbar-label">保存</span>
-        </button>
-        <button className="sim-toolbar-btn" title="清空当前产线画布" onClick={() => { if ((activeLine?.nodes.length ?? 0) === 0 || confirm('确定清空当前产线？此操作不可撤销')) dispatch({ type: 'CLEAR' }); }}>
-          <Icon name="delete" size={16} />
-          <span className="sim-toolbar-label">清空</span>
-        </button>
-        <button className="sim-toolbar-btn" title="自动分层布局" onClick={() => dispatch({ type: 'AUTO_LAYOUT' })} disabled={run.active}>
-          <span className="sim-toolbar-label">整理布局</span>
-        </button>
-        <button className="sim-toolbar-btn" title="导出 JSON" onClick={() => {
-          const json = exportJSON(state);
-          const blob = new Blob([json], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; a.download = `${(activeLine?.name ?? '工艺路线').replace(/\s/g, '_')}.json`;
-          a.click(); URL.revokeObjectURL(url);
-        }}>
-          <Icon name="copy" size={16} />
-          <span className="sim-toolbar-label">导出</span>
-        </button>
-        <button className="sim-toolbar-btn" title="保存到作品集" onClick={() => {
-          const r = addPortfolioItem({
-            title: `${activeLine?.name ?? '工艺路线'} — 仿真方案`,
-            category: '方案',
-            note: `${activeLine?.nodes.length ?? 0} 节点 · ${activeLine?.edges.length ?? 0} 连线 · ${new Date().toLocaleDateString('zh-CN')}`,
-            date: new Date().toISOString().slice(0, 10),
-          });
-          if (!r.ok) alert('保存失败：浏览器存储不可用');
-        }}>
-          <Icon name="chapter" size={16} />
-          <span className="sim-toolbar-label">作品集</span>
-        </button>
-        <button className="sim-toolbar-btn" title="导入 JSON" onClick={() => fileRef.current?.click()}>
-          <Icon name="arrow-right" size={16} />
-          <span className="sim-toolbar-label">导入</span>
-        </button>
+        {onReset && (
+          <button className="sim-toolbar-btn" title="重置为本环节默认工厂" onClick={onReset}>
+            <Icon name="history" size={16} />
+            <span className="sim-toolbar-label">重置本环节</span>
+          </button>
+        )}
         <button className="sim-toolbar-btn" title={isFullscreen ? '退出全屏' : '全屏编辑'} onClick={onToggleFullscreen}>
           <Icon name={isFullscreen ? 'minimize' : 'expand'} size={16} />
           <span className="sim-toolbar-label">{isFullscreen ? '退出全屏' : '全屏'}</span>
         </button>
-        <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={(e) => {
-          const f = e.target.files?.[0]; if (!f) return;
-          const rd = new FileReader();
-          rd.onload = () => { const p = importJSON(rd.result as string); if (p) dispatch({ type: 'LOAD_PROJECT', project: p }); };
-          rd.readAsText(f); e.target.value = '';
-        }} />
       </div>
-      <span id="sim-save-hint" style={{ fontSize: 'var(--text-xs)', color: 'var(--success)', opacity: 0, transition: 'opacity 0.3s', marginLeft: 'auto' }}>
-        <Icon name="success" size={16} /> 已保存
-      </span>
     </div>
   );
 }

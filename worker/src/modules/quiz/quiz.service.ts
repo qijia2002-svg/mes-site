@@ -11,6 +11,19 @@ function parseJson(s: string): unknown {
   }
 }
 
+/**
+ * options 列的容错解析：无论库里存的是正常 JSON 数组、双重编码字符串还是 NULL，
+ * 都必须回一个 string[]，否则前端 `options.map` 直接崩页（曾因 9201-9212 双重编码翻车）。
+ */
+function parseOptions(s: string | null | undefined): string[] {
+  if (s == null) return [];
+  let v: unknown = parseJson(s);
+  // 双重编码：'"[\"a\",\"b\"]"' 解一层还是字符串，再解一层才是数组
+  if (typeof v === 'string') v = parseJson(v);
+  if (!Array.isArray(v)) return [];
+  return v.map((x) => (typeof x === 'string' ? x : String(x)));
+}
+
 /** 选择题列表（不含答案，DTO 白名单） */
 export async function listQuestionsSvc(c: Ctx, chapterId: number) {
   const rows = await quizRepo.listQuestions(c.db, chapterId);
@@ -18,7 +31,7 @@ export async function listQuestionsSvc(c: Ctx, chapterId: number) {
     id: r.id,
     type: r.type,
     stem: r.stem,
-    options: parseJson(r.options) as string[],
+    options: parseOptions(r.options),
   }));
 }
 
@@ -30,7 +43,7 @@ export async function getQuestionSvc(c: Ctx, id: number) {
     id: r.id,
     type: r.type,
     stem: r.stem,
-    options: parseJson(r.options) as string[],
+    options: parseOptions(r.options),
   };
 }
 
@@ -42,7 +55,7 @@ export async function listTopicQuestionsSvc(c: Ctx, topicId: number) {
     chapterId: r.chapter_id,
     type: r.type,
     stem: r.stem,
-    options: parseJson(r.options) as string[],
+    options: parseOptions(r.options),
   }));
 }
 
@@ -57,7 +70,7 @@ export async function gradeAnswerSvc(c: Ctx, questionId: number, userAnswer: str
   const row = await quizRepo.getAnswer(c.db, questionId);
   if (!row) return null;
 
-  const opts = parseJson(row.options) as string[];
+  const opts = parseOptions(row.options);
   let correct = false;
   let correctAnswerText = '';
 

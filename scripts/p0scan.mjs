@@ -27,7 +27,10 @@ for (const f of walk(ROOT)) {
   try { txt = readFileSync(f, 'utf8'); } catch { continue; }
   const lines = txt.split('\n');
   lines.forEach((ln, i) => {
-    if (emojiRe.test(ln)) { console.log(`[EMOJI] ${f}:${i + 1}`); emojiHits++; }
+    // 修复：emojiRe 带 /g 标志，.test() 会保留 lastIndex，跨行复用导致交替漏检（实测 4/6）。
+    // 每次匹配前必须归零，否则扫描器会静默报 0 命中，把红线扫描变成安慰剂。
+    emojiRe.lastIndex = 0;
+    if (emojiRe.test(ln)) { console.log(`[EMOJI] ${f}:${i + 1} -> ${ln.trim().slice(0, 80)}`); emojiHits++; }
     if (gradRe.test(ln)) { console.log(`[GRADIENT] ${f}:${i + 1} -> ${ln.trim().slice(0, 80)}`); gradHits++; }
     // 注释行整行跳过：注释里的 "React #310" / "issue #130" 不是色值。
     // 旧版本把它们当硬编码色值报出来，长期挂着 4 条假阳性，掩盖真实违规。

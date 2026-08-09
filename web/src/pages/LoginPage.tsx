@@ -12,9 +12,9 @@ import { ErrorState } from '../components/StateBlock';
 import { api } from '../api/endpoints';
 
 const FEATURES = [
-  { icon: 'paths', title: '体系化学习路线', desc: '从业务对象到 SQL 实战，循序渐进不迷路' },
+  { icon: 'factory', title: '工厂全景主线', desc: '从接单到发货的 15+ 真实环节，点开即学即练' },
   { icon: 'sql', title: 'SQL 沙盒实操', desc: '浏览器内真跑 SQL，即时判题纠错' },
-  { icon: 'hint', title: 'AI 学习建议', desc: '按你的进度生成针对性复习建议' },
+  { icon: 'routing', title: '产线仿真搭建', desc: '拖出一张产线流程图，看物料怎么流动' },
   { icon: 'success', title: '进度永久保存', desc: '登录后学习数据云端同步，不怕清缓存' },
 ] as const;
 

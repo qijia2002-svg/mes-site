@@ -1,4 +1,4 @@
-import type { SimState, SimAction, SimNode, SimEdge, SimProject, SimNodeProps, SimLine, SimFactory } from './simTypes';
+import type { SimState, SimAction, SimNode, SimEdge, SimProject, SimLine, SimFactory } from './simTypes';
 import { NODE_LIBRARY, SHAPE_SIZE } from './simTypes';
 
 let _id = 1;
@@ -47,54 +47,6 @@ function emptyLine(name = '产线 1'): SimLine {
 
 export function initialSimState(): SimState {
   const f: SimFactory = { id: fid(), name: '工厂 A', lines: [emptyLine('产线 1')] };
-  return {
-    factories: [f],
-    activeFactoryId: f.id,
-    activeLineId: f.lines[0].id,
-    selectedId: null,
-    selectedEdgeId: null,
-    connectingFrom: null,
-    connectingPort: null,
-  };
-}
-
-/**
- * 默认示例工厂：离散制造工艺路线。
- * 来料 → 来料检验 → 焊接 → 过程检验 → 组装 → 发货，
- * 两个检验节点的不合格品回流到「焊接」返工（虚线回流边）。
- * 打开仿真沙盒且无本地存档时自动加载，保证画布非空、开箱即用。
- */
-function seedExampleFactory(): SimFactory {
-  const mk = (id: string, nodeType: string, x: number, y: number, props: SimNodeProps = {}): SimNode => {
-    const def = NODE_LIBRARY[nodeType];
-    const size = SHAPE_SIZE[def.shape];
-    return { id, nodeType, label: def.label, x, y, w: size.w, h: size.h, props };
-  };
-  const nodes: SimNode[] = [
-    mk('seed-material', 'material', 24, 176),
-    mk('seed-incoming', 'i_incoming', 150, 150, { defectRate: 8 }),
-    mk('seed-weld', 'weld', 272, 172, { hours: 12 }),
-    mk('seed-elec', 'i_process', 398, 150, { defectRate: 5 }),
-    mk('seed-assembly', 'assembly', 520, 172, { hours: 20 }),
-    mk('seed-ship', 'ship', 642, 176),
-  ];
-  const e = (from: string, to: string, dashed: boolean): SimEdge => ({ id: `seed-${from}-${to}`, from, to, dashed });
-  const edges: SimEdge[] = [
-    e('seed-material', 'seed-incoming', false),
-    e('seed-incoming', 'seed-weld', false),
-    e('seed-incoming', 'seed-weld', true),
-    e('seed-weld', 'seed-elec', false),
-    e('seed-elec', 'seed-assembly', false),
-    e('seed-elec', 'seed-weld', true),
-    e('seed-assembly', 'seed-ship', false),
-  ];
-  const line: SimLine = { id: lid(), name: '产线 1 · 离散制造', nodes, edges };
-  return { id: fid(), name: '示例工厂', lines: [line] };
-}
-
-/** 示例工厂对应的画布状态 */
-export function seedExampleState(): SimState {
-  const f = seedExampleFactory();
   return {
     factories: [f],
     activeFactoryId: f.id,
@@ -168,6 +120,9 @@ export function simReducer(state: SimState, action: SimAction): SimState {
       }));
     case 'CLEAR':
       return updateActiveLine(state, (l) => ({ ...l, nodes: [], edges: [], name: l.name }));
+    case 'LOAD_STATE':
+      // 重置本环节：整体替换为一份新的通用工厂状态（沙盒不保留用户自由搭建的脏数据）。
+      return action.state;
     case 'ADD_FACTORY':
       return (() => {
         const factory: SimFactory = { id: fid(), name: action.name || '新工厂', lines: [emptyLine()] };

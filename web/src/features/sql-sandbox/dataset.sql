@@ -296,3 +296,23 @@ INSERT INTO shipments (ship_id, so_id, ship_no, due_date, ship_date, qty, status
 -- 仅追加一个已下达但无可用设备的工单（不改动既有 work_orders 数据）
 INSERT INTO work_orders (wo_id, wo_no, product_id, qty_plan, qty_done, due_date, state, workshop)
 VALUES (7, 'WO-20260808-01', 2, 50, 0, '2026-08-19', 'released', '二号车间');
+
+-- ============================================================================
+-- 【2026-08-08 扩展(三)】共享工单 WO-2026-001（贯通 SQL 沙盒 ↔ 仿真沙盒）
+-- ----------------------------------------------------------------------------
+-- 与仿真侧 simScenario.WO_DEMO = 'WO-2026-001' 同源。学员先在 SQL 沙盒用这个 WO 号
+-- 查它走到了哪一步，再进仿真沙盒点「运行」，日志首行就是同一张工单沿通用工厂主线流转。
+--
+-- 只增不改既有数据；新增行刻意「不命中任何既有判题 WHERE」：
+--   work_orders.state = 'running'        → 不影响 c5（仅统计 finished）、不影响 9302/9303；
+--   pick_lists 齐套（issued=required）   → 不命中 9302「缺料」统计；
+--   quality_checks.result = '合格'        → 不命中 9303「不合格」统计、不影响 c4/c6。
+-- 因此后端 sql_exercises(9301~9303) 的 answer_hash 保持不变，无需重算。
+-- ============================================================================
+INSERT INTO work_orders (wo_id, wo_no, product_id, qty_plan, qty_done, due_date, state, workshop)
+VALUES (8, 'WO-2026-001', 1, 100, 0, '2026-08-20', 'running', '一号车间');
+INSERT INTO pick_lists (pick_id, pick_no, wo_id, material_id, qty_required, qty_issued, pick_time, state)
+VALUES (13, 'PK-20260808-03', 8, 1, 102, 102, '2026-08-08 09:00:00', 'done'),
+       (14, 'PK-20260808-04', 8, 2, 404, 404, '2026-08-08 09:05:00', 'done');
+INSERT INTO quality_checks (check_id, wo_id, check_time, result, defect_type)
+VALUES (8, 8, '2026-08-08 18:00:00', '合格', NULL);

@@ -380,6 +380,12 @@ body,
   min-width: 0;
 }
 
+.breadcrumb {
+  /* 顶栏是 flex 行，面包屑必须可收缩，否则深层页长标题会把顶栏撑出横向滚动 */
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
 .breadcrumb ol {
   list-style: none;
   display: flex;
@@ -438,6 +444,8 @@ body,
 
 .topbar-search {
   flex: 1;
+  /* 搜索框必须能收缩到 0，否则平板档与面包屑争空间时把顶栏撑爆 */
+  min-width: 0;
   max-width: 360px;
   margin: 0 var(--space-4);
   display: none;
@@ -475,34 +483,47 @@ body,
 
 .topbar-right {
   margin-left: auto;
+  /* 右侧集群（头像/状态/菜单）固定尺寸，把伸缩空间让给面包屑和搜索，避免顶栏溢出 */
+  flex: none;
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
 
-/* 通知按钮 */
-.topbar-notify {
-  position: relative;
-  width: 36px; height: 36px;
-  border-radius: var(--radius-sm);
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color var(--motion-fast);
-}
-.topbar-notify:hover { background: var(--surface-2); }
-.topbar-notify-dot {
+/* 顶栏快速跳转下拉 */
+.topbar-search-menu {
   position: absolute;
-  top: 6px; right: 6px;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--danger);
-  border: 2px solid var(--surface);
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  min-width: 240px;
+  max-height: min(60vh, 360px);
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--space-1);
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elev-pop);
+  z-index: var(--z-pop);
 }
+.topbar-search-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--fg-2);
+}
+.topbar-search-item.is-active {
+  background: var(--accent-soft);
+  color: var(--fg);
+}
+.topbar-search-item-label { font-size: var(--text-sm); font-weight: var(--weight-read); }
+.topbar-search-item-hint { font-size: var(--text-xs); color: var(--meta); }
 
 /* 头像按钮 */
 .topbar-avatar {
@@ -522,6 +543,12 @@ body,
 }
 .topbar-avatar:hover { border-color: var(--accent-border); }
 @media (min-width: 640px) { .topbar-avatar { display: flex; } }
+
+/* 超小屏（≤400px，如 iPhone SE / 老安卓）：顶栏只留面包屑 + 菜单，
+   API 状态收纳进侧栏抽屉，避免状态药丸把窄屏顶栏挤爆 */
+@media (max-width: 400px) {
+  .topbar .pill { display: none; }
+}
 
 /* ---------- 内容区 ---------- */
 /* v2 收紧：顶部留白 40→24、底部 64→48、区块间距 32→24，
@@ -1871,6 +1898,8 @@ body,
   .section { padding-top: 0; }
   .dash-grid { grid-template-columns: 1fr; }
   .topbar { padding: 0 var(--gutter-tablet); }
+  /* 平板档：搜索框放开上限、允许收缩，与面包屑共享空间，杜绝横向溢出 */
+  .topbar-search { max-width: none; min-width: 0; }
   /* 移动端 sim-page 高度自适应 */
   .sim-page { height: auto; min-height: 420px; margin: 0; }
 }
@@ -2252,7 +2281,8 @@ body,
   box-shadow: var(--elev-modal);
   transition:
     transform var(--motion-slow) var(--ease-standard),
-    opacity var(--motion-slow) var(--ease-standard);
+    opacity var(--motion-slow) var(--ease-standard),
+    width var(--motion-slow) var(--ease-standard);
 }
 
 .nd-side,
@@ -2268,16 +2298,38 @@ body,
 .nd-side.is-open,
 .nd-overlay.is-open { transform: translateX(0); }
 
+/* SQL 沙盒就地展开时的展宽态。420px 放不下「编辑器 + 结果表」，展开才加宽、收起就还原，
+   不常驻宽度是为了 side 档（non-modal）平时尽量少挡住地图。
+   width 的过渡已并进 .nd 基类的 transition 列表——别在这里单独声明 transition，
+   那会整条覆盖掉基类的 transform/opacity，抽屉的滑入动画会直接消失。 */
+.nd-side.is-wide { width: min(720px, 52vw); }
+.nd-overlay.is-wide { width: 720px; max-width: 94vw; }
+
 .nd-sheet {
   left: 0;
   right: 0;
   bottom: 0;
+  /* 移动端必须用 dvh：vh 会把地址栏算进可视高度，86vh 比真正可视区还高，
+     底部「上一/下一环节」按钮会被浏览器 UI 吃掉。dvh 跟随当前可视区，
+     取不到 dvh 的老浏览器退回 86vh 兜底。 */
   height: 86vh;
+  height: 86dvh;
+  max-height: 86dvh;
   border-top: 1px solid var(--border);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   transform: translateY(100%);
 }
 .nd-sheet.is-open { transform: translateY(0); }
+
+/* 移动端底部 sheet：home indicator 安全区 + 触达尺寸 */
+@media (max-width: 767px) {
+  .nd-foot {
+    /* 给 iPhone home indicator 让出底部安全区，按钮不再贴边/被遮 */
+    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  }
+  .nd-step { min-height: 44px; }
+  .nd-close { width: 40px; height: 40px; }
+}
 
 /* ── 抽屉头 ── */
 .nd-head {
@@ -2416,6 +2468,32 @@ body,
 .nd-drill.is-done { background: var(--surface-2); }
 .nd-drill.is-done .nd-dl { color: var(--muted); }
 .nd-drill.is-done .nd-dgo { color: var(--success); }
+
+/* ── 同屏内联实战 ──
+   quiz/sql 的触发器由 <a> 换成了 <button>：button 不继承字体，必须显式补，
+   否则行内文字会掉回浏览器默认字体，和上下的 <a> 行对不齐。 */
+.nd-drill { font: inherit; cursor: pointer; }
+.nd-fold + .nd-fold,
+.nd-fold + .nd-drill,
+.nd-drill + .nd-fold { margin-top: var(--space-2); }
+.nd-fold.is-open > .nd-drill {
+  border-color: var(--accent);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.nd-inline {
+  padding: var(--space-3);
+  border: 1px solid var(--accent);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: var(--surface);
+}
+.nd-inline-prompt {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--fg-2);
+}
 
 /* ── 上/下一环节 ── */
 .nd-foot {
