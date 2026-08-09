@@ -125,6 +125,15 @@
 .sim-level-check.is-ok svg { color: var(--success, var(--accent)); }
 .sim-level-check-label { flex: none; }
 .sim-level-detail { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--meta); }
+
+/* 训练关卡约束列表容器（SimLevels 渲染 <ul class="sim-level-constraints">） */
+.sim-level-constraints { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.sim-level-constraints li { display: flex; align-items: flex-start; gap: 5px; font-size: 10px; color: var(--meta); line-height: 1.35; }
+.sim-level-constraints li svg { flex: none; margin-top: 1px; color: var(--accent); }
+
+/* 关卡面板底部统计（SimLevels） */
+.sim-tasks-stats { display: flex; gap: 12px; font-size: 11px; color: var(--muted); padding: var(--space-1) 0; }
+.sim-tasks-stat { display: flex; gap: 4px; }
 .sim-wip-badge {
   position: absolute;
   top: -10px;
@@ -140,6 +149,18 @@
   line-height: 1.4;
   white-space: nowrap;
   box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+@keyframes sim-wip-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+.sim-wip-badge {
+  animation: sim-wip-pulse 2s ease-in-out infinite;
+}
+
+/* 瓶颈节点：加橙色描边提示"产线卡在这里" */
+.sim-node.is-bottleneck {
+  box-shadow: 0 0 0 2px var(--warn), 0 2px 8px rgba(0,0,0,0.15);
 }
 
 /* 形状预览小图标 */

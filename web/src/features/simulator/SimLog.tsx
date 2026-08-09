@@ -81,7 +81,7 @@ export default function SimLog({ nodes, edges, runLogs, running, metrics }: Prop
           <MetricRow label="不良" value={`${metrics.defective}`} accent="var(--warn)" />
           <MetricRow label="返工" value={`${metrics.reworked}`} />
           <MetricRow label="报废" value={`${metrics.scrapped}`} accent="var(--danger)" />
-          <MetricRow label="理论加工工时" value={`${metrics.leadTimeMin} 分`} hint="仅各工序标准工时之和，不含排队/搬运/换型" />
+          <MetricRow label="理论加工工时" value={`${metrics.theoreticalProcessMin} 分`} hint="仅各工序标准工时之和，不含排队/搬运/换型" />
         </div>
       )}
 

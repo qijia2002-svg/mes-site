@@ -27,7 +27,7 @@ export interface SimMetrics {
   defective: number; // 累计检验发现的不良
   reworked: number; // 回流返工数量
   scrapped: number; // 报废数量
-  leadTimeMin: number; // 理论加工工时：仅各工序标准工时之和，不含排队/搬运/换型/检验等待。真实生产周期中排队常占 80% 以上，此值会严重偏小，切勿当成交期。
+  theoreticalProcessMin: number; // 理论加工工时（分）：仅各工序标准工时之和，不含排队/搬运/换型/检验等待。真实生产周期中排队常占 80% 以上，此值会严重偏小，切勿当成交期或交付周期使用。
 }
 
 /** 仿真计划（拓扑序 + 回流映射 + 校验错误） */
@@ -293,7 +293,7 @@ export interface SimSimulateResult {
 }
 
 function emptyMetrics(batch: number): SimMetrics {
-  return { total: batch, passed: 0, defective: 0, reworked: 0, scrapped: 0, leadTimeMin: 0 };
+  return { total: batch, passed: 0, defective: 0, reworked: 0, scrapped: 0, theoreticalProcessMin: 0 };
 }
 
 function emptyReport(): SimRunReport {
@@ -412,7 +412,7 @@ export function simulate(nodes: SimNode[], edges: SimEdge[], batch = DEFAULT_BAT
     defective: Math.round(defective),
     reworked: Math.round(reworked),
     scrapped: Math.round(scrapped),
-    leadTimeMin: lead,
+    theoreticalProcessMin: lead,
   };
 
   // 瓶颈分析：产能最低的在制工序（起止节点视为无限产能，不限制）
@@ -456,18 +456,25 @@ export function simulate(nodes: SimNode[], edges: SimEdge[], batch = DEFAULT_BAT
   // 两岛打通：把一次运行的结构化明细打包成 report（工单 + 逐工序报工 + 逐检验质检），
   // 由 simToSql 序列化成 sim_* 表写进 SQL 库。仿真不建模具体产品，工单用文字标签。
   const OPERATORS = ['仿真工·甲', '仿真工·乙', '仿真工·丙', '仿真工·丁'];
-  const ts = now.toLocaleTimeString('zh-CN', { hour12: false });
-  const dateStr = now.toISOString().slice(0, 10);
-  const woNo = woId(now);
+  const baseTime = new Date(now.getTime()); // 快照，避免 mutate
+  const ts = baseTime.toLocaleTimeString('zh-CN', { hour12: false });
+  const dateStr = baseTime.toISOString().slice(0, 10);
+  const woNo = woId(baseTime);
   const production: SimProductionRecord[] = [];
   const checks: SimQualityCheck[] = [];
   let recSeq = 0;
   let chkSeq = 0;
+  let cumMinutes = 0; // 累计工时（分），用于摊开时间深度
   for (const node of plan.order) {
     const def = nodeDef(node);
     if (!def || def.category === 'endpoint') continue;
     const inflow = nodeInflow[node.id] ?? 0;
-    const st = computeStep(node, inflow, plan, now);
+    const st = computeStep(node, inflow, plan, baseTime);
+    const nodeHours = node.props.hours ?? 0;
+    // 按累计工时偏移时间戳：每步推进 nodeHours 分钟，模拟真实报时顺序
+    const stepTime = new Date(baseTime.getTime() + cumMinutes * 60000);
+    const stepTs = stepTime.toLocaleTimeString('zh-CN', { hour12: false });
+    cumMinutes += Math.max(nodeHours, 1); // 至少推 1 分钟，避免同时间戳
     production.push({
       recId: ++recSeq,
       nodeLabel: node.label,
@@ -475,14 +482,14 @@ export function simulate(nodes: SimNode[], edges: SimEdge[], batch = DEFAULT_BAT
       operator: OPERATORS[recSeq % OPERATORS.length],
       qtyOk: Math.round(st.good),
       qtyNg: Math.round(st.defective),
-      reportTime: ts,
+      reportTime: stepTs,
     });
     if (def.category === 'inspect') {
       const bad = st.defective > 0;
       checks.push({
         checkId: ++chkSeq,
         nodeLabel: node.label,
-        checkTime: ts,
+        checkTime: stepTs,
         result: bad ? '不合格' : '合格',
         defectType: bad ? '检验不良' : null,
       });

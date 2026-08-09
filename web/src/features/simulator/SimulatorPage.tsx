@@ -365,7 +365,7 @@ export default function SimulatorPage() {
             <span className="sim-kpi-label">不良品 (件)</span>
           </div>
           <div className="sim-kpi">
-            <span className="sim-kpi-value">{run.metrics.leadTimeMin.toFixed(1)}</span>
+            <span className="sim-kpi-value">{run.metrics.theoreticalProcessMin.toFixed(1)}</span>
             <span className="sim-kpi-label">理论加工工时 (min)</span>
             <span className="sim-kpi-sub">不含排队/搬运/换型</span>
           </div>
