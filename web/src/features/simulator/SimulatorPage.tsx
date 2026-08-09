@@ -5,10 +5,11 @@
  * 支持「运行仿真」：工单沿工艺路线流转，实时日志 + 指标。
  */
 import { useReducer, useState, useCallback, useRef, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { simReducer, initialSimState, getActiveLine, createNode } from './simReducer';
 import { loadFromStorage, saveToStorage, exportJSON, importJSON } from './simStorage';
 import { simulate, startLog, DEFAULT_BATCH, type SimLogEntry } from './simEngine';
+import { toSimSql } from './simToSql';
 import SimToolbar from './SimToolbar';
 import SimFactoryPanel from './SimFactoryPanel';
 import SimPalette from './SimPalette';
@@ -23,6 +24,7 @@ import { NODE_LIBRARY } from './simTypes';
 import { Icon } from '../../components/Icon';
 import { buildGenericFactory, WO_DEMO, FLOW_KEYS, SIM_REF_ID, FLOW_LABELS } from './simScenario';
 import { NODE_RESOURCE_DONE } from '../factory/useNodeProgress';
+import { write as writeUserData } from '../../lib/userData';
 import './SimulatorPage.css';
 
 // 运行时扩展工序库：直接写入 NODE_LIBRARY
@@ -37,6 +39,7 @@ const EMPTY_RUN: SimRunState = { active: false, activeNodeId: null, logs: [], me
 export default function SimulatorPage() {
   // 接住流程图节点传来的 ?from=<node.key>，把沙盒预载成「同一个通用工厂」的对应切片。
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const fromRaw = params.get('from');
   const from = fromRaw && FLOW_KEYS.has(fromRaw) ? fromRaw : null;
   const fromLabel = from ? FLOW_LABELS[from] : null;
@@ -118,6 +121,14 @@ export default function SimulatorPage() {
 
   const [run, setRun] = useState<SimRunState>(EMPTY_RUN);
   const [speed, setSpeed] = useState(1);
+
+  /** 两岛打通：把本次运行的明细报告序列化成 sim_* 表 SQL，写进用户数据，跳到 SQL 工坊。 */
+  const handlePushToSql = useCallback(async () => {
+    if (!run.report || !run.report.workOrder.woNo) return;
+    const sql = toSimSql(run.report);
+    await writeUserData('sim.sqlExport', sql);
+    navigate('/sql-space?from=sim');
+  }, [run.report, navigate]);
   const [scene, setScene] = useState('auto');
   const stopRef = useRef(false);
 
@@ -204,6 +215,7 @@ export default function SimulatorPage() {
       bottleneck: result.bottleneck,
       wip: result.wip,
       congestedEdges: result.congestedEdges,
+      report: result.report,
     });
 
     for (let i = 0; i < result.order.length; i++) {
@@ -329,6 +341,7 @@ export default function SimulatorPage() {
       </div>
       {/* KPI 指标行 */}
       {run.metrics && (
+        <>
         <div className="sim-kpi-bar">
           <div className="sim-kpi">
             <span className="sim-kpi-value">{run.metrics.passed}</span>
@@ -366,6 +379,14 @@ export default function SimulatorPage() {
             </span>
           </div>
         </div>
+        <div className="sim-kpi-actions">
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void handlePushToSql()}>
+            <Icon name="sql" size={16} />
+            送去 SQL 工坊查我这条线
+          </button>
+          <span className="sim-kpi-hint-text">把工单 / 报工 / 质检写进 SQL 库，切换「我的产线数据」即查</span>
+        </div>
+        </>
       )}
 
       {run.active && (

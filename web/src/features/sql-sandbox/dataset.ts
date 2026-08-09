@@ -143,6 +143,53 @@ export const TABLE_SCHEMAS: Record<string, { name: string; fields: { name: strin
 };
 
 /**
+ * 两岛打通：仿真沙盒运行后写进 SQL 库的 sim_* 表（命名空间隔离，不污染上面的样例表）。
+ * 仅在 SQL 工作台「我的产线数据」模式可见；TABLE_SCHEMAS 多这几条不影响样例模式（样例模式不会渲染这些芯片）。
+ */
+export const SIM_TABLES = ['sim_work_orders', 'sim_production_records', 'sim_quality_checks'] as const;
+
+export const SIM_TABLE_SCHEMAS: Record<string, { name: string; fields: { name: string; type: string; desc: string }[] }> = {
+  sim_work_orders: {
+    name: '仿真工单',
+    fields: [
+      { name: 'wo_no', type: 'TEXT', desc: '工单号 (仿真运行生成)' },
+      { name: 'product', type: 'TEXT', desc: '产出描述' },
+      { name: 'qty_plan', type: 'INTEGER', desc: '计划数量 (投产批次)' },
+      { name: 'qty_done', type: 'INTEGER', desc: '完成数量 (合格发货)' },
+      { name: 'state', type: 'TEXT', desc: '状态 (finished/running)' },
+      { name: 'workshop', type: 'TEXT', desc: '车间' },
+      { name: 'due_date', type: 'TEXT', desc: '交付日期' },
+    ],
+  },
+  sim_production_records: {
+    name: '仿真报工',
+    fields: [
+      { name: 'rec_id', type: 'INTEGER', desc: '记录ID (PK)' },
+      { name: 'node_label', type: 'TEXT', desc: '工序名称' },
+      { name: 'equip_code', type: 'TEXT', desc: '设备' },
+      { name: 'operator', type: 'TEXT', desc: '操作工' },
+      { name: 'qty_ok', type: 'INTEGER', desc: '合格数' },
+      { name: 'qty_ng', type: 'INTEGER', desc: '不良数' },
+      { name: 'report_time', type: 'TEXT', desc: '报工时间' },
+    ],
+  },
+  sim_quality_checks: {
+    name: '仿真的质检',
+    fields: [
+      { name: 'check_id', type: 'INTEGER', desc: '检查ID (PK)' },
+      { name: 'node_label', type: 'TEXT', desc: '检验工序' },
+      { name: 'check_time', type: 'TEXT', desc: '检验时间' },
+      { name: 'result', type: 'TEXT', desc: '结果 (合格/不合格)' },
+      { name: 'defect_type', type: 'TEXT', desc: '缺陷类型 (可空)' },
+    ],
+  },
+};
+
+/** 仿真产线导出时预置的示例查询（SQL 工作台「我的产线数据」模式默认载入）。 */
+export const SIM_SAMPLE_QUERY = `SELECT w.wo_no AS 工单, w.qty_plan AS 计划, w.qty_done AS 完成, w.state AS 状态
+FROM sim_work_orders w;`;
+
+/**
  * 引导式挑战（纯前端，无判题哈希）。让空白编辑器变成「有任务的练习场」：
  * 选一个场景 → 载入模板 → 在 TODO 处补全 → 运行看结果。
  * 与后端 sql_exercises（带 answer_hash 的判题题，走 /sql-space/:id）互补。

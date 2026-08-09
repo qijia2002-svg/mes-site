@@ -15,7 +15,8 @@ export interface QueryOutcome {
 
 type Status = 'loading' | 'ready' | 'error';
 
-export function useSandboxDb() {
+export function useSandboxDb(opts?: { seedSql?: string }) {
+  const { seedSql } = opts ?? {};
   const dbRef = useRef<SqlJsDatabase | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -26,7 +27,9 @@ export function useSandboxDb() {
     setStatus('loading');
     setLoadError(null);
 
-    createDatabase(SANDBOX_DATASET_SQL)
+    // 两岛打通：「我的产线数据」模式下把仿真导出的 sim_* 表 SQL 追加到样例库后面，
+    // 重建一份「canonical + sim_*」的库；样例库（dataset.sql）本身一字不动，哈希判题零影响。
+    createDatabase(SANDBOX_DATASET_SQL + (seedSql ?? ''))
       .then((db) => {
         if (cancelled) {
           db.close();
@@ -54,7 +57,7 @@ export function useSandboxDb() {
         }
       }
     };
-  }, [reloadKey]);
+  }, [reloadKey, seedSql]);
 
   /** 执行 SQL。返回 outcome 或 error 文本，绝不抛给调用方。 */
   const run = useCallback((sql: string): { outcome?: QueryOutcome; error?: string } => {

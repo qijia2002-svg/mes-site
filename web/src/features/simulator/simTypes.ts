@@ -162,6 +162,8 @@ export interface SimRunState {
   congestedEdges?: string[];
   /** C 档：瓶颈工序分析结果（产能最低的在制工序），供 KPI 卡片展示 */
   bottleneck?: import('./simEngine').SimBottleneck | null;
+  /** 两岛打通：本次运行的结构化明细报告（工单 + 报工 + 质检），序列化进 SQL 库用 */
+  report?: import('./simEngine').SimRunReport;
 }
 
 /** Action */

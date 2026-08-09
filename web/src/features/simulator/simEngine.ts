@@ -229,6 +229,49 @@ export interface SimBottleneck {
   perShift: number; // 理论班产（件/班）
 }
 
+// ============================================================================
+// 仿真结果 → SQL 库（两岛打通）：把一次运行的结构化明细序列化进 sim_* 表。
+// 仅描述数据形状，真正的建表/插值在 simToSql.ts；此处产出纯数据，零副作用。
+// ============================================================================
+
+/** 仿真产出的工单（命名空间隔离，不引用 canonical 的 product_id 外键） */
+export interface SimWorkOrderRecord {
+  woNo: string;
+  product: string; // 产线产出描述（仿真不建模具体产品，用文字标签）
+  qtyPlan: number;
+  qtyDone: number;
+  state: string; // finished / running
+  workshop: string;
+  dueDate: string;
+}
+
+/** 仿真产出的逐工序报工（process + inspect 节点各一行） */
+export interface SimProductionRecord {
+  recId: number;
+  nodeLabel: string;
+  equipCode: string;
+  operator: string;
+  qtyOk: number;
+  qtyNg: number;
+  reportTime: string;
+}
+
+/** 仿真产出的逐检验质检 */
+export interface SimQualityCheck {
+  checkId: number;
+  nodeLabel: string;
+  checkTime: string;
+  result: string; // 合格 / 不合格
+  defectType: string | null;
+}
+
+/** 一次运行的完整明细报告（供 simToSql 序列化） */
+export interface SimRunReport {
+  workOrder: SimWorkOrderRecord;
+  production: SimProductionRecord[];
+  checks: SimQualityCheck[];
+}
+
 /** 完整仿真结果 */
 export interface SimSimulateResult {
   ok: boolean;
@@ -245,10 +288,16 @@ export interface SimSimulateResult {
   wip: Record<string, number>;
   /** 拥堵边：指向在制 > 0 节点的入边，画布标红加粗 */
   congestedEdges: string[];
+  /** 结构化明细报告（两岛打通）：工单 + 逐工序报工 + 逐检验质检，供序列化进 SQL 库 */
+  report: SimRunReport;
 }
 
 function emptyMetrics(batch: number): SimMetrics {
   return { total: batch, passed: 0, defective: 0, reworked: 0, scrapped: 0, leadTimeMin: 0 };
+}
+
+function emptyReport(): SimRunReport {
+  return { workOrder: { woNo: '', product: '', qtyPlan: 0, qtyDone: 0, state: 'running', workshop: '', dueDate: '' }, production: [], checks: [] };
 }
 
 /**
@@ -259,7 +308,7 @@ function emptyMetrics(batch: number): SimMetrics {
 export function simulate(nodes: SimNode[], edges: SimEdge[], batch = DEFAULT_BATCH): SimSimulateResult {
   const plan = planSimulation(nodes, edges, batch);
   if (plan.errors.length) {
-    return { ok: false, errors: plan.errors, logs: [], order: [], metrics: emptyMetrics(batch), edgeFlow: {}, nodeInflow: {}, nodeOutflow: {}, bottleneck: null, bottleneckId: null, wip: {}, congestedEdges: [] };
+    return { ok: false, errors: plan.errors, logs: [], order: [], metrics: emptyMetrics(batch), edgeFlow: {}, nodeInflow: {}, nodeOutflow: {}, bottleneck: null, bottleneckId: null, wip: {}, congestedEdges: [], report: emptyReport() };
   }
 
   const inEdges = new Map<string, SimEdge[]>();
@@ -404,5 +453,54 @@ export function simulate(nodes: SimNode[], edges: SimEdge[], batch = DEFAULT_BAT
     if (congestedNodeIds.has(e.to)) congestedEdges.push(e.id);
   }
 
-  return { ok: true, errors: [], logs, order: plan.order, metrics, edgeFlow, nodeInflow, nodeOutflow, bottleneck, bottleneckId: bottleneck?.id ?? null, wip, congestedEdges };
+  // 两岛打通：把一次运行的结构化明细打包成 report（工单 + 逐工序报工 + 逐检验质检），
+  // 由 simToSql 序列化成 sim_* 表写进 SQL 库。仿真不建模具体产品，工单用文字标签。
+  const OPERATORS = ['仿真工·甲', '仿真工·乙', '仿真工·丙', '仿真工·丁'];
+  const ts = now.toLocaleTimeString('zh-CN', { hour12: false });
+  const dateStr = now.toISOString().slice(0, 10);
+  const woNo = woId(now);
+  const production: SimProductionRecord[] = [];
+  const checks: SimQualityCheck[] = [];
+  let recSeq = 0;
+  let chkSeq = 0;
+  for (const node of plan.order) {
+    const def = nodeDef(node);
+    if (!def || def.category === 'endpoint') continue;
+    const inflow = nodeInflow[node.id] ?? 0;
+    const st = computeStep(node, inflow, plan, now);
+    production.push({
+      recId: ++recSeq,
+      nodeLabel: node.label,
+      equipCode: node.label,
+      operator: OPERATORS[recSeq % OPERATORS.length],
+      qtyOk: Math.round(st.good),
+      qtyNg: Math.round(st.defective),
+      reportTime: ts,
+    });
+    if (def.category === 'inspect') {
+      const bad = st.defective > 0;
+      checks.push({
+        checkId: ++chkSeq,
+        nodeLabel: node.label,
+        checkTime: ts,
+        result: bad ? '不合格' : '合格',
+        defectType: bad ? '检验不良' : null,
+      });
+    }
+  }
+  const report: SimRunReport = {
+    workOrder: {
+      woNo,
+      product: '仿真产线产出',
+      qtyPlan: Math.round(total),
+      qtyDone: Math.round(passed),
+      state: passed > 0 ? 'finished' : 'running',
+      workshop: '仿真沙盒',
+      dueDate: dateStr,
+    },
+    production,
+    checks,
+  };
+
+  return { ok: true, errors: [], logs, order: plan.order, metrics, edgeFlow, nodeInflow, nodeOutflow, bottleneck, bottleneckId: bottleneck?.id ?? null, wip, congestedEdges, report };
 }

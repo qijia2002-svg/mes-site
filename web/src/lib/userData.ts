@@ -22,6 +22,7 @@ export const USER_DATA_KEYS = [
   'sim_project',
   'engine.activePath',
   'engine.selectedPaths',
+  'sim.sqlExport',
 ] as const;
 
 const LS_PREFIX = 'mes.ud.';

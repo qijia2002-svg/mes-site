@@ -425,6 +425,17 @@
 .sim-kpi-trend.up { color: var(--success); }
 .sim-kpi-trend.down { color: var(--danger); }
 
+/* 两岛打通：运行结果区「送去 SQL 工坊」按钮行 */
+.sim-kpi-actions {
+  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface-2);
+}
+.sim-kpi-hint-text {
+  font-size: var(--text-xs); color: var(--meta);
+}
+
 @media (max-width: 640px) {
   .sim-kpi-bar { grid-template-columns: repeat(2, 1fr); }
 }

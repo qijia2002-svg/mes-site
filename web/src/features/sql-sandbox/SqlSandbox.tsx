@@ -6,14 +6,25 @@
  * 供服务端审计，判定以客户端为准。
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Icon } from '../../components/Icon';
 import { ErrorState } from '../../components/StateBlock';
 import { hashResultSet } from '../../lib/resultHash';
 import { api, readAnswerHash, readSchemaHint, type SqlExercise } from '../../api/endpoints';
-import { SANDBOX_SAMPLE_QUERY, SANDBOX_TABLES, TABLE_SCHEMAS, SANDBOX_CHALLENGES, type SandboxChallenge } from './dataset';
+import {
+  SANDBOX_SAMPLE_QUERY,
+  SANDBOX_TABLES,
+  SIM_TABLES,
+  SIM_TABLE_SCHEMAS,
+  SIM_SAMPLE_QUERY,
+  TABLE_SCHEMAS,
+  SANDBOX_CHALLENGES,
+  type SandboxChallenge,
+} from './dataset';
 import { useSandboxDb, type QueryOutcome } from './useSandboxDb';
 import { ResultTable } from './ResultTable';
 import { NODE_RESOURCE_DONE } from '../factory/useNodeProgress';
+import { peek } from '../../lib/userData';
 
 type Verdict =
   | { kind: 'idle' }
@@ -23,7 +34,17 @@ type Verdict =
   | { kind: 'unavailable'; reason: string };
 
 export function SqlSandbox({ exercise }: { exercise?: SqlExercise }) {
-  const { status, loadError, run, reset } = useSandboxDb();
+  const [searchParams] = useSearchParams();
+  // 两岛打通：仿真沙盒「送去 SQL 工坊」带 ?from=sim 过来，且本地确实存了仿真导出，
+  // 则默认进「我的产线数据」模式；否则默认样例库。
+  const simExportSql = useMemo(() => peek<string | null>('sim.sqlExport', null), []);
+  const [dataMode, setDataMode] = useState<'example' | 'sim'>(() =>
+    !exercise && searchParams.get('from') === 'sim' && simExportSql ? 'sim' : 'example',
+  );
+  // 样例模式用 canonical 库；「我的产线数据」模式把仿真导出的 sim_* 表 SQL 追加进去重建。
+  const { status, loadError, run, reset } = useSandboxDb({
+    seedSql: !exercise && dataMode === 'sim' ? simExportSql ?? undefined : undefined,
+  });
   const [sql, setSql] = useState(SANDBOX_SAMPLE_QUERY);
   const [outcome, setOutcome] = useState<QueryOutcome | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
@@ -34,6 +55,15 @@ export function SqlSandbox({ exercise }: { exercise?: SqlExercise }) {
   const [difficulty, setDifficulty] = useState('all');
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  // 切换数据模式：进「我的产线数据」载入仿真示例查询；回样例库恢复默认查询。
+  useEffect(() => {
+    if (exercise) return;
+    if (dataMode === 'sim' && simExportSql) setSql(SIM_SAMPLE_QUERY);
+    else setSql(SANDBOX_SAMPLE_QUERY);
+    setOutcome(null);
+    setRunError(null);
+  }, [dataMode, simExportSql, exercise]);
 
   const answerHash = exercise ? readAnswerHash(exercise) : '';
   const schemaHint = exercise ? readSchemaHint(exercise) : '';
@@ -119,7 +149,13 @@ export function SqlSandbox({ exercise }: { exercise?: SqlExercise }) {
     }
   };
 
-  const tableList = useMemo(() => SANDBOX_TABLES.join(' · '), []);
+  // 表结构芯片：样例模式只列 canonical 表；「我的产线数据」模式追加 sim_* 表。
+  const tables = useMemo(
+    () => (!exerciseId && dataMode === 'sim' && simExportSql ? [...SANDBOX_TABLES, ...SIM_TABLES] : SANDBOX_TABLES),
+    [exerciseId, dataMode, simExportSql],
+  );
+  const schemaOf = (t: string) => TABLE_SCHEMAS[t] ?? SIM_TABLE_SCHEMAS[t];
+  const tableList = useMemo(() => tables.join(' · '), [tables]);
 
   if (status === 'loading') {
     return (
@@ -191,6 +227,38 @@ export function SqlSandbox({ exercise }: { exercise?: SqlExercise }) {
         ))}
       </div>
 
+      {/* 两岛打通：数据模式切换（仅非判题场景显示） */}
+      {!exerciseId && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--meta)' }}>数据：</span>
+          <button type="button" className="btn btn-xs"
+            style={{
+              background: dataMode === 'example' ? 'var(--accent)' : 'var(--surface-2)',
+              color: dataMode === 'example' ? '#fff' : 'var(--muted)',
+              border: '1px solid ' + (dataMode === 'example' ? 'var(--accent)' : 'var(--border)'),
+              borderRadius: 'var(--radius-pill)',
+            }}
+            onClick={() => setDataMode('example')}>
+            示例数据
+          </button>
+          <button type="button" className="btn btn-xs"
+            style={{
+              background: dataMode === 'sim' ? 'var(--accent)' : 'var(--surface-2)',
+              color: dataMode === 'sim' ? '#fff' : 'var(--muted)',
+              border: '1px solid ' + (dataMode === 'sim' ? 'var(--accent)' : 'var(--border)'),
+              borderRadius: 'var(--radius-pill)',
+            }}
+            onClick={() => setDataMode('sim')}>
+            我的产线数据
+          </button>
+          {dataMode === 'sim' && !simExportSql && (
+            <Link to="/simulator" className="text-link" style={{ fontSize: 'var(--text-xs)' }}>
+              还没有仿真数据，先去跑一次 →
+            </Link>
+          )}
+        </div>
+      )}
+
       {!exerciseId && SANDBOX_CHALLENGES.length > 0 && (
         <div className="sandbox-challenges">
           <div className="sandbox-challenges-head">
@@ -256,7 +324,7 @@ export function SqlSandbox({ exercise }: { exercise?: SqlExercise }) {
           <Icon name="table" size={16} className="inline-glyph" />
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--fg-2)' }}>表结构参考</span>
           <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
-            {SANDBOX_TABLES.map((t) => (
+            {tables.map((t) => (
               <button
                 key={t}
                 type="button"
@@ -269,10 +337,10 @@ export function SqlSandbox({ exercise }: { exercise?: SqlExercise }) {
             ))}
           </div>
         </div>
-        {activeTable && TABLE_SCHEMAS[activeTable] && (
+        {activeTable && schemaOf(activeTable) && (
           <div style={{ padding: 'var(--space-2) 0 0', borderTop: '1px solid var(--border-soft)' }}>
             <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-announce-cjk)', color: 'var(--fg)', marginBottom: 'var(--space-2)' }}>
-              {TABLE_SCHEMAS[activeTable].name}（{activeTable}）
+              {schemaOf(activeTable)!.name}（{activeTable}）
             </div>
             <table className="data-table" style={{ fontSize: 'var(--text-xs)' }}>
               <thead>
@@ -283,7 +351,7 @@ export function SqlSandbox({ exercise }: { exercise?: SqlExercise }) {
                 </tr>
               </thead>
               <tbody>
-                {TABLE_SCHEMAS[activeTable].fields.map((f) => (
+                {schemaOf(activeTable)!.fields.map((f) => (
                   <tr key={f.name}>
                     <td style={{ fontFamily: 'var(--font-mono)' }}>{f.name}</td>
                     <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{f.type}</td>
