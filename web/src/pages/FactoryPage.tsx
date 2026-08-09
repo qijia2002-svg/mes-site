@@ -25,6 +25,7 @@ import { useNodeStatus, type NodeStatusApi } from '../features/factory/useNodeSt
 import { useStageProgress } from '../features/factory/useStageProgress';
 import MainlineStepper from '../features/factory/MainlineStepper';
 import { DEFAULT_STAGES } from '../features/factory/factoryStages.data';
+import { useIsNarrow } from '../features/roadmap/useIsNarrow';
 
 const SLUG = 'generic-factory';
 
@@ -170,6 +171,10 @@ export default function FactoryPage() {
   const [view, setView] = useState<'journey' | 'panorama'>(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'journey' : 'panorama',
   );
+  // 手机端（≤767px）强制走竖向旅程，并隐藏「旅程/全景」切换开关——
+  // 杜绝在窄屏误入四泳道「桌面网页」全景（用户已反馈此问题）。桌面端切换逻辑不变。
+  const narrow = useIsNarrow();
+  const effectiveView = narrow ? 'journey' : view;
   const select = useCallback(
     (key: string | null) => {
       const next = new URLSearchParams(sp);
@@ -205,7 +210,7 @@ export default function FactoryPage() {
         <MainlineStepper stages={stageProgress.stages} onGoto={select} />
       )}
 
-      <div className="ff-viewbar">
+      {!narrow && (<div className="ff-viewbar">
         <style>{`
           .ff-viewbar{display:flex;align-items:center;gap:var(--space-3);margin:0 0 var(--space-5);
             flex-wrap:wrap}
@@ -246,9 +251,9 @@ export default function FactoryPage() {
             全景
           </button>
         </div>
-      </div>
+      </div>)}
 
-      {view === 'panorama' ? (
+      {effectiveView === 'panorama' ? (
         <FactoryFlow
           nodes={nodes}
           resourcesByNode={resourcesByNode}

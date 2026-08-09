@@ -11,7 +11,7 @@
   /* 派生量：从 token 混出来，不引入新色值 */
   --app-scrim: color-mix(in srgb, var(--brand-ink) 45%, transparent);
   --app-shell-gap: var(--space-6);
-  --tabbar-h: 56px;
+  --tabbar-h: 64px;
 }
 
 html,
@@ -1907,7 +1907,7 @@ body,
 @media (max-width: 640px) {
   .content {
     padding: var(--space-3) var(--gutter-phone)
-      calc(var(--tabbar-h) + var(--space-5));
+      calc(var(--tabbar-h) + var(--space-5) + env(safe-area-inset-bottom, 0px));
     gap: var(--space-3);
   }
   .topbar {
