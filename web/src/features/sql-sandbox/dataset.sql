@@ -303,11 +303,13 @@ VALUES (7, 'WO-20260808-01', 2, 50, 0, '2026-08-19', 'released', '二号车间')
 -- 与仿真侧 simScenario.WO_DEMO = 'WO-2026-001' 同源。学员先在 SQL 沙盒用这个 WO 号
 -- 查它走到了哪一步，再进仿真沙盒点「运行」，日志首行就是同一张工单沿通用工厂主线流转。
 --
--- 只增不改既有数据；新增行刻意「不命中任何既有判题 WHERE」：
---   work_orders.state = 'running'        → 不影响 c5（仅统计 finished）、不影响 9302/9303；
+-- 只增不改既有数据；新增行对判题哈希的影响需逐题核对（切勿想当然「不命中」）：
+--   quality_checks.result = '合格'        → 不命中 9303「不合格」统计、不影响 c4/c6；
 --   pick_lists 齐套（issued=required）   → 不命中 9302「缺料」统计；
---   quality_checks.result = '合格'        → 不命中 9303「不合格」统计、不影响 c4/c6。
--- 因此后端 sql_exercises(9301~9303) 的 answer_hash 保持不变，无需重算。
+--   work_orders.state = 'running'        → 不影响 c5（仅统计 finished）、不影响 9302/9303；
+--   但会进入「对 work_orders 全表按 running 聚合且未显式排除它」的题目——原始 #2
+--   （按车间统计在制工单负荷）正是此类，其 answer_hash 已随本次扩展重算为含 WO-2026-001 的值。
+-- ⚠️ 任何改动本块数据后，必须先跑 `node scripts/gen-answer-hash.mjs --regress` 复核全部判题哈希。
 -- ============================================================================
 INSERT INTO work_orders (wo_id, wo_no, product_id, qty_plan, qty_done, due_date, state, workshop)
 VALUES (8, 'WO-2026-001', 1, 100, 0, '2026-08-20', 'running', '一号车间');
