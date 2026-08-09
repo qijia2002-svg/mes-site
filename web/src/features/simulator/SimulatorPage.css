@@ -178,6 +178,9 @@
 
 .sim-canvas {
   flex: 1; position: relative; overflow: auto; outline: none;
+  /* 关键：允许画布收缩到容器宽度。否则内部 1000px 舞台按 min-width:auto 把整页撑宽，
+     手机端必须缩屏才能看全（横向溢出）。加 min-width:0 后溢出被收进画布自身。 */
+  min-width: 0;
   background-image: radial-gradient(circle, var(--border-soft) 1px, transparent 1px);
   background-size: 20px 20px;
 }
@@ -547,6 +550,19 @@
   .sim-levels { width: 180px; }
   .sim-factory-panel { width: 180px; }
   .sim-log { width: 180px; }
+
+  /* 窄屏：舞台等比缩放到画布宽度，整条产线一眼看全，无需缩屏/横滚。
+     用容器查询单位 cqw，stage 永远贴合画布宽度（100cqw/1000 = 缩放比）。
+     落点/拖拽坐标在桌面端 scale=1 不受影响；触屏本就不支持鼠标拖拽，无副作用。 */
+  .sim-canvas {
+    container-type: inline-size;
+    overflow: hidden;
+  }
+  .sim-stage {
+    /* scale() 需无单位数值：用「长度 ÷ 长度」得到比值（100cqw=画布宽，÷1000px=舞台原宽） */
+    transform: scale(calc(100cqw / 1000px));
+    transform-origin: top left;
+  }
 }
 @media (max-width: 768px) {
   .sim-page {
