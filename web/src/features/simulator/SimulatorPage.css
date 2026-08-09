@@ -38,6 +38,7 @@
   transition: background var(--motion-fast), color var(--motion-fast);
 }
 .sim-toolbar-btn:hover { background: var(--surface-2); color: var(--fg); }
+.sim-toolbar-btn.is-done { background: var(--accent-soft); color: var(--accent); }
 .sim-run-btn {
   background: var(--accent-soft);
   color: var(--accent);

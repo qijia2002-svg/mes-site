@@ -54,6 +54,20 @@ function lsSet<T>(key: string, value: T): void {
   }
 }
 
+/**
+ * 同步写入本地镜像，并返回真实是否写入成功（隐私模式 / 配额耗尽时返回 false）。
+ * 与 `write` 的区别：`write` 还会异步同步云端且返回 void；本函数只管本地、
+ * 且把"是否真的写进去了"如实交给调用方，避免上层误以为永远成功。
+ */
+export function writeLocal<T>(key: string, value: T): boolean {
+  try {
+    localStorage.setItem(LS_PREFIX + key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** 同步读取：优先本地镜像。供现有同步消费者（AppShell 昵称、各页初始值）使用。 */
 export function peek<T>(key: string, fallback: T): T {
   return lsGet(key, fallback);

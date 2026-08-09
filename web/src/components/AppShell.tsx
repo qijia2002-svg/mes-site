@@ -2,7 +2,7 @@
  * App Shell v5 — 智造学院风格重设计。
  * 白侧栏改为「右上角浮动按钮 + 左侧滑出抽屉」，默认不占横向空间，内容全宽。
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Icon, type IconName } from './Icon';
@@ -10,7 +10,7 @@ import { Breadcrumb } from './Breadcrumb';
 import { NetworkBanner } from './NetworkBanner';
 import { api } from '../api/endpoints';
 import { ScrollProgress } from './ScrollProgress';
-import { getNickname } from '../lib/profileStore';
+import { getNickname, subscribeProfile } from '../lib/profileStore';
 import { useFactorySummary } from '../features/factory/useFactorySummary';
 import { TopbarSearch } from './TopbarSearch';
 
@@ -49,7 +49,8 @@ function HealthPill() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [navOpen, setNavOpen] = useState(false);
-  const nickname = getNickname();
+  // 订阅资料变更：设置页保存昵称后，侧栏头像 / 名称即时刷新，无需刷新页面。
+  const nickname = useSyncExternalStore(subscribeProfile, getNickname, getNickname);
   const userInitial = nickname ? nickname.charAt(0) : '学';
   const closeNav = useCallback(() => setNavOpen(false), []);
 

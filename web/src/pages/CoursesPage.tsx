@@ -211,7 +211,7 @@ export default function CoursesPage() {
           <ul className="card-grid">
             {pathsQ.data.slice(0, 4).map((p) => (
               <li key={p.id}>
-                <Link className="card" to={`/factory?view=paths`}>
+                <Link className="card" to={`/learning-paths?path=${p.id}`}>
                   <h3 className="card-title">{p.title}</h3>
                   <p className="card-desc">{p.description || `${p.topicIds.length} 个阶段`}</p>
                   <span className="tag">{p.topicIds.length} 阶段</span>

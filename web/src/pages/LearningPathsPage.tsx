@@ -4,7 +4,8 @@
  * 工厂全景是主轴，这里是「想按课表学」的旁路入口：一条路径 = 一串有先后的课程。
  * 数据源不变：api.learningPaths 拿路径，api.topics 把 topicId 翻成课名。
  */
-import { Link } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
@@ -16,6 +17,16 @@ export default function LearningPathsPage() {
 
   const titleOf = (id: number) => topicsQ.data?.find((t) => t.id === id)?.title ?? `#${id}`;
   const paths = pathsQ.data ?? [];
+
+  // 深链 ?path=<id>：从课程页那几张路径卡点进来时，直接定位到对应的那一条。
+  // 以前它们统一指向 /factory?view=paths，而工厂页根本不读 view，四张卡等于同一个链接。
+  const [sp] = useSearchParams();
+  const focusId = Number(sp.get('path'));
+  const focusRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!focusRef.current) return;
+    focusRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [focusId, paths.length]);
 
   return (
     <section style={{ maxWidth: 'var(--container-app)', margin: '0 auto' }}>
@@ -44,7 +55,14 @@ export default function LearningPathsPage() {
       {paths.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-4)' }}>
           {paths.map((p) => (
-            <div key={p.id} className="card">
+            <div
+              key={p.id}
+              className="card"
+              ref={p.id === focusId ? focusRef : undefined}
+              style={p.id === focusId
+                ? { outline: '2px solid var(--accent)', outlineOffset: 2 }
+                : undefined}
+            >
               <h3 className="card-title">{p.title}</h3>
               <p className="card-desc">{p.description}</p>
               <ol style={{ margin: 0, padding: '0 0 0 var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>

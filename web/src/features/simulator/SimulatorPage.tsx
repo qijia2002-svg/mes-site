@@ -7,7 +7,7 @@
 import { useReducer, useState, useCallback, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { simReducer, initialSimState, getActiveLine, createNode } from './simReducer';
-import { loadFromStorage } from './simStorage';
+import { loadFromStorage, saveToStorage, exportJSON, importJSON } from './simStorage';
 import { simulate, startLog, DEFAULT_BATCH, type SimLogEntry } from './simEngine';
 import SimToolbar from './SimToolbar';
 import SimFactoryPanel from './SimFactoryPanel';
@@ -54,6 +54,58 @@ export default function SimulatorPage() {
     // 而非早期原型的离散制造示例线。保证用户在流程图和仿真间看到同一个工厂。
     return buildGenericFactory();
   });
+
+  // 自动存档：工厂 / 产线拓扑变化时写回云端镜像（userData），下次进沙盒即恢复。
+  // 首帧挂载不写——避免从流程节点 ?from= 进来就把已存的自定义工厂覆盖成通用工厂。
+  // 防抖 400ms：拖动节点会高频触发，只在用户停下后落一次盘，避免刷爆云端写入。
+  const firstSave = useRef(true);
+  const saveTimer = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (firstSave.current) {
+      firstSave.current = false;
+      return;
+    }
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      void saveToStorage(state);
+    }, 400);
+    return () => {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    };
+  }, [state.factories, state.activeFactoryId, state.activeLineId]);
+
+  // 导入 / 导出：把当前激活产线存成单条工艺路线 JSON，便于备份与分享。
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [saveFlash, setSaveFlash] = useState(false);
+  const handleSave = useCallback(() => {
+    void saveToStorage(state);
+    setSaveFlash(true);
+    window.setTimeout(() => setSaveFlash(false), 1500);
+  }, [state]);
+  const handleExport = useCallback(() => {
+    const text = exportJSON(state);
+    const blob = new Blob([text], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `factory-route-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [state]);
+  const handleImportClick = useCallback(() => {
+    fileRef.current?.click();
+  }, []);
+  const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // 允许重复选同一文件
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const proj = importJSON(String(reader.result ?? ''));
+      if (proj) dispatch({ type: 'LOAD_PROJECT', project: proj });
+    };
+    reader.readAsText(file);
+  }, [dispatch]);
 
   const activeLine = getActiveLine(state);
   const nodes = activeLine?.nodes ?? [];
@@ -198,6 +250,17 @@ export default function SimulatorPage() {
         isFullscreen={isFs}
         onToggleFullscreen={toggleFs}
         onReset={resetFactory}
+        onSave={handleSave}
+        onExport={handleExport}
+        onImport={handleImportClick}
+        justSaved={saveFlash}
+      />
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json,.json"
+        style={{ display: 'none' }}
+        onChange={handleImportFile}
       />
       {fromLabel && (
         <div className="sim-from-banner">

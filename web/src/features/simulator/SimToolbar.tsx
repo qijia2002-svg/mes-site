@@ -14,11 +14,19 @@ interface Props {
   onToggleFullscreen: () => void;
   /** 重置本环节：把沙盒恢复到来源节点对应的通用工厂默认（替代旧「清空」）。 */
   onReset?: () => void;
+  /** 保存：把当前工厂 / 产线拓扑写回云端镜像（自动存档也覆盖，这是手动兜底）。 */
+  onSave?: () => void;
+  /** 导出：当前激活产线导出为单条工艺路线 JSON 文件。 */
+  onExport?: () => void;
+  /** 导入：触发文件选择，载入工艺路线 JSON 到当前激活产线。 */
+  onImport?: () => void;
+  /** 手动保存后短暂高亮「已保存」。 */
+  justSaved?: boolean;
 }
 
 const SPEEDS = [1, 2, 4];
 
-export default function SimToolbar({ state, dispatch, run, speed, onSpeedChange, onRun, onStop, isFullscreen, onToggleFullscreen, onReset }: Props) {
+export default function SimToolbar({ state, dispatch, run, speed, onSpeedChange, onRun, onStop, isFullscreen, onToggleFullscreen, onReset, onSave, onExport, onImport, justSaved }: Props) {
   const activeLine = getActiveLine(state);
 
   return (
@@ -62,6 +70,28 @@ export default function SimToolbar({ state, dispatch, run, speed, onSpeedChange,
           <button className="sim-toolbar-btn" title="重置为本环节默认工厂" onClick={onReset}>
             <Icon name="history" size={16} />
             <span className="sim-toolbar-label">重置本环节</span>
+          </button>
+        )}
+        {onSave && (
+          <button
+            className={`sim-toolbar-btn${justSaved ? ' is-done' : ''}`}
+            title="保存当前工厂 / 产线"
+            onClick={onSave}
+          >
+            <Icon name="save" size={16} />
+            <span className="sim-toolbar-label">{justSaved ? '已保存' : '保存'}</span>
+          </button>
+        )}
+        {onExport && (
+          <button className="sim-toolbar-btn" title="导出当前产线为 JSON" onClick={onExport}>
+            <Icon name="download" size={16} />
+            <span className="sim-toolbar-label">导出</span>
+          </button>
+        )}
+        {onImport && (
+          <button className="sim-toolbar-btn" title="导入工艺路线 JSON" onClick={onImport}>
+            <Icon name="upload" size={16} />
+            <span className="sim-toolbar-label">导入</span>
           </button>
         )}
         <button className="sim-toolbar-btn" title={isFullscreen ? '退出全屏' : '全屏编辑'} onClick={onToggleFullscreen}>

@@ -7,7 +7,7 @@
  *  - 写入成功后广播 'mes:profile-changed'，配合 useSyncExternalStore 让首页问候栏
  *    在设置页保存后即时更新，无需刷新或依赖组件重新挂载。
  */
-import { peek, write } from './userData';
+import { peek, write, writeLocal } from './userData';
 const PROFILE_EVENT = 'mes:profile-changed';
 
 const listeners = new Set<() => void>();
@@ -65,9 +65,12 @@ export function getProfile(): UserProfile {
 
 export function setProfile(patch: Partial<UserProfile>): { ok: boolean; profile: UserProfile } {
   const next = { ...getProfile(), ...patch };
+  // 本地镜像同步落盘，如实返回是否写入成功（隐私模式 / 配额耗尽时为 false），
+  // 云端异步补同步仍由 write 负责（best-effort，失败不致命）。
+  const ok = writeLocal('profile', next);
   void write('profile', next);
   emit();
-  return { ok: true, profile: next };
+  return { ok, profile: next };
 }
 
 /* 兼容旧调用：GreetingBar / ProfilePage 仍用这两个函数 */

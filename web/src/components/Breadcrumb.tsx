@@ -37,12 +37,14 @@ const SECTION: Record<string, { label: string; to: string }> = {
   factory: { label: '工厂', to: '/factory' },
   courses: { label: '课程', to: '/courses' },
   chapters: { label: '课程', to: '/courses' },
-  'learning-paths': { label: '学习路径', to: '/factory?view=paths' },
-  roadmap: { label: '职业路径', to: '/factory?view=career' },
-  tracks: { label: '职业路径', to: '/factory?view=career' },
+  // 这几条曾指向 /factory?view=… 和 /factory?mode=…，但 FactoryPage 只认 ?node=，
+  // 参数被静默丢弃，四个不同面包屑点下去落在同一个页面。改回各自真实路由。
+  'learning-paths': { label: '学习路径', to: '/learning-paths' },
+  roadmap: { label: '职业路径', to: '/roadmap' },
+  tracks: { label: '职业路径', to: '/roadmap' },
   'sql-space': { label: 'SQL 工作台', to: '/sql-space' },
   quiz: { label: '题库', to: '/quiz' },
-  simulator: { label: '搭建', to: '/factory?mode=build' },
+  simulator: { label: '搭建', to: '/simulator' },
   profile: { label: '个人中心', to: '/profile' },
   portfolio: { label: '作品集', to: '/portfolio' },
   dictionary: { label: '名称翻译', to: '/dictionary' },

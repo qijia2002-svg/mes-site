@@ -259,13 +259,6 @@ function PathContextBar({ topicId }: { topicId: number }) {
 
   if (!engineQ.data || engineQ.data.paths.length === 0) return null;
 
-  // 找到当前课程在哪些路径中出现
-  const pathsWithThisCourse = engineQ.data.paths.filter(p => {
-    return (engineQ.data as any).courses?.some
-      ? false
-      : false; // path summary doesn't have courses, check active courses
-  });
-
   // 从激活路径的课程列表中找当前课程的上下文
   const activeCourse = engineQ.data.courses.find(c => c.courseId === topicId);
   if (!activeCourse) return null;
