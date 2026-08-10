@@ -139,3 +139,105 @@ export async function gradeMicroSvc(c: Ctx, id: number, userAnswer: MicroAnswer)
     ? { correct: true, feedback: r.feedback_ok }
     : { correct: false, feedback: r.feedback_bad };
 }
+
+// ---------------------------------------------------------------------------
+// 节点进阶详解（node_explainers）
+// ---------------------------------------------------------------------------
+
+export type ExplainerTier = 'overview' | 'detail';
+export type ExplainerKind = 'plain' | 'example' | 'mapping' | 'misconception';
+
+export interface NodeExplainerDTO {
+  id: number;
+  nodeId: number;
+  tier: ExplainerTier;
+  kind: ExplainerKind;
+  title: string;
+  bodyMd: string;
+  /** Icon.tsx 语义名 */
+  icon: string;
+  sort: number;
+}
+
+const EXPLAINER_KINDS: readonly string[] = ['plain', 'example', 'mapping', 'misconception'];
+
+/** 库里 tier 是自由文本（DEFAULT 'overview'），脏值一律按 overview 处理，不让前端拿到枚举外的值。 */
+function toTier(raw: string): ExplainerTier {
+  return raw === 'detail' ? 'detail' : 'overview';
+}
+
+/** 同上：kind 脏值回落 plain，宁可归类不准也不让前端 switch 落空渲染出空卡片。 */
+function toKind(raw: string): ExplainerKind {
+  return EXPLAINER_KINDS.includes(raw) ? (raw as ExplainerKind) : 'plain';
+}
+
+/**
+ * 某节点的进阶详解列表（已按 sort 升序）。
+ * tier 省略返回全部层级。查无数据返回空数组——生产 D1 当前为 0 行，
+ * 空是正常状态不是错误，前端按空数组降级（不渲染折叠区）。
+ */
+export async function listNodeExplainersSvc(
+  c: Ctx,
+  nodeId: number,
+  tier?: ExplainerTier,
+): Promise<NodeExplainerDTO[]> {
+  const rows = await learnRepo.listNodeExplainers(c.db, nodeId, tier);
+  return rows.map((r) => ({
+    id: r.id,
+    nodeId: r.node_id,
+    tier: toTier(r.tier),
+    kind: toKind(r.kind),
+    title: r.title,
+    bodyMd: r.body_md,
+    icon: r.icon,
+    sort: r.sort,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// 分级提示（practice_hints）
+// ---------------------------------------------------------------------------
+
+export type HintTargetType = 'quiz' | 'sql' | 'sim' | 'micro';
+export type HintLevel = 1 | 2 | 3;
+
+export interface PracticeHintDTO {
+  targetType: HintTargetType;
+  targetId: number;
+  level: HintLevel;
+  bodyMd: string;
+  /** 下一级是否存在（只给布尔，不给正文） */
+  hasNext: boolean;
+}
+
+const MAX_HINT_LEVEL = 3;
+
+/**
+ * 单条分级提示。查不到返回 null，由路由层转 404。
+ *
+ * 安全铁律（ADR-019）：一次只下发一个 level 的正文。hasNext 走独立的存在性查询，
+ * 只回布尔——前端据此决定要不要显示「再看下一条」，但拿不到下一级内容。
+ * level 已是 3 时直接置 false，省掉那次必然落空的查询。
+ */
+export async function getPracticeHintSvc(
+  c: Ctx,
+  targetType: HintTargetType,
+  targetId: number,
+  level: HintLevel,
+): Promise<PracticeHintDTO | null> {
+  const r = await learnRepo.getPracticeHint(c.db, targetType, targetId, level);
+  if (!r) return null;
+
+  const hasNext =
+    level < MAX_HINT_LEVEL
+      ? await learnRepo.hasPracticeHintLevel(c.db, targetType, targetId, level + 1)
+      : false;
+
+  return {
+    targetType,
+    targetId,
+    level,
+    bodyMd: r.body_md,
+    hasNext,
+  };
+}

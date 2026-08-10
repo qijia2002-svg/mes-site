@@ -53,7 +53,7 @@ import {
   deleteDictData,
 } from './modules/dict/dict.routes';
 import { getFlowchart } from './modules/flowchart/flowchart.routes';
-import { getMicroPractice, gradeMicroPractice } from './modules/learn/learn.routes';
+import { getMicroPractice, gradeMicroPractice, getNodeExplainers, getPracticeHint } from './modules/learn/learn.routes';
 
 export interface Route {
   method: string;
@@ -167,6 +167,11 @@ export const routes: Route[] = [
   // 零基础重学 v1：微练习（SQL 前台阶，计入完成度；判分只在服务端）
   { method: 'GET', path: '/api/v1/micro-practices/:id', handler: getMicroPractice, noAuth: true },
   { method: 'POST', path: '/api/v1/micro-practices/:id/grade', middlewares: [trace, security, writeLimit(), validate], handler: gradeMicroPractice, noAuth: true },
+
+  // 零基础重学 v1：节点进阶详解（抽屉知识卡内容源，公开读）
+  { method: 'GET', path: '/api/v1/node-explainers', handler: getNodeExplainers, noAuth: true },
+  // 零基础重学 v1：分级提示（按 level 单条下发，下一级只给 hasNext 布尔；ADR-019）
+  { method: 'GET', path: '/api/v1/practice-hints', handler: getPracticeHint, noAuth: true },
 
   // 名称翻译 / 专业词典（读取公开，供「名称翻译」页与选中翻译缓存；后台管理 admin）
   { method: 'GET', path: '/api/v1/dict', handler: getDict, noAuth: true },

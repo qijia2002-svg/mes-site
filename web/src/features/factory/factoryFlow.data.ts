@@ -124,6 +124,12 @@ export function nodePractices(node: LaidNode, resources: NodeResourceDTO[]): Pra
     const out: PracticeRef[] = [];
     if (bp.quiz && bp.quiz.length > 0) out.push({ type: 'quiz', refId: node.id });
     if (bp.sql) out.push({ type: 'sql', refId: node.id });
+    // 微练习来自 node_resources，各有自己独立的 ref_id（9401–9412），
+    // 不并按 node.id 落键——这样抽屉 solve('micro', micro.refId) 与分母用同一把键，
+    // 做完即计入完成度（节点级 practiced + 阶段级进度同源 derive 自此）。
+    for (const r of resources) {
+      if (r.type === 'micro') out.push({ type: 'micro', refId: r.refId });
+    }
     if (out.length > 0) return out;
   }
   return practicesOf(resources).map((r) => ({ type: r.type, refId: r.refId }));

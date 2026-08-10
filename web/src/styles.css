@@ -2361,6 +2361,183 @@ body,
   .skeleton { animation: none; background: var(--surface-3); }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   初学者抽屉新增组件（KnowledgeCard / MicroPractice / 动机前置 / 进阶详解）
+   颜色 / 间距 / 圆角 / 动效一律 var(--token)，无裸 hex、无 bounce。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 通用小型大写标签（步骤头 / 知识卡类型 / 提示用） */
+.caps {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  font-size: var(--text-xs);
+  color: var(--meta);
+}
+
+/* ---------- 初级知识卡（KnowledgeCard） ---------- */
+.kc { display: flex; flex-direction: column; gap: var(--space-3); }
+.kc-empty { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.kc-block {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: var(--space-3) var(--space-4);
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+.kc-example { border-left-color: var(--border-strong); }
+.kc-misconception { border-left-color: var(--warn-border); }
+.kc-head { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+.kc-ic { display: inline-flex; flex: none; color: var(--muted); }
+.kc-plain .kc-ic,
+.kc-example .kc-ic,
+.kc-mapping .kc-ic { color: var(--accent); }
+.kc-misconception .kc-ic { color: var(--warn); }
+.kc-k { font-size: var(--text-xs); color: var(--meta); letter-spacing: var(--tracking-caps); text-transform: uppercase; }
+.kc-t { margin: 0; font-size: var(--text-base); font-weight: var(--weight-announce-cjk); color: var(--fg); line-height: var(--leading-snug); }
+.kc-body { font-size: var(--text-sm); color: var(--fg-2); line-height: var(--leading-relaxed, 1.6); }
+.kc-body.prose { max-width: none; font-size: var(--text-sm); }
+.kc-body.prose > * + * { margin-top: var(--space-2); }
+
+/* ---------- 动机前置横幅（非步骤，只作动机不拦截） ---------- */
+.nd-moti {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--accent-soft); padding: var(--space-3) var(--space-4);
+}
+.nd-moti-row { display: flex; align-items: flex-start; gap: var(--space-2); }
+.nd-moti-ic { display: inline-flex; flex: none; margin-top: 2px; }
+.nd-moti-ic-pain { color: var(--warn); }
+.nd-moti-ic-gain { color: var(--success); }
+.nd-moti-tx { margin: 0; font-size: var(--text-sm); color: var(--fg-2); line-height: 1.55; }
+.nd-moti-k { display: block; margin-bottom: 2px; color: var(--meta); }
+
+/* ---------- 第三步微练习容器 ---------- */
+.nd-micros { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* ---------- 微练习（MicroPractice） ---------- */
+.mp {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  overflow: hidden;
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+.mp.is-done { border-color: var(--success-border); }
+.mp-toggle {
+  display: flex; align-items: center; gap: var(--space-3);
+  width: 100%; padding: var(--space-3) var(--space-4);
+  background: transparent; border: 0; cursor: pointer;
+  font-family: inherit; text-align: left; color: var(--fg);
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+.mp-toggle:hover { background: var(--surface); }
+.mp-ti { display: inline-flex; color: var(--muted); flex: none; }
+.mp.is-done .mp-ti { color: var(--success); }
+.mp-tt { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.mp-tl { font-size: var(--text-sm); font-weight: var(--weight-announce-cjk); color: var(--fg); }
+.mp-tk { font-size: var(--text-xs); color: var(--meta); }
+.mp-tg { flex: none; display: inline-flex; color: var(--muted); }
+.mp-body { padding: 0 var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.mp-note { margin: 0; font-size: var(--text-sm); color: var(--muted); }
+.mp-prompt { margin: 0; font-size: var(--text-sm); color: var(--fg-2); line-height: 1.5; }
+.mp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.mp-pair { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.mp-pl { font-size: var(--text-sm); color: var(--fg); flex: 1 1 120px; min-width: 0; }
+.mp-px { display: inline-flex; color: var(--muted); flex: none; }
+.mp-sel {
+  font-family: inherit; font-size: var(--text-sm); color: var(--input-fg);
+  background: var(--input-bg); border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); min-height: 36px;
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+.mp-sel:hover { border-color: var(--input-border-hover); }
+.mp-ord { display: flex; align-items: center; gap: var(--space-2); }
+.mp-on {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; flex: none; border-radius: var(--radius-xs);
+  background: var(--accent-soft); color: var(--accent);
+  font-family: var(--font-mono); font-size: var(--text-xs); font-weight: var(--weight-announce);
+}
+.mp-ot { flex: 1; min-width: 0; font-size: var(--text-sm); color: var(--fg); }
+.mp-oa { display: inline-flex; gap: 2px; flex: none; }
+.mp-oa button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border: 1px solid var(--border);
+  background: var(--surface); border-radius: var(--radius-xs); color: var(--muted); cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
+}
+.mp-oa button:hover:not(:disabled) { background: var(--surface-2); color: var(--fg); }
+.mp-oa button:disabled { opacity: 0.45; cursor: default; }
+.mp-opt {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm); color: var(--fg);
+  transition: border-color var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard);
+}
+.mp-opt:hover { border-color: var(--border-strong); background: var(--surface); }
+.mp-opt.is-on { border-color: var(--accent-border); background: var(--accent-soft); color: var(--accent); }
+.mp-fb {
+  display: flex; align-items: flex-start; gap: var(--space-2);
+  font-size: var(--text-sm); border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+.mp-fb.is-ok { background: var(--success-soft); border: 1px solid var(--success-border); color: var(--success); }
+.mp-fb.is-bad { background: var(--warn-soft); border: 1px solid var(--warn-border); color: var(--warn); }
+.mp-fb strong { font-weight: var(--weight-announce-cjk); }
+.mp-passed {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  font-size: var(--text-sm); color: var(--success); font-weight: var(--weight-emph-cjk);
+}
+.mp-act { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+/* 分级提示（答错后才按需出现，绝不预拉，不剧透答案） */
+.mp-hint {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); padding: var(--space-3);
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.mp-hint-h { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--muted); }
+.mp-hint-h .caps { color: var(--muted); }
+.mp-hint-body { font-size: var(--text-sm); color: var(--fg-2); line-height: 1.5; }
+.mp-hint-body.prose { max-width: none; }
+.mp-hint-body.prose > * + * { margin-top: var(--space-2); }
+.mp-hint-err { margin: 0; font-size: var(--text-sm); color: var(--warn); }
+
+/* ---------- 进阶详解（折叠，懒加载，空数组降级） ---------- */
+.nd-deep { border-top: 1px solid var(--border-soft); margin-top: var(--space-4); padding-top: var(--space-3); }
+.nd-deep-s {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  cursor: pointer; color: var(--fg-2); font-size: var(--text-sm);
+  list-style: none; user-select: none;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+.nd-deep-s::-webkit-details-marker { display: none; }
+.nd-deep-s:hover { color: var(--accent); }
+.nd-deep-b { margin-top: var(--space-3); display: flex; flex-direction: column; gap: var(--space-3); }
+.nd-deep-empty { margin: 0; font-size: var(--text-sm); color: var(--muted); }
+.nd-deep-item {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface-2); padding: var(--space-3) var(--space-4);
+}
+.nd-deep-t { margin: 0 0 var(--space-2); font-size: var(--text-sm); font-weight: var(--weight-announce-cjk); color: var(--fg); }
+.nd-deep-md.prose { max-width: none; font-size: var(--text-sm); }
+.nd-deep-md.prose > * + * { margin-top: var(--space-2); }
+
+/* ---------- SQL 参考解答（默认折叠，点开才给） ---------- */
+.bsql-ref { display: flex; flex-direction: column; gap: var(--space-2); }
+.bsql-ref-toggle {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  align-self: flex-start; padding: var(--space-2) var(--space-3);
+  font-family: inherit; font-size: var(--text-sm); font-weight: var(--weight-emph-cjk);
+  color: var(--accent); background: var(--accent-soft);
+  border: 1px solid var(--accent-border); border-radius: var(--radius-sm); cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard);
+}
+.bsql-ref-toggle:hover { background: var(--accent-border); }
+.bsql-ref-c { color: var(--accent); flex: none; }
+.bsql-ref-body { display: flex; flex-direction: column; gap: var(--space-2); }
+
 /* ==========================================================================
    工厂节点抽屉 .nd-*（features/factory/NodeDrawer.tsx）
    形态由 JS 的 matchMedia 定档，CSS 只负责各档的位置与位移方向：

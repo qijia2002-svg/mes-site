@@ -77,6 +77,8 @@ export function BeginnerSqlLab({ sqlCase, onPass }: { sqlCase: BeginnerSqlCase; 
   const [showNotes, setShowNotes] = useState(false);
   const [glossary, setGlossary] = useState<string | null>(null);
   const [filled, setFilled] = useState(false);
+  // 参考解答默认折叠：先让学员自己写，点开才给（不拦截，纯参考）。
+  const [showRef, setShowRef] = useState(false);
   const expectedHashRef = useRef<string | null>(null);
   const passFired = useRef(false);
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
@@ -252,14 +254,27 @@ export function BeginnerSqlLab({ sqlCase, onPass }: { sqlCase: BeginnerSqlCase; 
         </div>
       </div>
 
-      {/* 参考解答：先跑通再理解 */}
+      {/* 参考解答：默认折叠，点开才给（先自己写，不拦截） */}
       <div className="bsql-ref">
-        <span className="bsql-ref-t">参考解答（先跑通，再理解）：</span>
-        <div className="bsql-ref-actions">
-          <button type="button" className="btn btn-xs btn-primary" onClick={fillReference}>填入编辑器</button>
-          <button type="button" className="btn btn-xs btn-secondary" onClick={() => void copyReference()}>复制</button>
-          {filled && !sql && <span className="bsql-ref-hint">已填入，点"运行"看效果</span>}
-        </div>
+        <button
+          type="button"
+          className="bsql-ref-toggle"
+          onClick={() => setShowRef((v) => !v)}
+          aria-expanded={showRef}
+        >
+          <Icon name="answer" size={16} className="inline-glyph" />
+          <span>{showRef ? '收起参考解答' : '看参考解答（先跑通，再理解）'}</span>
+          <Icon name={showRef ? 'chevron-down' : 'chevron-right'} size={16} className="bsql-ref-c" />
+        </button>
+        {showRef && (
+          <div className="bsql-ref-body">
+            <div className="bsql-ref-actions">
+              <button type="button" className="btn btn-xs btn-primary" onClick={fillReference}>填入编辑器</button>
+              <button type="button" className="btn btn-xs btn-secondary" onClick={() => void copyReference()}>复制</button>
+              {filled && !sql && <span className="bsql-ref-hint">已填入，点"运行"看效果</span>}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 表结构参考芯片 */}

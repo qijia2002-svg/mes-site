@@ -273,6 +273,36 @@ export interface MicroGradeResult {
 /** match 提交 {左id: 右id}；order 提交有序 id 数组；pick 提交选中 id 数组。 */
 export type MicroAnswer = Record<string, string> | string[];
 
+/**
+ * 节点进阶详解（node_explainers）。tier=overview 进抽屉默认区，tier=detail 进折叠「进阶详解」。
+ * kind 与前端知识卡四枚举对齐：plain 概念 / example 实例 / mapping 映射 / misconception 误区。
+ * 生产 D1 当前为 0 行——前端须按空数组降级（不渲染折叠区），不能假定一定有数据。
+ * bodyMd 为 Markdown，由知识卡组件渲染。
+ */
+export interface NodeExplainerDTO {
+  id: number;
+  nodeId: number;
+  tier: 'overview' | 'detail';
+  kind: 'plain' | 'example' | 'mapping' | 'misconception';
+  title: string;
+  bodyMd: string;
+  icon: string;
+  sort: number;
+}
+
+/**
+ * 分级提示（practice_hints）。按 level 单条下发，绝不随题面下发（ADR-019，防剧透）。
+ * hasNext 布尔让前端决定是否展示「再看下一条」按钮，但不泄露下一级内容。
+ * answer 永不出网——hint 只给思路，不给答案。
+ */
+export interface PracticeHintDTO {
+  targetType: 'quiz' | 'sql' | 'sim' | 'micro';
+  targetId: number;
+  level: 1 | 2 | 3;
+  bodyMd: string;
+  hasNext: boolean;
+}
+
 /** 兼容后端 snake_case / camelCase 两种命名，避免单点字段名不一致导致整页失效。 */
 export function readSchemaHint(e: SqlExercise): string {
   return e.schemaHint ?? e.schema_hint ?? '';
@@ -404,6 +434,20 @@ export const api = {
   /** 判分只在服务端做：answer 留服务端，前端只提交作答、只收 correct + feedback。 */
   gradeMicroPractice: (id: number, answer: MicroAnswer) =>
     apiPost<MicroGradeResult>(`/api/v1/micro-practices/${id}/grade`, { answer }),
+
+  // 节点进阶详解（node_explainers）。公开读；按需单条节点拉取，不按节点循环预拉。
+  // tier 可选：不传返回该节点全部，传 overview/detail 只返回对应层级。
+  nodeExplainers: (nodeId: number, tier?: 'overview' | 'detail') =>
+    apiGet<{ items: NodeExplainerDTO[] }>(
+      `/api/v1/node-explainers?node_id=${nodeId}${tier ? `&tier=${tier}` : ''}`,
+    ),
+
+  // 分级提示（practice_hints）。公开读；按 level 单条下发，绝不随题面下发（ADR-019）。
+  // 仅答错/主动求提示时按需拉取，不预拉。
+  practiceHint: (targetType: 'quiz' | 'sql' | 'sim' | 'micro', targetId: number, level: 1 | 2 | 3) =>
+    apiGet<PracticeHintDTO>(
+      `/api/v1/practice-hints?target_type=${targetType}&target_id=${targetId}&level=${level}`,
+    ),
 
   // 认证
   whoami: () => apiGet<{ sub: string }>('/api/v1/auth/whoami'),

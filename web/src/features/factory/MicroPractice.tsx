@@ -13,11 +13,12 @@
  * 反馈三重编码（图标 + 文字 + 底色），不靠颜色单独传意；错了给具体错因，
  * 永不只回「答案错误」。
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '../../components/Icon';
 import { ApiError } from '../../api/client';
 import { api, type MicroAnswer, type MicroItem } from '../../api/endpoints';
+import { renderChapterMarkdown } from '../../lib/markdown';
 
 export interface MicroPracticeProps {
   id: number;
@@ -40,6 +41,13 @@ export default function MicroPractice({ id, title, done, onSolved }: MicroPracti
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // 分级提示（ADR-019：只答错后按需拉取，绝不随题面预拉，不剧透答案）。
+  // hints[0] = 第 1 级 bodyMd，依次类推；hasNext 决定是否给「下一级」按钮。
+  const [hints, setHints] = useState<string[]>([]);
+  const [hintHasNext, setHintHasNext] = useState(false);
+  const [hintBusy, setHintBusy] = useState(false);
+  const [hintErr, setHintErr] = useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ['micro-practice', id],
@@ -100,7 +108,37 @@ export default function MicroPractice({ id, title, done, onSolved }: MicroPracti
   const retry = () => {
     setVerdict(null);
     setFailure(null);
+    setHints([]);
+    setHintHasNext(false);
+    setHintErr(null);
   };
+
+  /** 答错后才按需拉某一級提示（1→2→3），绝不预拉。 */
+  const loadHint = async (level: 1 | 2 | 3) => {
+    if (level < 1 || level > 3) return;
+    setHintBusy(true);
+    setHintErr(null);
+    try {
+      const dto = await api.practiceHint('micro', id, level);
+      setHints((prev) => {
+        const next = [...prev];
+        next[level - 1] = dto.bodyMd;
+        return next;
+      });
+      setHintHasNext(!!dto.hasNext);
+    } catch {
+      setHintErr('提示暂时取不出来，先按上面的反馈再试一次。');
+    } finally {
+      setHintBusy(false);
+    }
+  };
+
+  // 第一次答错才自动拉第 1 级；之后靠「下一级」按钮递进，不再自动连拉。
+  useEffect(() => {
+    if (verdict && !verdict.correct && hints.length === 0 && !hintErr) {
+      void loadHint(1);
+    }
+  }, [verdict, hints.length, hintErr]);
 
   return (
     <div className={`mp${done ? ' is-done' : ''}`}>
@@ -231,6 +269,32 @@ export default function MicroPractice({ id, title, done, onSolved }: MicroPracti
                 <div className="mp-fb is-bad" role="status">
                   <Icon name="warn" size={16} />
                   <span>{failure}</span>
+                </div>
+              )}
+
+              {hints.length > 0 && (
+                <div className="mp-hint" role="status" aria-live="polite">
+                  <div className="mp-hint-h">
+                    <Icon name="hint" size={16} />
+                    <span className="caps">提示（只给思路，不剧透答案）</span>
+                  </div>
+                  {hints.map((h, i) => {
+                    const { html } = renderChapterMarkdown(h);
+                    return (
+                      <div key={i} className="mp-hint-body prose" dangerouslySetInnerHTML={{ __html: html }} />
+                    );
+                  })}
+                  {hintHasNext && hints.length < 3 && (
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-secondary"
+                      onClick={() => loadHint((hints.length + 1) as 1 | 2 | 3)}
+                      disabled={hintBusy}
+                    >
+                      {hintBusy ? '加载中…' : `看第 ${hints.length + 1} 级提示`}
+                    </button>
+                  )}
+                  {hintErr && <p className="mp-hint-err">{hintErr}</p>}
                 </div>
               )}
 
