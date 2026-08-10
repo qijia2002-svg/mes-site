@@ -142,7 +142,26 @@ export default function MainlineStepper({ stages, onGoto }: MainlineStepperProps
         .ml-anyway:hover{border-color:var(--accent-border);color:var(--accent-active)}
 
         @media(max-width:768px){
-          .ml-item{flex:0 0 auto;min-width:148px}
+          /* 移动端：6 站 × 120px = 720px 最小宽度，超出 375px 视口近一倍，
+             横滑 + scroll-snap 让每站停稳；渐变遮罩提示「右边还有」；隐藏滚动条（手势足够）。 */
+          .ml{margin:0 0 var(--space-4)}
+          .ml-head{margin-bottom:var(--space-2)}
+          .ml-head h2{font-size:var(--text-sm)}
+          .ml-head .sub{display:none}
+          .ml-rail{
+            gap:var(--space-2);
+            padding-bottom:var(--space-2);
+            scrollbar-width:none;
+            -ms-overflow-style:none;
+            scroll-snap-type:x mandatory;
+            /* 渐变遮罩：左右边缘暗示可横滑 */
+            mask-image:linear-gradient(to right, transparent, black var(--space-6), calc(100% - var(--space-6)), black, transparent);
+            -webkit-mask-image:linear-gradient(to right, transparent, black var(--space-6), calc(100% - var(--space-6)), black, transparent)
+          }
+          .ml-rail::-webkit-scrollbar{display:none}
+          .ml-item{flex:0 0 auto;min-width:120px;scroll-snap-align:start}
+          .ml-btn{min-height:44px;padding:var(--space-2) var(--space-2)}
+          .ml-name{font-size:var(--text-xs)}
         }
       `}</style>
 

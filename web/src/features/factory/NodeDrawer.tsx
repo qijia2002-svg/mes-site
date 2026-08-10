@@ -13,7 +13,7 @@
  * 动效：只动 transform + opacity，var(--motion-slow) var(--ease-standard)，无 bounce；
  *       prefers-reduced-motion 下由 CSS 降为纯 opacity 且 JS 不再等退场。
  */
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon, isIconName, type IconName } from '../../components/Icon';
 import type { NodeResourceDTO } from '../../api/endpoints';
@@ -98,6 +98,31 @@ export default function NodeDrawer({
     window.clearTimeout(closeTimer.current);
     closeTimer.current = window.setTimeout(onClose, reducedMotion() ? 0 : 320);
   }, [onClose]);
+
+  // 底部 sheet 下滑关闭手势：只在抓取条上按下才跟踪，避免劫持正文滚动。
+  // 向下拖动超过阈值（72px）松手即关闭，否则弹回原位（CSS 过渡接管）。
+  const gripRef = useRef<HTMLDivElement | null>(null);
+  const dragState = useRef<{ startY: number; active: boolean }>({ startY: 0, active: false });
+  const [dragY, setDragY] = useState(0);
+  const onGripDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    if (layout !== 'sheet') return;
+    dragState.current = { startY: e.clientY, active: true };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }, [layout]);
+  const onGripMove = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragState.current.active) return;
+    setDragY(Math.max(0, e.clientY - dragState.current.startY));
+  }, []);
+  const onGripUp = useCallback(() => {
+    if (!dragState.current.active) return;
+    dragState.current.active = false;
+    if (dragY > 72) {
+      setDragY(0);
+      requestClose();
+    } else {
+      setDragY(0); // 让 CSS 把抽屉弹回 0 位
+    }
+  }, [dragY, requestClose]);
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
@@ -186,7 +211,18 @@ export default function NodeDrawer({
         aria-modal={modal || undefined}
         aria-labelledby="nd-title"
         onKeyDown={trapTab}
+        style={layout === 'sheet' && dragY > 0 ? { transform: `translateY(${dragY}px)` } : undefined}
       >
+        {/* 底部 sheet 抓取条：纯手势提示，仅 <768px 显示；在它上面按下并下滑可关闭抽屉 */}
+        <div
+          ref={gripRef}
+          className="nd-grip"
+          aria-hidden="true"
+          onPointerDown={onGripDown}
+          onPointerMove={onGripMove}
+          onPointerUp={onGripUp}
+          onPointerCancel={onGripUp}
+        />
         <header className="nd-head">
           <span className="nd-mark"><Icon name={glyph} size={20} /></span>
           <div className="nd-title">

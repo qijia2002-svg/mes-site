@@ -10,7 +10,7 @@
  * 选中节点同步在 ?node=<key> 上，抽屉的开合就是 URL 的开合。
  */
 import { useCallback, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { LoadingState } from '../components/StateBlock';
@@ -41,19 +41,13 @@ function FactoryHeader({ title, total, status, nextNode, onResume }: {
   const pct = practicableTotal > 0 ? (practicedCount / practicableTotal) * 100 : 0;
 
   return (
-    <header className="fh">
+    <>
       <style>{`
-        .fh{margin-bottom:var(--space-8)}
-        .fh-top{display:flex;align-items:flex-end;justify-content:space-between;
-          gap:var(--space-6);flex-wrap:wrap}
-        .fh-id{min-width:0}
+        /* 工厂页头部：复用课程页 .page-head/.page-title 视觉语言，仅保留本页独有的
+           kicker 与进度卡样式，其余一律走共享 token（.card/.pill/.btn）。 */
         .fh-kicker{display:flex;align-items:center;gap:var(--space-2);color:var(--meta);
-          margin-bottom:var(--space-2)}
-        .fh h1{margin:0;font-size:var(--text-2xl);font-weight:var(--weight-announce-cjk);
-          letter-spacing:var(--tracking-title);line-height:var(--leading-tight)}
-        .fh-lede{margin:var(--space-2) 0 0;color:var(--muted);font-size:var(--text-sm);max-width:52ch}
-        .fh-act{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
-        .fh-prog{margin-top:var(--space-6);padding:var(--space-4) var(--space-5);
+          margin:0 0 var(--space-2);font-size:var(--text-sm)}
+        .fh-prog{margin-top:var(--space-5);padding:var(--space-4) var(--space-5);
           background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md)}
         .fh-prog-head{display:flex;align-items:baseline;gap:var(--space-3);flex-wrap:wrap}
         .fh-prog-num{font-size:var(--text-lg);font-weight:var(--weight-announce-cjk)}
@@ -66,27 +60,30 @@ function FactoryHeader({ title, total, status, nextNode, onResume }: {
           background:var(--progress-fill);transition:width var(--motion-slow) var(--ease-standard)}
         .fh-sub{margin-top:var(--space-2);font-size:var(--text-xs);color:var(--meta)}
         @media(max-width:720px){
-          .fh-act{width:100%}
-          .fh-act .btn{flex:1;justify-content:center}
+          /* 手机端进度卡压缩，让旅程节点更快进入首屏。 */
+          .fh-prog{margin-top:var(--space-4);padding:var(--space-3) var(--space-4)}
+          .fh-prog-num{font-size:var(--text-base)}
+          .fh-bar{margin-top:var(--space-2);height:4px}
         }
       `}</style>
 
-      <div className="fh-top">
-        <div className="fh-id">
-          <div className="fh-kicker">
-            <Icon name="factory" size={20} />
+      <header className="page-head fh-head">
+        <div>
+          <p className="fh-kicker">
+            <Icon name="factory" size={18} />
             <span className="caps">Factory Panorama</span>
-          </div>
-          <h1>{title} · 全景</h1>
-          <p className="fh-lede">
-            从客户下单到发货出库的 {total} 个真实环节。点任意环节，看它在干什么、归哪套系统管，就地动手练。
+          </p>
+          <h1 className="page-title">{title} · 全景</h1>
+          <p className="page-sub">
+            <span className="pill pill-ok" style={{ marginRight: 'var(--space-2)' }}>L1 实操</span>
+            从客户下单到发货出库的 {total} 个真实环节。点任意环节，看它管什么、归哪套系统，就地动手练。
           </p>
         </div>
-        <div className="fh-act">
+        <div className="page-head-actions">
           {nextNode ? (
             <button type="button" className="btn btn-primary" onClick={onResume}>
               <Icon name="arrow-right" size={16} />
-              从这里继续：{nextNode.label}
+              {status.practicedCount === 0 ? '从这里开始' : '从这里继续'}：{nextNode.label}
             </button>
           ) : (
             <span className="btn btn-secondary" aria-live="polite">
@@ -94,14 +91,10 @@ function FactoryHeader({ title, total, status, nextNode, onResume }: {
               全部环节都练过了
             </span>
           )}
-          <Link className="btn btn-secondary" to="/simulator">
-            <Icon name="routing" size={16} />
-            搭建产线
-          </Link>
         </div>
-      </div>
+      </header>
 
-      <div className="fh-prog">
+      <div className="card fh-prog">
         {practicableTotal > 0 ? (
           <>
             <div className="fh-prog-head">
@@ -119,7 +112,7 @@ function FactoryHeader({ title, total, status, nextNode, onResume }: {
         )}
         <div className="fh-sub tabular">已了解 {touchedCount} / {total} 个环节（读过知识卡也算）</div>
       </div>
-    </header>
+    </>
   );
 }
 

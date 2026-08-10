@@ -63,19 +63,29 @@ export default function FactoryJourney({
       <style>{`
         .fj{color:var(--fg)}
         .fj *{box-sizing:border-box}
-        .fj-intro{margin:0 0 var(--space-5);color:var(--muted);font-size:var(--text-sm)}
+        .fj-intro{margin:0 0 var(--space-4);color:var(--muted);font-size:var(--text-sm)}
+        /* ... existing styles ... */
+        @media(max-width:767px){
+          /* 小屏：一句话说明是识别环节的关键信息，加深一档并放宽行高/字距，
+             避免最浅的 --meta 在户外光线下看不清每个环节在干什么。 */
+          .fj{max-width:100%}
+          .fj-intro{display:none} /* intro 在手机上与 ml-head.sub 重复，隐藏省一整行 */
+          .fj-stage{padding-left:var(--space-4);margin-bottom:var(--space-5)}
+          .fj-node .fone{color:var(--muted);line-height:1.5;letter-spacing:.01em}
+          .fj-node{min-height:64px}
+        }
         .fj-stage{position:relative;padding-left:var(--space-5);margin-bottom:var(--space-7)}
         .fj-stage::before{content:'';position:absolute;left:5px;top:6px;bottom:0;width:2px;
           background:color-mix(in srgb, var(--ph) 28%, transparent);border-radius:2px}
         .fj-stage:last-child::before{display:none}
         .fj-stage-dot{position:absolute;left:0;top:4px;width:12px;height:12px;border-radius:50%;
           background:var(--ph);box-shadow:0 0 0 4px var(--surface)}
-        .fj-stage-head{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-3)}
-        .fj-stage-ic{color:var(--ph);display:flex;flex:none}
-        .fj-stage-t{font-size:var(--text-base);font-weight:var(--weight-emph-cjk);color:var(--fg-2)}
-        .fj-stage-c{margin-left:auto;font-size:var(--text-xs);color:var(--meta);
-          font-variant-numeric:tabular-nums}
-        .fj-stage-sub{margin:2px 0 0;font-size:var(--text-xs);color:var(--muted)}
+        /* 站标题复用课程页 .section-title（字号/字重/字距由 styles.pages.css 提供），
+           这里仅按阶段色着色，使工厂页与课程页"章节测试"等区块观感一致。 */
+        .fj-stage-t{color:var(--ph);line-height:var(--leading-snug)}
+        .fj-stage-sub{margin:2px 0 var(--space-3);font-size:var(--text-xs);color:var(--muted)}
+        /* 站头（.section-head 为共享类）与首个环节卡之间留呼吸；仅作用于旅程内部。 */
+        .fj-stage .section-head{margin-bottom:var(--space-3)}
 
         .fj-node{position:relative;width:100%;text-align:left;font-family:inherit;cursor:pointer;
           display:flex;align-items:center;gap:var(--space-3);overflow:hidden;min-height:60px;
@@ -96,9 +106,15 @@ export default function FactoryJourney({
         .fj-node .ftitle{display:block;font-size:var(--text-base);font-weight:var(--weight-emph-cjk);
           line-height:var(--leading-snug);color:var(--fg);
           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .fj-node .fone{display:block;margin-top:2px;font-size:var(--text-xs);color:var(--meta);
+        .fj-node .fone{display:block;margin-top:2px;font-size:var(--text-xs);color:var(--muted);
           line-height:var(--leading-snug);overflow:hidden;text-overflow:ellipsis;
           display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+        @media(max-width:767px){
+          /* 小屏：一句话说明是识别环节的关键信息，加深一档并放宽行高/字距，
+             避免最浅的 --meta 在户外光线下看不清每个环节在干什么。 */
+          .fj-node .fone{color:var(--muted);line-height:1.5;letter-spacing:.01em}
+          .fj-node{min-height:64px}
+        }
         .fj-node .fone .here{color:var(--accent);font-weight:var(--weight-emph-cjk)}
         .fj-node .fstate{flex:none;display:flex}
         .fj-node .fstate.is-practiced{color:var(--success)}
@@ -118,16 +134,11 @@ export default function FactoryJourney({
         return (
           <section key={stage.stageKey} className="fj-stage" style={{ '--ph': `var(--phase-${ph})` } as CSSProperties}>
             <span className="fj-stage-dot" />
-            <header>
-              <div className="fj-stage-head">
-                <span className="fj-stage-ic">
-                  <Icon name={isIconName(stage.icon) ? (stage.icon as IconName) : 'compass'} size={20} />
-                </span>
-                <span className="fj-stage-t">{stage.title}</span>
-                <span className="fj-stage-c tabular">{doneInStage}/{items.length}</span>
-              </div>
-              {stage.subtitle && <p className="fj-stage-sub">{stage.subtitle}</p>}
-            </header>
+            <div className="section-head">
+              <h2 className="section-title fj-stage-t">{stage.title}</h2>
+              <span className="row-meta tabular">{doneInStage}/{items.length} 个环节</span>
+            </div>
+            {stage.subtitle && <p className="fj-stage-sub">{stage.subtitle}</p>}
 
             {items.map((n) => {
               const st = status.statusOf(n);

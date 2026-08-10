@@ -121,6 +121,7 @@ const REGISTRY = {
   sql: Database,
   quiz: ListChecks,
   admin: Settings2,
+  tools: Cog,
   login: LogIn,
   logout: LogOut,
   user: CircleUser,

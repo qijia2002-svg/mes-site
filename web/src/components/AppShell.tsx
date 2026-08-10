@@ -1,9 +1,10 @@
 /**
- * App Shell v5 — 智造学院风格重设计。
- * 白侧栏改为「右上角浮动按钮 + 左侧滑出抽屉」，默认不占横向空间，内容全宽。
+ * App Shell v6 — 左侧常驻导航（5 个一级 tab），移动端切换为底部 tabbar。
+ * 去掉右上角「菜单」抽屉按钮，导航始终可见：工厂 / 词典 / 课程 / 工具 / 我的。
+ * 「工具」内含 SQL 沙盒 与 工厂搭建 两个页面（经 /tools 枢纽进入）。
  */
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { useSyncExternalStore } from 'react';
+import { NavLink, Link, useLocation, type To } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Icon, type IconName } from './Icon';
 import { Breadcrumb } from './Breadcrumb';
@@ -47,18 +48,30 @@ function HealthPill() {
   );
 }
 
+type NavDef = { to: To; label: string; icon: IconName; match?: (p: string) => boolean };
+
+// 5 个一级 tab。工具含子页（/sql-space、/simulator），用 match 让子页也高亮「工具」。
+const NAV: NavDef[] = [
+  { to: '/factory', label: '工厂', icon: 'factory' },
+  { to: '/dictionary', label: '词典', icon: 'dictionary' },
+  { to: '/courses', label: '课程', icon: 'courses' },
+  {
+    to: '/tools',
+    label: '工具',
+    icon: 'tools',
+    match: (p) => p.startsWith('/tools') || p.startsWith('/sql-space') || p.startsWith('/simulator'),
+  },
+  { to: '/profile', label: '我的', icon: 'user' },
+];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const [navOpen, setNavOpen] = useState(false);
   // 订阅资料变更：设置页保存昵称后，侧栏头像 / 名称即时刷新，无需刷新页面。
   const nickname = useSyncExternalStore(subscribeProfile, getNickname, getNickname);
   const userInitial = nickname ? nickname.charAt(0) : '学';
-  const closeNav = useCallback(() => setNavOpen(false), []);
+  const loc = useLocation();
 
-  useEffect(() => {
-    if (navOpen) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-    return () => { document.body.style.overflow = ''; };
-  }, [navOpen]);
+  const isActive = (item: NavDef, navActive: boolean) =>
+    navActive || (item.match ? item.match(loc.pathname) : false);
 
   return (
     <div className="shell">
@@ -66,11 +79,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <NetworkBanner />
       <a className="skip-link" href="#main">跳到主内容</a>
 
-      {/* 抽屉遮罩 */}
-      <div className={`drawer-scrim${navOpen ? ' show' : ''}`} aria-hidden="true" onClick={closeNav} />
-
-      {/* ═══ SIDEBAR（左侧滑出抽屉）═══ */}
-      <aside className={`sidebar${navOpen ? ' open' : ''}`} aria-label="主导航" aria-hidden={!navOpen}>
+      {/* ═══ SIDEBAR（左侧常驻导航）═══ */}
+      <aside className="sidebar" aria-label="主导航">
         <div className="sidebar-brand">
           <div className="sidebar-brand-logo">
             <Icon name="workshop" size={20} />
@@ -81,56 +91,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className="sidebar-nav">
+        <nav className="sidebar-nav" aria-label="主导航">
           <ul className="nav-list">
-            <li>
-              <NavLink to="/factory" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
-                <Icon name="factory" size={20} className="nav-glyph" />
-                <span className="nav-label">工厂</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/courses" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
-                <Icon name="courses" size={20} className="nav-glyph" />
-                <span className="nav-label">课程</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/dictionary" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
-                <Icon name="dictionary" size={20} className="nav-glyph" />
-                <span className="nav-label">词典</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/quiz" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
-                <Icon name="quiz" size={20} className="nav-glyph" />
-                <span className="nav-label">测验</span>
-              </NavLink>
-            </li>
+            {NAV.map((item) => (
+              <li key={String(item.to)}>
+                <NavLink
+                  to={item.to}
+                  className={({ isActive: navActive }) =>
+                    `nav-item${isActive(item, navActive) ? ' is-active' : ''}`
+                  }
+                >
+                  <Icon name={item.icon} size={20} className="nav-glyph" />
+                  <span className="nav-label">{item.label}</span>
+                </NavLink>
+              </li>
+            ))}
           </ul>
-
-          <div className="nav-section-label">工具</div>
-          <ul className="nav-list">
-            <li>
-              <NavLink to="/sql-space" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
-                <Icon name="sql" size={20} className="nav-glyph" />
-                <span className="nav-label">SQL 沙盒</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/simulator" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
-                <Icon name="routing" size={20} className="nav-glyph" />
-                <span className="nav-label">工厂搭建</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/portfolio" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`} onClick={closeNav}>
-                <Icon name="portfolio" size={20} className="nav-glyph" />
-                <span className="nav-label">作品集</span>
-              </NavLink>
-            </li>
-          </ul>
-        </div>
+        </nav>
 
         <div className="sidebar-foot">
           <div className="sidebar-user">
@@ -149,25 +126,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* ═══ MAIN（全宽）═══ */}
+      {/* ═══ MAIN（桌面端在侧栏右侧，移动端全宽）═══ */}
       <div className="shell-main">
         <header className="topbar">
           <Breadcrumb />
-
           <TopbarSearch />
-
           <div className="topbar-right">
             <Link to="/profile" className="topbar-avatar" aria-label="个人中心">
               <span>{userInitial}</span>
             </Link>
-
             <HealthPill />
-
-            {/* 右上角：侧边栏开关（默认收起，点开为左侧抽屉） */}
-            <button type="button" className="sidebar-toggle" aria-label="打开导航菜单" aria-expanded={navOpen} onClick={() => setNavOpen(true)}>
-              <Icon name="menu" size={20} />
-              <span className="sidebar-toggle-label">菜单</span>
-            </button>
           </div>
         </header>
 
@@ -176,16 +144,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* ═══ MOBILE TAB BAR ═══ */}
+      {/* ═══ MOBILE TAB BAR（与左侧 5 tab 一致）═══ */}
       <nav className="mobile-tabbar only-mobile" aria-label="主导航">
-        {[
-          { to: '/factory', label: '工厂', icon: 'factory' as IconName },
-          { to: '/quiz', label: '测验', icon: 'quiz' as IconName },
-          { to: '/dictionary', label: '词典', icon: 'dictionary' as IconName },
-          { to: '/profile', label: '我的', icon: 'user' as IconName },
-        ].map((item) => (
-          <NavLink key={item.to} to={item.to}
-            className={({ isActive }) => `tab-item${isActive ? ' is-active' : ''}`}>
+        {NAV.map((item) => (
+          <NavLink
+            key={String(item.to)}
+            to={item.to}
+            className={({ isActive: navActive }) =>
+              `tab-item${isActive(item, navActive) ? ' is-active' : ''}`
+            }
+          >
             <Icon name={item.icon} size={20} />
             <span className="tab-label">{item.label}</span>
           </NavLink>

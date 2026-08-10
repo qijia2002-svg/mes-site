@@ -20,6 +20,7 @@ const QuizQuestionPage = lazy(() => import('./pages/QuizQuestionPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
+const ToolsPage = lazy(() => import('./pages/ToolsPage'));
 const DictionaryPage = lazy(() => import('./pages/DictionaryPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 // v13 拆壳：搭建器恢复独立路由，课程/路径/职业各自成页，/factory 只画工厂全景。
@@ -56,6 +57,7 @@ export default function App() {
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/portfolio" element={<PortfolioPage />} />
                   <Route path="/dictionary" element={<DictionaryPage />} />
+                  <Route path="/tools" element={<ToolsPage />} />
                   <Route path="/admin" element={<AdminPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
