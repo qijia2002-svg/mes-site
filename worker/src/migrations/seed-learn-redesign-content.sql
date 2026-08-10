@@ -33,7 +33,8 @@ PRAGMA foreign_keys = OFF;
 DELETE FROM flow_stages
  WHERE flow_id IN (SELECT id FROM flowcharts WHERE slug = 'generic-factory');
 DELETE FROM micro_practices WHERE id BETWEEN 9401 AND 9499;
-DELETE FROM practice_hints  WHERE target_type = 'micro' AND target_id BETWEEN 9401 AND 9499;
+-- micro 提示（9401-9412 全量 L1/L2/L3）已迁至 seed-learn-redesign-hints-micro.sql，
+-- 不再在此删除/插入，避免重跑本文件时把 micro 提示清掉。
 DELETE FROM practice_hints  WHERE target_type = 'quiz'  AND target_id IN (9202, 9204);
 DELETE FROM practice_hints  WHERE target_type = 'sql'   AND target_id IN (9301, 9302);
 
@@ -220,13 +221,9 @@ INSERT INTO micro_practices (id, node_id, kind, prompt, payload, answer, feedbac
 --   micro / quiz 的 L3 不点破最终选项，只把判据摆到眼前。
 -- 不给 sim 配提示：当前 12 个节点没有任何 sim 挂载（内容侧 C3：没内容不出行），
 -- 配了就是查不到目标的幽灵提示。
+-- micro 提示（9401-9412 全量 L1/L2/L3）已迁移到 seed-learn-redesign-hints-micro.sql
+-- 统一 ownership，避免两个文件重复 INSERT 触发 UNIQUE 冲突；本文件只保留 quiz / sql 提示。
 INSERT INTO practice_hints (target_type, target_id, level, body_md) VALUES
-('micro', 9401, 1, '判断急单要同时看两个字段，只看交期不够。'),
-('micro', 9401, 2, '一个字段是 `review_status`（pending 才是没评审），另一个是 `due_date`（离今天 2026-08-08 还有几天）。'),
-('micro', 9405, 1, '「逾期」和「没到货」是两个条件，要同时成立。'),
-('micro', 9405, 2, '承诺日 `promise_date` 早于今天 2026-08-08 是第一条；`arrive_date` 还是空是第二条。到货了但数量不足属于短交，是另一类问题。'),
-('micro', 9407, 1, '先想清楚齐套到底是百分比，还是是非题。'),
-('micro', 9407, 2, '产线要装出成品，需要的每一样料都得到位。差 22 件定子组件，机器转不起来 —— 这种情况下「65%」这个数字对现场有任何意义吗？'),
 ('quiz', 9202, 1, '别按发了几种料去算比例，先问这条线到底开不开得起来。'),
 ('quiz', 9202, 2, '齐套在系统里是一个布尔判断，看板上只有两种颜色。把它做成百分比是实施时的经典错误设计。'),
 ('sql', 9301, 1, '要找的是「承诺日已经过了，货却还没到」的采购单，两个条件用 AND 连。'),
