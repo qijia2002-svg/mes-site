@@ -142,26 +142,46 @@ export default function MainlineStepper({ stages, onGoto }: MainlineStepperProps
         .ml-anyway:hover{border-color:var(--accent-border);color:var(--accent-active)}
 
         @media(max-width:768px){
-          /* 移动端：6 站 × 120px = 720px 最小宽度，超出 375px 视口近一倍，
-             横滑 + scroll-snap 让每站停稳；渐变遮罩提示「右边还有」；隐藏滚动条（手势足够）。 */
+          /* 移动端：禁止横滑。6 站改为「左侧竖向时间线」——圆点 + 连接线，
+             与 FactoryJourney 旅程时间线视觉一致，小屏不再错位跑偏、不用左右滑。 */
           .ml{margin:0 0 var(--space-4)}
-          .ml-head{margin-bottom:var(--space-2)}
+          .ml-head{margin-bottom:var(--space-3)}
           .ml-head h2{font-size:var(--text-sm)}
           .ml-head .sub{display:none}
           .ml-rail{
-            gap:var(--space-2);
-            padding-bottom:var(--space-2);
-            scrollbar-width:none;
-            -ms-overflow-style:none;
-            scroll-snap-type:x mandatory;
-            /* 渐变遮罩：左右边缘暗示可横滑 */
-            mask-image:linear-gradient(to right, transparent, black var(--space-6), calc(100% - var(--space-6)), black, transparent);
-            -webkit-mask-image:linear-gradient(to right, transparent, black var(--space-6), calc(100% - var(--space-6)), black, transparent)
+            display:block;            /* 竖向堆叠，杜绝 overflow-x */
+            position:relative;
+            padding:2px 0 2px 28px;    /* 左侧留给圆点 + 连接线 */
+            gap:0;
+            overflow:visible;
           }
-          .ml-rail::-webkit-scrollbar{display:none}
-          .ml-item{flex:0 0 auto;min-width:120px;scroll-snap-align:start}
-          .ml-btn{min-height:44px;padding:var(--space-2) var(--space-2)}
-          .ml-name{font-size:var(--text-xs)}
+          .ml-rail::before{           /* 连接线：贯穿各站圆点 */
+            content:'';position:absolute;left:10px;top:12px;bottom:12px;
+            width:2px;border-radius:2px;background:var(--border-strong)}
+          .ml-item{
+            display:block;width:100%;min-width:0;
+            margin:0 0 var(--space-2);position:relative}
+          .ml-item:last-child{margin-bottom:0}
+          .ml-item::before{           /* 站点圆点，落在连接线上、盖住线身 */
+            content:'';position:absolute;left:-23px;top:50%;
+            transform:translateY(-50%);
+            width:12px;height:12px;border-radius:50%;
+            background:var(--surface);border:2px solid var(--border-strong);
+            box-shadow:0 0 0 3px var(--surface);z-index:1}
+          .ml-item[data-state="done"]::before{border-color:var(--ml-done-ring);background:var(--ml-done-ring)}
+          .ml-item[data-state="current"]::before{border-color:var(--ml-current-marker);background:var(--ml-current-marker)}
+          .ml-item[data-state="locked"]::before{border-color:var(--border-strong);background:var(--surface)}
+          .ml-btn{
+            width:100%;min-height:auto;
+            display:flex;align-items:center;gap:var(--space-2);
+            padding:var(--space-3);border-radius:var(--radius-md)}
+          .ml-tx{min-width:0;flex:1}
+          .ml-name{
+            font-size:var(--text-sm);font-weight:var(--weight-emph-cjk);
+            white-space:normal;overflow:visible;text-overflow:clip;
+            line-height:var(--leading-snug)}
+          .ml-no{font-size:var(--text-xs)}
+          .ml-dots{margin-top:var(--space-1)}
         }
       `}</style>
 

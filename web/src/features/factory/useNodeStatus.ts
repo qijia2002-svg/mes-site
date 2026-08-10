@@ -11,7 +11,7 @@
  */
 import { useMemo } from 'react';
 import type { NodeResourceDTO } from '../../api/endpoints';
-import { practicesOf, type LaidNode } from './factoryFlow.data';
+import { nodePractices, type LaidNode } from './factoryFlow.data';
 
 export type NodeStatus = 'practiced' | 'touched' | 'plain';
 
@@ -48,9 +48,11 @@ export function useNodeStatus(
 
     for (const n of orderedNodes) {
       const res = resourcesByNode.get(n.id) ?? [];
-      const practices = practicesOf(res);
+      const practices = nodePractices(n, res);
       const practiced = practices.length > 0 && practices.every((r) => isDone(r.type, r.refId));
-      const touched = res.some((r) => isDone(r.type, r.refId));
+      // 初学者节点在 node_resources 无记录，touched 须基于同一份 practices 判断，
+      // 否则会恒为假、把「做过」的人也判成 plain。
+      const touched = practices.length > 0 && practices.some((r) => isDone(r.type, r.refId));
 
       if (practices.length > 0) {
         practicableTotal += 1;

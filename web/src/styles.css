@@ -14,6 +14,30 @@
   --tabbar-h: 64px;
 }
 
+/* 全局兜底：手机端禁止任何横向溢出（不能左右滑）。
+   overflow-x:hidden 同时把 overflow-y 置为 auto，纵向滚动正常；
+   box-sizing 统一 border-box，避免 padding 把元素撑出屏幕；
+   img/svg/pre/table 限宽，杜绝内嵌宽媒体撑破布局。 */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+img,
+svg,
+video,
+canvas,
+table,
+pre,
+iframe {
+  max-width: 100%;
+}
+
 html,
 body,
 #root {
@@ -1941,6 +1965,46 @@ body,
   /* 移动端卡片加大内边距 */
   .card {
     padding: var(--space-4);
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   手机视口（≤640px）字号整体收缩 + 卡片 100% 留边
+   目标：一屏多看内容、所有卡片贴满且左右留边、绝不横向溢出。
+   ─────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* 重定义文字档位（以 rem 走低一档，桌面 token 不受牵连） */
+  :root {
+    --text-2xl: 1.25rem;    /* 24 → 20  页面大标题 */
+    --text-xl: 1.0625rem;   /* 20 → 17  区块标题 */
+    --text-lg: 1rem;        /* 18 → 16  卡片标题 */
+    --text-base: 0.875rem;  /* 15 → 14  正文 */
+    --text-sm: 0.8125rem;   /* 13 → 13  辅助 */
+    --text-xs: 0.6875rem;   /* 12 → 11  标签 */
+  }
+  .page-title,
+  .page-head h1 {
+    line-height: 1.22;
+  }
+  /* 所有容器/卡片宽度贴合父级、绝不超出屏幕；左/右留边由 .content gutter 提供 */
+  .card,
+  .section,
+  .fj-node,
+  .ml-btn,
+  .tools-card,
+  .pill,
+  .btn,
+  .glossary-item,
+  .home-study-card {
+    max-width: 100%;
+  }
+  /* 工具枢纽页卡片在窄屏单列铺满 */
+  .tools-grid {
+    grid-template-columns: 1fr;
+  }
+  /* 顶栏面包屑/标题在极窄屏再压紧一档 */
+  .breadcrumb {
+    font-size: var(--text-xs);
   }
 }
 

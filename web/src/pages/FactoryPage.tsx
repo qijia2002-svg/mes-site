@@ -70,7 +70,7 @@ function FactoryHeader({ title, total, status, nextNode, onResume }: {
       <header className="page-head fh-head">
         <div>
           <p className="fh-kicker">
-            <Icon name="factory" size={18} />
+            <Icon name="factory" size={16} />
             <span className="caps">Factory Panorama</span>
           </p>
           <h1 className="page-title">{title} · 全景</h1>

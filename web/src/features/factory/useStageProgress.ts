@@ -14,7 +14,7 @@
  */
 import { useMemo } from 'react';
 import type { FlowStageDTO, NodeResourceDTO } from '../../api/endpoints';
-import { PRACTICE_TYPES, type LaidNode } from './factoryFlow.data';
+import { PRACTICE_TYPES, nodePractices, type LaidNode } from './factoryFlow.data';
 import { stageKeyOf } from './factoryStages.data';
 
 export type StageStatus = 'done' | 'current' | 'locked';
@@ -104,7 +104,9 @@ export function useStageProgress(
 
       for (const n of nodes) {
         const res = resourcesByNode.get(n.id) ?? [];
-        const practices = res.filter((r) => types.has(r.type));
+        // P0 修复：分母改用 nodePractices 统一落键，初学者节点的 quiz/sql 按 node.id 落库，
+        // 与抽屉 solve() 写入口对齐；再与本站 practice_types 取交集（BLOCK-02 口径不变）。
+        const practices = nodePractices(n, res).filter((p) => types.has(p.type));
         if (practices.length === 0) continue; // 没挂内容的节点不进分母，避免永久压低
         practicableNodes += 1;
         if (practices.every((r) => isDone(r.type, r.refId))) practicedNodes += 1;

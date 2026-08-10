@@ -4,6 +4,7 @@
  */
 import type { FlowNodeDTO, FlowEdgeDTO, NodeResourceDTO } from '../../api/endpoints';
 import type { IconName } from '../../components/Icon';
+import { beginnerPathOf } from './beginnerPath.data';
 
 export type Phase = 'plan' | 'production' | 'qc' | 'logistics';
 
@@ -99,6 +100,33 @@ export const PRACTICE_TYPES: ReadonlySet<string> = new Set(['quiz', 'sql', 'sim'
  */
 export function practicesOf(res: NodeResourceDTO[]): NodeResourceDTO[] {
   return res.filter((r) => PRACTICE_TYPES.has(r.type));
+}
+
+/** 实战清单里单条的「类型 + 落键 refId」，分子分母共用。 */
+export interface PracticeRef {
+  type: string;
+  /** 进度落库键的 refId。初学者路径按 node.id 落键（与抽屉 solve() 写入口一致）；
+   *  无初学者路径的资源驱动型节点回落 node_resources.ref_id（兼容 SqlSandbox 等独立写入口）。 */
+  refId: number;
+}
+
+/**
+ * 节点的「实战清单」——分子（抽屉 solve / 独立练习页派发）与分母（useNodeStatus / useStageProgress）
+ * 共用的唯一来源。修复前两者用不同键（抽屉写 node.id，分母查 node_resources.ref_id），
+ * 导致初学者做完测验 / SQL，进度条与 6 站解锁却纹丝不动。统一规则：
+ *   · 有初学者路径的节点 → 以路径里的 quiz / sql 为准，按 node.id 落键（抽屉正是这么写的）；
+ *   · 无初学者路径 → 回落 node_resources，按各自 ref_id 落键（兼容既有写入口，不破坏进阶路径）。
+ * 这样既把「做完 = 进度涨」接上线，又不动 flow_nodes / node_resources 的任何现有数据。
+ */
+export function nodePractices(node: LaidNode, resources: NodeResourceDTO[]): PracticeRef[] {
+  const bp = beginnerPathOf(node.key);
+  if (bp) {
+    const out: PracticeRef[] = [];
+    if (bp.quiz && bp.quiz.length > 0) out.push({ type: 'quiz', refId: node.id });
+    if (bp.sql) out.push({ type: 'sql', refId: node.id });
+    if (out.length > 0) return out;
+  }
+  return practicesOf(resources).map((r) => ({ type: r.type, refId: r.refId }));
 }
 
 /**

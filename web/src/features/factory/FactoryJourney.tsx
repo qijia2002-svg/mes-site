@@ -105,9 +105,11 @@ export default function FactoryJourney({
         .fj-node .ftx{min-width:0;flex:1}
         .fj-node .ftitle{display:block;font-size:var(--text-base);font-weight:var(--weight-emph-cjk);
           line-height:var(--leading-snug);color:var(--fg);
-          overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          /* 手机端：标题自动换行，绝不 nowrap 截断、绝不横向溢出 */
+          overflow:visible;white-space:normal;word-break:break-word}
         .fj-node .fone{display:block;margin-top:2px;font-size:var(--text-xs);color:var(--muted);
           line-height:var(--leading-snug);overflow:hidden;text-overflow:ellipsis;
+          word-break:break-word;
           display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
         @media(max-width:767px){
           /* 小屏：一句话说明是识别环节的关键信息，加深一档并放宽行高/字距，
