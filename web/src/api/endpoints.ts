@@ -429,8 +429,8 @@ export const api = {
 
   // 微练习（SQL 前台阶）。按需单条拉取——只在用户展开某个 micro 时触发，
   // 不按节点循环预拉（D1 Free 单次查询 ≤50 行，禁批量循环）。
-  microPractice: (id: number) =>
-    apiGet<MicroPracticeDTO>(`/api/v1/micro-practices/${id}`),
+  microPractice: (id: number, signal?: AbortSignal) =>
+    apiGet<MicroPracticeDTO>(`/api/v1/micro-practices/${id}`, signal),
   /** 判分只在服务端做：answer 留服务端，前端只提交作答、只收 correct + feedback。 */
   gradeMicroPractice: (id: number, answer: MicroAnswer) =>
     apiPost<MicroGradeResult>(`/api/v1/micro-practices/${id}/grade`, { answer }),

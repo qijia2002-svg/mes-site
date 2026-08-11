@@ -51,10 +51,16 @@ export default function MicroPractice({ id, title, done, onSolved }: MicroPracti
 
   const q = useQuery({
     queryKey: ['micro-practice', id],
-    queryFn: () => api.microPractice(id),
+    queryFn: ({ signal }) => {
+      // D1 Free 偶发查询挂起不返回，8s 超时快速失败，显示错误提示而非永远"加载中"。
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 8000);
+      signal?.addEventListener('abort', () => ctrl.abort());
+      return api.microPractice(id, ctrl.signal).finally(() => clearTimeout(t));
+    },
     enabled: open,
     staleTime: 5 * 60_000,
-    retry: 1,
+    retry: 0,
   });
 
   const data = q.data;
@@ -228,7 +234,7 @@ export default function MicroPractice({ id, title, done, onSolved }: MicroPracti
               {data.kind === 'pick' && (
                 <ul className="mp-list">
                   {options.map((o) => {
-                    const multi = payload.multiple === true;
+                    const multi = payload.multi === true;
                     const on = picked.includes(o.id);
                     return (
                       <li key={o.id}>
@@ -236,6 +242,7 @@ export default function MicroPractice({ id, title, done, onSolved }: MicroPracti
                           <input
                             type={multi ? 'checkbox' : 'radio'}
                             name={`mp-${id}`}
+                            value={o.id}
                             checked={on}
                             onChange={() =>
                               setPicked((cur) =>
