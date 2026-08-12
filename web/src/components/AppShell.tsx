@@ -50,9 +50,11 @@ function HealthPill() {
 
 type NavDef = { to: To; label: string; icon: IconName; match?: (p: string) => boolean };
 
-// 5 个一级 tab。工具含子页（/sql-space、/simulator），用 match 让子页也高亮「工具」。
+// 一级 tab。工具含子页（/sql-space、/simulator），用 match 让子页也高亮「工具」。
+// 知识点连线图为工厂全景的伴生视图，置于「工厂」之后。
 const NAV: NavDef[] = [
   { to: '/factory', label: '工厂', icon: 'factory' },
+  { to: '/knowledge-graph', label: '知识图', icon: 'network' },
   { to: '/dictionary', label: '词典', icon: 'dictionary' },
   { to: '/courses', label: '课程', icon: 'courses' },
   {

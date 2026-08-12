@@ -253,7 +253,7 @@ export interface MicroPayload {
   right?: MicroItem[];
   items?: MicroItem[];
   options?: MicroItem[];
-  multiple?: boolean;
+  multi?: boolean;
 }
 
 export interface MicroPracticeDTO {
@@ -288,6 +288,47 @@ export interface NodeExplainerDTO {
   bodyMd: string;
   icon: string;
   sort: number;
+}
+
+/**
+ * 知识点连线图（Obsidian 式）。
+ * 节点 id 形如 `concept:qty_done` / `node:stock-in` / `explainer:9521` / `micro:9407` /
+ * `glossary:77` / `topic:1` / `sql_ex:9302`。边两类：process（工厂过程连线）与
+ * about（工件→概念 指认）。concept 节点带 degree（连出边数）用于决定大小。
+ */
+export type KgNodeKind = 'concept' | 'node' | 'explainer' | 'micro' | 'glossary' | 'topic' | 'sql_ex';
+
+export interface KgNode {
+  id: string;
+  kind: KgNodeKind;
+  label: string;
+  degree?: number;
+  refId?: number;
+  nodeKey?: string;
+  definition?: string;
+}
+
+export interface KgLink {
+  source: string;
+  target: string;
+  relation: 'process' | 'about';
+}
+
+export interface KnowledgeGraphBundle {
+  nodes: KgNode[];
+  links: KgLink[];
+}
+
+export interface KgBacklink {
+  kind: string;
+  refId: number;
+  title: string;
+  nodeKey: string | null;
+}
+
+export interface KnowledgeConcept {
+  concept: { key: string; label: string; definition: string };
+  backlinks: KgBacklink[];
 }
 
 /**
@@ -475,4 +516,10 @@ export const api = {
   dictDataCreate: (body: unknown) => apiPost<{ id: number }>('/api/v1/admin/dict/data', body),
   dictDataUpdate: (id: number, body: unknown) => apiPut(`/api/v1/admin/dict/data/${id}`, body),
   dictDataDelete: (id: number) => apiDelete(`/api/v1/admin/dict/data/${id}`),
+
+  // 知识点连线图（Obsidian 式；公开读）
+  knowledgeGraph: (slug = 'generic-factory') =>
+    apiGet<KnowledgeGraphBundle>(`/api/v1/knowledge-graph?flowId=${encodeURIComponent(slug)}`),
+  knowledgeGraphConcept: (key: string, signal?: AbortSignal) =>
+    apiGet<KnowledgeConcept>(`/api/v1/knowledge-graph/concept/${encodeURIComponent(key)}`, signal),
 };

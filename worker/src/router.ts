@@ -53,6 +53,7 @@ import {
   deleteDictData,
 } from './modules/dict/dict.routes';
 import { getFlowchart } from './modules/flowchart/flowchart.routes';
+import { getKnowledgeGraph, getKnowledgeConcept } from './modules/knowledge/knowledge.routes';
 import { getMicroPractice, gradeMicroPractice, getNodeExplainers, getPracticeHint } from './modules/learn/learn.routes';
 
 export interface Route {
@@ -163,6 +164,10 @@ export const routes: Route[] = [
 
   // 工厂流程图（factory-first 导航主干；读取公开）
   { method: 'GET', path: '/api/v1/flowchart/:slug', handler: getFlowchart, noAuth: true },
+
+  // 知识点连线图（Obsidian 式；读取公开）
+  { method: 'GET', path: '/api/v1/knowledge-graph', handler: getKnowledgeGraph, noAuth: true },
+  { method: 'GET', path: '/api/v1/knowledge-graph/concept/:key', handler: getKnowledgeConcept, noAuth: true },
 
   // 零基础重学 v1：微练习（SQL 前台阶，计入完成度；判分只在服务端）
   { method: 'GET', path: '/api/v1/micro-practices/:id', handler: getMicroPractice, noAuth: true },

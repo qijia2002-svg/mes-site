@@ -34,7 +34,7 @@ INSERT INTO practice_hints (target_type, target_id, level, body_md) VALUES
 -- 9402 order-review · 接了没排（pick 多选）
 ('micro', 9402, 1, '两个字段一起看：`review_status` 是 `approved`，`plan_status` 是 `none`。少看一个就会捞错单。'),
 ('micro', 9402, 2, '`approved` 加 `none` 才是「接了没排」。已经 `planned` 的在计划里，`rejected` 的根本没接，都不算漏排。'),
-('micro', 9402, 3, '逐张确认 `plan_status` 是不是 `none`，同时 `review_status` 是不是 `approved`。`SO-20260725-01` 已是 `planned`、`SO-20260803-01` 是 `rejected`，都不在该选的集合里。'),
+('micro', 9402, 3, '逐张确认 `plan_status` 是不是 `none`，同时 `review_status` 是不是 `approved`。已经 `planned` 的单、`rejected` 的单，都不在该选的集合里。'),
 
 -- 9403 mps · 四步排序（order）
 ('micro', 9403, 1, '想清楚顺序：先算需求，再看产能，然后冻结，最后下工单。'),

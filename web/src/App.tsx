@@ -27,6 +27,9 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const SimulatorPage = lazy(() => import('./features/simulator/SimulatorPage'));
 const LearningPathsPage = lazy(() => import('./pages/LearningPathsPage'));
 const CareerPage = lazy(() => import('./pages/CareerPage'));
+const KnowledgeGraphPage = lazy(() =>
+  import('./features/knowledge/KnowledgeGraphPage').then((m) => ({ default: m.KnowledgeGraphPage })),
+);
 
 export default function App() {
   return (
@@ -42,6 +45,7 @@ export default function App() {
                   {/* /factory 只干一件事：工厂全景。其余各自独立成页，不再塞进双层 Tab */}
                   <Route path="/" element={<Navigate to="/factory" replace />} />
                   <Route path="/factory" element={<FactoryPage />} />
+                  <Route path="/knowledge-graph" element={<KnowledgeGraphPage />} />
                   <Route path="/engine" element={<Navigate to="/factory" replace />} />
                   <Route path="/simulator" element={<SimulatorPage />} />
                   <Route path="/learning-paths" element={<LearningPathsPage />} />

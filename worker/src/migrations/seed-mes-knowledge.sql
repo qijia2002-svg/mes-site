@@ -2,8 +2,8 @@
 -- 来源：E:\我的脑库\10_Learning（学习）\MES\
 -- 16 章完整 MES 知识体系
 
-INSERT OR IGNORE INTO topics (slug, title, description, modules, status, sort, updated_at)
-VALUES ('mes-knowledge', 'MES 核心知识', 'ERP / MES / PLC 三层架构，从基础术语到质量追溯的完整 MES 知识体系。适合 MES 实施顾问、运维工程师、求职者系统化学习。', '["MES","ERP","PLC","基础知识"]', 'published', 8, 1785647610);
+INSERT OR REPLACE INTO topics (id, slug, title, description, modules, status, sort, updated_at)
+VALUES (5, 'mes-knowledge', 'MES 核心知识', 'ERP / MES / PLC 三层架构，从基础术语到质量追溯的完整 MES 知识体系。适合 MES 实施顾问、运维工程师、求职者系统化学习。', '["MES","ERP","PLC","基础知识"]', 'published', 5, 1785647610);
 
 INSERT OR IGNORE INTO chapters (topic_id, title, sort, md_text, status, updated_at)
 SELECT id, 'MES 是什么', 1, '# MES 是什么
@@ -15,8 +15,8 @@ SELECT id, 'MES 是什么', 1, '# MES 是什么
 
 ```mermaid
 graph LR
-    ERP["🏢 ERP<br/>企业资源计划"] -->|下达订单| MES["⚙️ MES<br/>制造执行系统"]
-    MES -->|工单指令| PLC["🔧 PLC<br/>底层控制"]
+    ERP["ERP<br/>企业资源计划"] -->|下达订单| MES["MES<br/>制造执行系统"]
+    MES -->|工单指令| PLC["PLC<br/>底层控制"]
     PLC -->|实时数据| MES
     MES -->|报工数据| ERP
 ```
@@ -148,9 +148,9 @@ SELECT id, '生产形态分类', 3, '# 生产形态分类
 
 ```mermaid
 graph TB
-    A["生产形态分类"] --> B["🔹 离散型"]
-    A --> C["🔸 流程型（连续型）"]
-    A --> D["🔶 类流程型"]
+    A["生产形态分类"] --> B["离散型"]
+    A --> C["流程型（连续型）"]
+    A --> D["类流程型"]
     
     B --> B1["汽车、手机、机床"]
     C --> C1["石油、化工、造纸"]
@@ -679,9 +679,9 @@ graph LR
 
 ```mermaid
 graph LR
-    A["1️⃣ 生成"] --> B["2️⃣ 工序监控"]
-    B --> C["3️⃣ 质量关联"]
-    C --> D["4️⃣ 售后追溯"]
+    A["1 生成"] --> B["2 工序监控"]
+    B --> C["3 质量关联"]
+    C --> D["4 售后追溯"]
 ```
 
 #### 1. 生成规则

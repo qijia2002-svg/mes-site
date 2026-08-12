@@ -183,6 +183,7 @@ const REGISTRY = {
   equipment: Cog,
   workshop: Factory,
   routing: Workflow,
+  workflow: Workflow,
   process: Milestone,
   quality: ShieldCheck,
   trace: GitBranch,

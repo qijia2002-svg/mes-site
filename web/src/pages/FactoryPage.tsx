@@ -19,6 +19,7 @@ import type { FlowNodeDTO, FlowStageDTO, NodeResourceDTO } from '../api/endpoint
 import FactoryFlow from '../features/factory/FactoryFlow';
 import FactoryJourney from '../features/factory/FactoryJourney';
 import FactoryExtras from '../features/factory/FactoryExtras';
+import SystemMap from '../features/factory/SystemMap';
 import { DEFAULT_FLOW, PHASE_BY_KEY, buildSteps, type LaidNode, type Phase } from '../features/factory/factoryFlow.data';
 import { useNodeProgress } from '../features/factory/useNodeProgress';
 import { useNodeStatus, type NodeStatusApi } from '../features/factory/useNodeStatus';
@@ -202,6 +203,8 @@ export default function FactoryPage() {
       {stageProgress.enabled && (
         <MainlineStepper stages={stageProgress.stages} onGoto={select} />
       )}
+
+      <SystemMap />
 
       {!narrow && (<div className="ff-viewbar">
         <style>{`

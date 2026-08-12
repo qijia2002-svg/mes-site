@@ -50,7 +50,7 @@ PRAGMA foreign_keys = ON;
 -- goal 写「学完能做到什么」，指向样例库里查得到的具体动作。
 INSERT INTO flow_stages (flow_id, stage_key, title, subtitle, goal, icon, practice_types, sort) VALUES
 ((SELECT id FROM flowcharts WHERE slug='generic-factory'), 'tour', '先走一圈', '用一张订单，把工厂全貌看一遍',
- '能指着流程图说出 SO-20260725-01 这张单从进厂到发货要经过哪几个环节、每个环节归谁管。', 'compass',
+ '能指着流程图说出任意一张销售订单从进厂到发货要经过哪几个环节、每个环节归谁管。', 'compass',
  '["micro","quiz"]', 1),
 ((SELECT id FROM flowcharts WHERE slug='generic-factory'), 'plan', '计划订单', '这张单怎么变成可生产的计划',
  '能说清一张已评审通过的订单为什么迟迟没排产，并在 sales_orders 里把这类单挑出来。', 'clipboard-check',
@@ -59,7 +59,7 @@ INSERT INTO flow_stages (flow_id, stage_key, title, subtitle, goal, icon, practi
  '能自己查出哪些采购单逾期未到、哪些是到货但短交，不依赖采购报表给的口径。', 'truck',
  '["micro","quiz","sql","sim"]', 3),
 ((SELECT id FROM flowcharts WHERE slug='generic-factory'), 'produce', '生产工单', '计划怎么下到产线、怎么报工',
- '能从工单查到报工记录，说出 WO-20260801-02 计划 60 台为什么只完成了 40 台。', 'factory',
+ '能从工单查到报工记录，说出某张计划 60 台的工单为什么只完成了 40 台。', 'factory',
  '["micro","quiz","sql","sim"]', 4),
 ((SELECT id FROM flowcharts WHERE slug='generic-factory'), 'quality', '质量检验', '怎么做首检巡检、怎么追溯',
  '能从一条不合格记录顺着工单追到车间、设备和当班操作工。', 'check-circle',

@@ -1,17 +1,23 @@
 import type { Ctx } from '../../core/context';
 import { ok, fail } from '../../core/response';
 import { Err } from '../../core/errors';
+import { guardedAiRun } from '../../core/ai-guard';
 import { dictRepo } from '../../data/repositories/dict.repo';
 
 /**
- * POST /api/v1/ai/study-tip —— Workers AI 生成一句话中文学习建议。
+ * AI 模块（study-tip / explain-word / tts）
  *
- * 设计：
- *  - 入参是「学习进度摘要」（客户端组装，不含敏感信息），因此匿名可用（noAuth）。
- *  - 复用已验证的 @cf/meta/llama-3.2-3b-instruct；AI 调用失败或返回空时返回兜底建议，
- *    绝不让前端因此报错（与 ai-grade 一致的"AI 不可用也不阻断"原则）。
+ * 全部 AI 调用统一经 core/ai-guard 的 guardedAiRun：
+ *  - 5s 超时、受限重试、单路由熔断、日预算软告警、Bot 异常检测、结构化遥测。
+ *  - 业务兜底（静态提示 / D1 词典 / {audio:''}）仍在此处处理，护栏只负责安全与成本。
+ *
+ * 路由 key 约定：ai:study-tip / ai:explain-word / ai:tts
  */
+
 const MODEL = '@cf/meta/llama-3.2-3b-instruct';
+const TTS_MODEL = '@cf/myshell-ai/melotts';
+
+/* ============================ study-tip ============================ */
 
 interface TipInput {
   doneChapters: number;
@@ -28,7 +34,7 @@ const FALLBACK_TIPS = [
   '遇到不懂的 SQL，先在沙盒里跑一遍再回头看讲解。',
 ];
 
-function parseInput(b: Record<string, unknown>): TipInput {
+function parseTipInput(b: Record<string, unknown>): TipInput {
   const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
   const str = (v: unknown) => (typeof v === 'string' ? v.slice(0, 60) : '');
   return {
@@ -45,7 +51,7 @@ function pickFallback(): string {
   return FALLBACK_TIPS[Math.floor(Math.random() * FALLBACK_TIPS.length)];
 }
 
-function buildPrompt(inp: TipInput): string {
+function buildTipPrompt(inp: TipInput): string {
   const reviewPart = inp.needReview
     ? `需要复习（建议复习《${inp.reviewTopic || '已学内容'}》）`
     : '暂不需要复习';
@@ -56,7 +62,7 @@ function buildPrompt(inp: TipInput): string {
   ].join('\n');
 }
 
-function clean(s: string): string {
+function cleanTip(s: string): string {
   return s
     .replace(/^["'【】\s]+|["'】\s]+$/g, '')
     .replace(/\s+/g, ' ')
@@ -69,40 +75,28 @@ export async function studyTip(c: Ctx): Promise<Response> {
   if (!ct.includes('application/json')) return fail(c, Err.schemaRejected('content-type'));
   const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || typeof body !== 'object') return fail(c, Err.paramMissing());
-  const inp = parseInput(body);
+  const inp = parseTipInput(body);
 
-  try {
-    const resp = await c.env.AI.run(MODEL, { prompt: buildPrompt(inp), temperature: 0.6 });
+  const { result, telemetry } = await guardedAiRun(c.env, {
+    route: 'ai:study-tip',
+    models: [MODEL],
+    input: { prompt: buildTipPrompt(inp), temperature: 0.6 },
+    log: c.log,
+  });
+
+  let tip = pickFallback();
+  if (telemetry.ok && result) {
     const raw =
-      typeof (resp as { response?: unknown }).response === 'string'
-        ? (resp as { response: string }).response
+      typeof (result as { response?: unknown }).response === 'string'
+        ? (result as { response: string }).response
         : '';
-    const tip = clean(raw) || pickFallback();
-    return ok(c, { tip });
-  } catch (e) {
-    c.log.error({ msg: 'ai study-tip failed', err: String(e) });
-    return ok(c, { tip: pickFallback() });
+    tip = cleanTip(raw) || pickFallback();
   }
+  return ok(c, { tip });
 }
 
-/**
- * POST /api/v1/ai/explain-word —— 英文单词/术语的结构化翻译卡。
- *
- * 返回字段（全部可选兜底，绝不让前端因字段缺失报错）：
- *  - word      原词（回显，大写）
- *  - pos       词性缩写，如 "v." / "n." / "prep."
- *  - zh        中文释义（短）
- *  - example   英文例句（尽量 SQL/编程用法）
- *  - exampleZh 例句中文译文
- *  - category  2-4 字中文分类标签
- *  - detail    一句话中文详解
- *
- * 设计：
- *  - 默认需登录（auth 管线），以便读取云端词典（D1）。
- *  - 云端词典优先：D1 命中即返回，即时、稳定、零 AI 成本（覆盖绝大多数行业缩写）。
- *  - AI 兜底（生僻词）：解析结构化 JSON；解析失败时从自由文本抽取中文释义；
- *    仍无则低温度重试一次；全部失败才退化到通用兜底提示——绝不让前端报错。
- */
+/* ============================ explain-word ============================ */
+
 interface WordResult {
   word: string;
   pos: string;
@@ -113,7 +107,6 @@ interface WordResult {
   detail: string;
 }
 
-/** 从模型原文中抽取可能的 JSON（容忍 markdown 代码块与前后废话）。 */
 function extractJson(s: string): Partial<WordResult> | null {
   const fenced = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const candidate = (fenced ? fenced[1] : s).trim();
@@ -127,16 +120,12 @@ function extractJson(s: string): Partial<WordResult> | null {
   }
 }
 
-/**
- * JSON 解析失败时的最后兜底：从模型的自由文本里抽取中文释义片段。
- * 优先匹配「中文：xxx / 意思是 xxx / 指 xxx」等显式结构，否则取首个连续中文片段。
- */
 function extractMeaningFromText(raw: string): string {
   if (!raw) return '';
   const text = raw
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/[#*`>]/g, ' ')
-    .replace(/[A-Za-z0-9_]+/g, ' '); // 去掉英文/数字，突出中文
+    .replace(/[A-Za-z0-9_]+/g, ' ');
   const patterns = [
     /(?:中文|释义|解释|含义|意思|说明)[：:]\s*([一-龥]{2,40})/,
     /(?:意思是|即|指|表示)\s*([一-龥]{2,40})/,
@@ -193,21 +182,6 @@ function buildWordPrompt(word: string): string {
   ].join('\n');
 }
 
-/** 调一次 Workers AI 并解析；返回 {parsed, raw}。 */
-async function callAiWord(c: Ctx, word: string, temperature: number): Promise<{ parsed: Partial<WordResult> | null; raw: string }> {
-  try {
-    const resp = await c.env.AI.run(MODEL, { prompt: buildWordPrompt(word), temperature });
-    const raw =
-      typeof (resp as { response?: unknown }).response === 'string'
-        ? (resp as { response: string }).response
-        : '';
-    return { parsed: extractJson(raw), raw };
-  } catch (e) {
-    c.log.error({ msg: 'ai explain-word failed', word, temperature, err: String(e) });
-    return { parsed: null, raw: '' };
-  }
-}
-
 export async function explainWord(c: Ctx): Promise<Response> {
   const ct = c.req.headers.get('content-type') ?? '';
   if (!ct.includes('application/json')) return fail(c, Err.schemaRejected('content-type'));
@@ -235,34 +209,29 @@ export async function explainWord(c: Ctx): Promise<Response> {
     c.log.error({ msg: 'dict lookup failed', word, err: String(e) });
   }
 
-  // 2) AI 兜底（生僻词）：先 0.1 温度，结构化解析失败再 0 温度重试
-  let parsed: Partial<WordResult> | null = null;
-  let rawText = '';
-  for (const temp of [0.1, 0]) {
-    const r = await callAiWord(c, word, temp);
-    rawText = r.raw || rawText;
-    if (r.parsed && (r.parsed.zh || r.parsed.example)) {
-      parsed = r.parsed;
-      break;
+  // 2) AI 兜底（生僻词）：经护栏调用，单请求硬限 1 次，杜绝原"0.1→0"双倍计费
+  const { result, telemetry } = await guardedAiRun(c.env, {
+    route: 'ai:explain-word',
+    models: [MODEL],
+    input: { prompt: buildWordPrompt(word), temperature: 0.1 },
+    log: c.log,
+    maxCallsPerRequest: 1,
+  });
+
+  if (telemetry.ok && result) {
+    const raw =
+      typeof (result as { response?: unknown }).response === 'string'
+        ? (result as { response: string }).response
+        : '';
+    const parsed = extractJson(raw);
+    if (parsed && (parsed.zh || parsed.example)) return ok(c, toResult(word, parsed));
+    const freeZh = extractMeaningFromText(raw);
+    if (freeZh) {
+      return ok(c, { word, pos: '', zh: freeZh, example: '', exampleZh: '', category: 'AI', detail: '' });
     }
   }
-  if (parsed && (parsed.zh || parsed.example)) return ok(c, toResult(word, parsed));
 
-  // 3) 自由文本兜底：模型没给 JSON 但说了中文释义
-  const freeZh = extractMeaningFromText(rawText);
-  if (freeZh) {
-    return ok(c, {
-      word,
-      pos: '',
-      zh: freeZh,
-      example: '',
-      exampleZh: '',
-      category: 'AI',
-      detail: '',
-    });
-  }
-
-  // 4) 最终兜底：通用提示
+  // 3) 最终兜底：通用提示（绝不因 AI 不可用而让前端报错）
   return ok(c, {
     word,
     pos: '',
@@ -274,17 +243,8 @@ export async function explainWord(c: Ctx): Promise<Response> {
   });
 }
 
-/**
- * POST /api/v1/tts —— Workers AI 语音合成兜底（MeloTTS，多语种）。
- *
- * 前端 useSpeech 优先用浏览器 Web Speech API；在 iOS Safari 等不可靠环境
- * 自动降级到本端点，返回 base64 MP3 由 <audio> 播放，iPhone 也能稳定出声。
- *
- * 设计：
- *  - 匿名可用（noAuth），仅发文本，无敏感信息。
- *  - AI 失败 / 无音频 → 返回 { audio: '' }，前端据此提示"语音暂不可用"，绝不让前端报错。
- *  - 文本上限 500 字符，控制 AI 成本与延迟（$0.0002 / 音频分钟）。
- */
+/* ============================ tts ============================ */
+
 const TTS_MAX = 500;
 const TTS_LANG: Record<string, string> = { 'en-US': 'en', 'zh-CN': 'zh', en: 'en', zh: 'zh' };
 
@@ -298,12 +258,18 @@ export async function tts(c: Ctx): Promise<Response> {
   if (text.length > TTS_MAX) return fail(c, Err.tooLarge());
   const reqLang = typeof body.lang === 'string' ? body.lang : 'en-US';
   const lang = TTS_LANG[reqLang] ?? 'en';
-  try {
-    const resp = await c.env.AI.run('@cf/myshell-ai/melotts', { prompt: text, lang });
-    const audio = (resp as { audio?: string }).audio ?? '';
-    return ok(c, { audio });
-  } catch (e) {
-    c.log.error({ msg: 'ai tts failed', err: String(e) });
-    return ok(c, { audio: '' });
-  }
+
+  const { result, telemetry } = await guardedAiRun(c.env, {
+    route: 'ai:tts',
+    models: [TTS_MODEL],
+    input: { prompt: text, lang },
+    log: c.log,
+    maxCallsPerRequest: 1,
+  });
+
+  const audio =
+    telemetry.ok && result && typeof (result as { audio?: unknown }).audio === 'string'
+      ? (result as { audio: string }).audio
+      : '';
+  return ok(c, { audio });
 }

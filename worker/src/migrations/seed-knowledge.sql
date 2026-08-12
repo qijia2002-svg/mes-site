@@ -18,7 +18,6 @@ INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, stat
 【前置】无
 【评估】理论选择题 + 模块关系图绘制
 【课时】8小时（理论4h + 案例分析2h + 流程图练习2h）', '["theory"]', 4, 'published', '[]', 'beginner', 8, 1785648000, 1785648000);
-INSERT OR REPLACE INTO topics (id, slug, title, description, modules, sort, status, prerequisites, difficulty, estimated_hours, created_at, updated_at) VALUES (5, 'mes', 'MES 核心模块', '【能力目标】学员能够说明MES七大核心模块（工单/物料/报工/质量/追溯/设备/看板）的功能与车间数据流，对常见实施场景给出AS-IS→TO-BE方案。
 【受众】MES实施工程师、项目经理
 【前置】ERP原理与模块（课程4）
 【评估】场景分析题 + 方案设计答辩
@@ -286,223 +285,6 @@ MES（执行）→ 完工/质量数据 → ERP（结算）
 
 ## 面试能讲的
 "我在某制造企业观察到的场景：ERP可能下达了生产任务，但车间还是靠纸质传递——这中间的断层就是MES要解决的。MES把ERP的''要做什么''变成车间实际执行的''怎么做、做得怎么样''。"', 1, 1785648000);
-INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, 'MES 是什么', 1, 'published', '# MES 是什么
-
-## 一句话理解
-**MES = 制造执行系统 = 车间数字化操作系统。** 把车间的"人、机、料、法、测"全部数字化。
-
-## MES 在工厂中的位置
-```
-ERP（管计划）→ 下达生产订单
- ↓
-MES（管执行）→ 分解工单、追踪每道工序
- ↓
-设备/工位 → 扫码、报工、采集数据
- ↓
-报表 → 产量、良率、OEE
-```
-
-## MES 核心模块
-| 模块 | 做什么 | 产品 产线对应 |
-|------|--------|-------------|
-| 工单管理 | ERP 订单 → 车间任务 | N 道工序拆分工单 |
-| 物料管理 | 缺料申请/配送/追溯 | 线圈/PCB/触头的批次管理 |
-| 生产报工 | 每道工序完成记录 | 铆接/装配/测试报工 |
-| 质量管理 | 不良记录/SPC/追溯 | 漏电测试/延时/瞬时检测 |
-| 追溯管理 | 正向/反向追溯 | SN 码绑定 → 全链路 |
-| 设备管理 | 设备数据采集/OEE | 老化测试/耐压测试设备 |
-| 电子SOP | 工位屏幕显示作业指导 | 15 份纸质 SOP → 电子化 |
-| 看板报表 | 实时产量/良率/OEE | 车间大屏 |
-
-**当前状态：** 没有 MES，只有纸质记录 + Excel + 微信
-**MES 化机会：** 测试工序（漏电/延时/瞬时/耐压）最适合优先数字化——数据量大、重复性高、人工记录容易出错
-
-## 你的优势
-别人学 MES 看书——你在车间每天看到真实的 MES 需求场景。
-拿 15 道 SOP 每道问自己："如果上 MES，这步会怎么变？"
-
-## 下一步
-→ [[02_工单管理|工单管理]]', 1, 1785648000);
-INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '工单管理', 2, 'published', '# 工单管理
-
-## 一句话理解
-**工单 = ERP的生产订单拆成车间能执行的"任务卡片"。**
-
-## 工作流程
-```
-ERP生产订单（1000个产品）
- ↓
-MES工单拆分：
-  工单001：铆接工序 - 1000件
-  工单002：焊接工序 - 1000件
-  ...
-  工单015：包装工序 - 1000件
- ↓
-各工位扫码接单 → 报工
-```
-
-## 当前流程（AS-IS）
-现在：线长在微信群里发"今天做1000个产品"，没有电子工单。
-
-## 目标流程（TO-BE）
-MES自动收到ERP的订单 → 拆分15道工序工单 → 每道工序扫码开始 → 自动跟踪进度
-
-## 数据模型
-```
-work_order 工单表：
-  wo_id, prod_order_id, process_id,
-  station_id, planned_qty, actual_qty,
-  status, start_time, end_time
-```', 1, 1785648000);
-INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '物料管理', 3, 'published', '# 物料管理
-
-## 一句话理解
-**MES物料管理 = 车间级的物料"配送+追溯"系统。** ERP管"有多少料"，MES管"料用在哪个产品上"。
-
-## 核心功能
-1. **缺料申请**：工位扫码 → 触发缺料请求 → 仓库接单配送
-2. **物料校验**：装配前扫码物料 → 系统校验是否匹配BOM → 防错
-3. **批次追溯**：记录每个产品用了哪批物料 → 出问题可倒查供应商
-
-**你的案例：[[缺料流程问题]]**
-
-AS-IS：工人发现缺料 → 手写通知 → 自己去仓库
-TO-BE：扫码 → 系统自动通知仓库 → 配送到工位
-
-## 数据模型
-```
-material_shortage 缺料表：
-  ms_id, work_order_id, station_id,
-  material_code, qty, request_time,
-  delivery_time, status
-```', 1, 1785648000);
-INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '生产报工', 4, 'published', '# 生产报工
-
-## 一句话理解
-**报工 = 记录"谁在什么时间做了多少件、合格多少、不良多少"。**
-
-## 当前流程（AS-IS）
-- 工人手写记工单（做什么/做多少）
-- 班组长月底收集统计
-- 计算计件工资 → 易出错、耗时长、争议多
-
-## 目标流程（TO-BE）
-- 每道工序做完 → 扫码报工
-- MES自动记录：谁/什么时间/什么产品/多少件/合格数/不良数
-- 实时看板显示产量
-- 月底一键导出计件工资报表
-
-## 数据模型
-```
-production_record 报工表：
-  record_id, work_order_id, employee_id,
-  process_id, station_id, sn_code,
-  planned_qty, good_qty, ng_qty,
-  start_time, end_time
-```
-
-## 面试能讲的
-"我在某制造企业看到计件靠纸质记录，月底人工核对——如果上了MES扫码报工，效率能提升多少、出错率能降到多少。"', 1, 1785648000);
-INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '质量管理', 5, 'published', '# 质量管理
-
-## 一句话理解
-**MES质量管理 = 把 IQC/IPQC/OQC 全部数字化，不良记录可追溯、可分析。**
-
-## 核心功能
-1. **不良录入**：扫码 → 选择不良代码 → 系统记录
-2. **自动锁定**：不合格品不能流到下一道工序
-3. **SPC分析**：自动生成控制图、Pareto图
-4. **追溯**：从不良品倒查 → 哪个工位/谁做/哪批料
-
-## 这就是你现在的岗位——IPQC
-你每天检查不良 → 如果能用系统记录，就能分析出：
-- 哪个工位不良率最高？
-- 哪个零件最容易出问题？
-- 什么时间段不良增多？
-
-## 数据模型
-```
-quality_record 质量记录表：
-  qr_id, sn_code, process_id, station_id,
-  defect_code, defect_desc, severity,
-  inspector_id, record_time, status
-```
-
-## 面试能讲的
-"我是IPQC，正在用统一格式记录不良数据。这是MES质量管理模块最核心的输入——不良代码体系+数据采集+SPC分析。"', 1, 1785648000);
-INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '追溯管理', 6, 'published', '# 追溯管理
-
-## 一句话理解
-**追溯 = 正向：产品用了什么料 → 反向：料用在了哪些产品上。**
-
-## 正向追溯
-```
-SN码：产品-20260719-001
-  → 这个产品用了：
- - 底座 (批号 H101-20260701)
- - 线圈 (批号 D505-20260705)
- - PCB (批号 D503-20260702)
-  → 经过15道工序
-  → 测试结果：漏电测试 PASS / 耐压测试 PASS
-```
-
-## 反向追溯
-```
-线圈批号 D505-20260705 有问题
-  → 这批线圈用在了哪些成品上？
-  → 查出 SN 列表
-  → 召回这些成品
-```
-
-## 数据模型
-```
-traceability 追溯表：
-  sn_code →
- bom_line (物料+批次) →
- production_record (工序+人员+时间) →
- quality_record (检验结果)
-```
-
-## 面试能讲的
-"如果客户投诉一批产品漏电——用MES追溯系统，5分钟内就能查到：这批产品用了哪个供应商的线圈、经过哪些工序、谁装配的、测试结果是什么。"', 1, 1785648000);
-INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '设备管理', 7, 'published', '# 设备管理
-
-## 一句话理解
-**设备管理 = 监控设备运行状态、自动采集数据、计算OEE、预警故障。**
-
-产品产线的测试设备：
-- 漏电测试仪
-- 延时测试仪
-- 瞬时测试仪
-- 通断耐压测试仪
-- 老化试验设备
-
-**现在：** 工人看仪表读数 → 手写记录
-**MES化后：** 设备自动传数据 → MES自动判定 → 不合格自动锁定
-
-## OEE（设备综合效率）
-OEE = 可用率 × 性能率 × 良品率
-
-## 你的案例
-[[设备故障无预警]] —— 这就是设备管理模块要解决的问题。', 1, 1785648000);
-INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (5, '看板与报表', 8, 'published', '# 看板与报表
-
-## 一句话理解
-**看板 = 把数据"可视化"，让管理者一眼看到车间在发生什么。**
-
-## 常见看板
-| 看板类型 | 显示内容 | 产品场景 |
-|---------|---------|---------|
-| 生产看板 | 计划/实际/完成率 | 今日计划1000，已完成650 |
-| 质量看板 | 不良率/Pareto/趋势 | 不良率2.1%，触头问题最多 |
-| 设备看板 | OEE/运行状态 | 老化测试设备OEE 78% |
-| Andon看板 | 异常报警 | 03工位物料不足！ |
-
-## 某制造企业现场
-你做过信息化专员，用ERP数据做过生产大屏——这就是看板的雏形。
-
-## 下一步
-结合产品产线数据 → 设计一个生产看板的Demo → 面试作品集。', 1, 1785648000);
 INSERT INTO chapters (topic_id, title, sort, status, md_text, schema_version, updated_at) VALUES (6, 'SELECT 查询', 1, 'published', '# SELECT 查询
 
 ## 一句话理解
@@ -779,7 +561,7 @@ PLC 不是事件驱动，而是**循环扫描**：
  ↑ 回到 1，周期约 1-10ms
 ```
 
-> ⚠️ 关键：PLC 输出不是立即生效，而是在扫描周期末统一刷新。这与单片机直接操作 GPIO 不同。
+> 注意： 关键：PLC 输出不是立即生效，而是在扫描周期末统一刷新。这与单片机直接操作 GPIO 不同。
 
 ## PLC vs 单片机（嵌入式视角）
 | 维度 | PLC | 单片机 |
@@ -791,7 +573,7 @@ PLC 不是事件驱动，而是**循环扫描**：
 | 灵活性 | 标准化模块，扩展受限 | 完全自定义 |
 | 适用场景 | 工业现场设备控制 | 嵌入式产品/小批量 |
 
-> 💡 嵌入式工程师学 PLC 的优势：你已经懂"输入→处理→输出"的本质，PLC 只是把它工程化、标准化了。
+> 提示：嵌入式工程师学 PLC 的优势：你已经懂"输入→处理→输出"的本质，PLC 只是把它工程化、标准化了。
 
 ## 产品 漏保产线对应
 - **漏电测试工序**：PLC 采集漏电电流传感器 → 判断是否合格 → 驱动分拣气缸

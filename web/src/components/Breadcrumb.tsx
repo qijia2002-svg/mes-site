@@ -35,6 +35,7 @@ export function useCrumbTail(label: string | null | undefined) {
 
 const SECTION: Record<string, { label: string; to: string }> = {
   factory: { label: '工厂', to: '/factory' },
+  'knowledge-graph': { label: '知识图', to: '/knowledge-graph' },
   courses: { label: '课程', to: '/courses' },
   chapters: { label: '课程', to: '/courses' },
   // 这几条曾指向 /factory?view=… 和 /factory?mode=…，但 FactoryPage 只认 ?node=，
@@ -54,6 +55,7 @@ const SECTION: Record<string, { label: string; to: string }> = {
 
 const FALLBACK_LEAF: Record<string, string> = {
   factory: '工厂全景',
+  'knowledge-graph': '知识点连线图',
   courses: '课程详情',
   chapters: '章节正文',
   'learning-paths': '路径详情',
