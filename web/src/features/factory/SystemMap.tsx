@@ -76,7 +76,7 @@ export default function SystemMap() {
       `}</style>
 
       <h2>工厂系统关系图谱</h2>
-      <p className="sysmap-sub">五个系统靠三条流咬合在一起。点一个系统，看它管什么、哪条流穿过它。</p>
+      <p className="sysmap-sub">工厂靠五个系统、三条流咬合运转。先不用记那些缩写，点开任一系统，看它管什么、哪条流穿过它。</p>
 
       <div className="sysmap-row" role="group" aria-label="选择系统">
         {SYSTEMS.map((s) => (

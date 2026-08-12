@@ -44,6 +44,9 @@ export default function LearningPathsPage() {
         <p style={{ color: 'var(--meta)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)' }}>
           按顺序排好的课程串。想看这些课在工厂里对应哪个环节，回 <Link to="/factory" style={{ color: 'var(--accent)' }}>工厂全景</Link>。
         </p>
+        <p style={{ color: 'var(--muted)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-2)' }}>
+          零基础？建议从最上面的 <span style={{ color: 'var(--accent)' }}>《从零看懂工厂》</span> 开始——三小节大白话，不用任何前提。
+        </p>
       </header>
 
       {pathsQ.isLoading && <LoadingState label="加载路径…" />}

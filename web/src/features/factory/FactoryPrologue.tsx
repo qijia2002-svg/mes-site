@@ -13,6 +13,7 @@
  * 无弹性缓动（只用 --ease-standard）。
  */
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icon, type IconName } from '../../components/Icon';
 
 type Slide = { icon: IconName; title: string; body: string };
@@ -41,7 +42,7 @@ const SLIDES: Slide[] = [
   {
     icon: 'courses',
     title: '接下来怎么学',
-    body: '点「开始逛工厂」，我们带你按一张真实订单，走完 12 个环节。碰到不懂的词，随时点开看大白话。',
+    body: '要是想先整体看懂工厂、不急着钻环节，去「学习路径」里走最上面的《从零看懂工厂》——三小节白话，不用任何前提。等看明白了，再点「开始逛工厂」，我们带你按一张真实订单走完 12 个环节。',
   },
 ];
 
@@ -65,6 +66,7 @@ export function hasSeenPrologue(): boolean {
 
 export default function FactoryPrologue({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [step, setStep] = useState(0);
+  const navigate = useNavigate();
   const last = SLIDES.length - 1;
 
   useEffect(() => {
@@ -144,6 +146,18 @@ export default function FactoryPrologue({ open, onClose }: { open: boolean; onCl
             {step > 0 && (
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setStep(step - 1)}>
                 <Icon name="arrow-left" size={16} /> 上一屏
+              </button>
+            )}
+            {step === last && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => {
+                  onClose();
+                  navigate('/learning-paths?path=100');
+                }}
+              >
+                <Icon name="paths" size={16} /> 从零看懂工厂
               </button>
             )}
             <button type="button" className="btn btn-primary" onClick={goNext}>
