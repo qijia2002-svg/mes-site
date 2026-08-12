@@ -42,14 +42,14 @@ export default function LoginPage() {
           <span className="login-brand-mark">
             <Icon name="workshop" size={24} />
           </span>
-          <span className="login-brand-name">MES 实训平台</span>
+          <span className="login-brand-name">工厂与 MES 入门</span>
         </div>
 
         <div className="login-brand-hero">
           <h1 className="login-brand-title">
             制造业数字化
             <br />
-            学习实训平台
+            从零看懂工厂
           </h1>
           <p className="login-brand-sub">
             把 MES / ERP / SQL / PLC 的零散知识，串成可上手的一条线。

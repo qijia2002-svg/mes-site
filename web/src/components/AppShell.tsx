@@ -88,8 +88,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Icon name="workshop" size={20} />
           </div>
           <div className="sidebar-brand-text">
-            <span className="sidebar-brand-title">MES 实训平台</span>
-            <span className="sidebar-brand-sub">Manufacturing Academy</span>
+            <span className="sidebar-brand-title">工厂与 MES 入门</span>
+            <span className="sidebar-brand-sub">从零看懂工厂</span>
           </div>
         </div>
 

@@ -9,7 +9,7 @@
  * 本文件只做壳与编排：拉数据 → 派生状态 → 交给 FactoryHeader / FactoryFlow / FactoryExtras。
  * 选中节点同步在 ?node=<key> 上，抽屉的开合就是 URL 的开合。
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
@@ -20,6 +20,7 @@ import FactoryFlow from '../features/factory/FactoryFlow';
 import FactoryJourney from '../features/factory/FactoryJourney';
 import FactoryExtras from '../features/factory/FactoryExtras';
 import SystemMap from '../features/factory/SystemMap';
+import FactoryPrologue, { hasSeenPrologue, markPrologueSeen } from '../features/factory/FactoryPrologue';
 import { DEFAULT_FLOW, PHASE_BY_KEY, buildSteps, type LaidNode, type Phase } from '../features/factory/factoryFlow.data';
 import { useNodeProgress } from '../features/factory/useNodeProgress';
 import { useNodeStatus, type NodeStatusApi } from '../features/factory/useNodeStatus';
@@ -31,12 +32,13 @@ import { useIsNarrow } from '../features/roadmap/useIsNarrow';
 const SLUG = 'generic-factory';
 
 // ═══ 页头：工厂身份 + 一个动作 + 一条双层进度 ═══
-function FactoryHeader({ title, total, status, nextNode, onResume }: {
+function FactoryHeader({ title, total, status, nextNode, onResume, onOpenPrologue }: {
   title: string;
   total: number;
   status: NodeStatusApi;
   nextNode: LaidNode | null;
   onResume: () => void;
+  onOpenPrologue: () => void;
 }) {
   const { practicedCount, touchedCount, practicableTotal } = status;
   const pct = practicableTotal > 0 ? (practicedCount / practicableTotal) * 100 : 0;
@@ -81,6 +83,9 @@ function FactoryHeader({ title, total, status, nextNode, onResume }: {
           </p>
         </div>
         <div className="page-head-actions">
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onOpenPrologue}>
+            <Icon name="compass" size={16} /> 工厂一日游
+          </button>
           {nextNode ? (
             <button type="button" className="btn btn-primary" onClick={onResume}>
               <Icon name="arrow-right" size={16} />
@@ -169,6 +174,12 @@ export default function FactoryPage() {
   // 杜绝在窄屏误入四泳道「桌面网页」全景（用户已反馈此问题）。桌面端切换逻辑不变。
   const narrow = useIsNarrow();
   const effectiveView = narrow ? 'journey' : view;
+
+  // 零基础序章：首访 /factory 自动弹「工厂一日游」（P0，专家评审结论）。看完写 localStorage。
+  const [prologueOpen, setPrologueOpen] = useState(false);
+  useEffect(() => {
+    if (!hasSeenPrologue()) setPrologueOpen(true);
+  }, []);
   const select = useCallback(
     (key: string | null) => {
       const next = new URLSearchParams(sp);
@@ -193,12 +204,20 @@ export default function FactoryPage() {
 
   return (
     <section style={{ maxWidth: 'var(--container-app)', margin: '0 auto' }}>
+      <FactoryPrologue
+        open={prologueOpen}
+        onClose={() => {
+          setPrologueOpen(false);
+          markPrologueSeen();
+        }}
+      />
       <FactoryHeader
         title={q.data?.flow?.title ?? '通用离散制造厂'}
         total={nodes.length}
         status={status}
         nextNode={nextNode}
         onResume={() => nextNode && select(nextNode.key)}
+        onOpenPrologue={() => setPrologueOpen(true)}
       />
       {stageProgress.enabled && (
         <MainlineStepper stages={stageProgress.stages} onGoto={select} />
