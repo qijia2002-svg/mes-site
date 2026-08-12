@@ -227,7 +227,7 @@ export async function getKnowledgeConcept(c: Ctx): Promise<Response> {
   }
 
   return ok(c, {
-    concept: { key: concept.key, label: concept.label, definition: concept.definition ?? '' },
+    concept: { key: concept.key, label: concept.label, definition: concept.definition ?? '', zeroBasisDef: concept.zero_basis_def ?? '' },
     backlinks,
   });
 }

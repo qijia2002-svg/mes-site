@@ -7,6 +7,7 @@ export interface KgConceptRow {
   key: string;
   label: string;
   definition: string | null;
+  zero_basis_def: string | null;
   topic_id: number | null;
 }
 
@@ -39,7 +40,7 @@ function inPlaceholders(ids: number[]): string {
 export const knowledgeRepo = {
   getConcepts(db: DbSession): Promise<KgConceptRow[]> {
     return db.all<KgConceptRow>(
-      `SELECT id, key, label, definition, topic_id FROM concepts ORDER BY sort, id`,
+      `SELECT id, key, label, definition, zero_basis_def, topic_id FROM concepts ORDER BY sort, id`,
     );
   },
 
@@ -105,7 +106,7 @@ export const knowledgeRepo = {
 
   getConceptByKey(db: DbSession, key: string): Promise<KgConceptRow | null> {
     return db.first<KgConceptRow>(
-      `SELECT id, key, label, definition, topic_id FROM concepts WHERE key = ?1`,
+      `SELECT id, key, label, definition, zero_basis_def, topic_id FROM concepts WHERE key = ?1`,
       key,
     );
   },

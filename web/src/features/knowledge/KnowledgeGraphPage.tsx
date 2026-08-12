@@ -78,8 +78,16 @@ export function KnowledgeGraphPage() {
                 {concept.isLoading && <p className="kg-muted">反链加载中…</p>}
                 {concept.data && (
                   <>
-                    {concept.data.concept.definition && (
+                    {concept.data.concept.zeroBasisDef ? (
+                      <p className="kg-def">{concept.data.concept.zeroBasisDef}</p>
+                    ) : concept.data.concept.definition && (
                       <p className="kg-def">{concept.data.concept.definition}</p>
+                    )}
+                    {concept.data.concept.zeroBasisDef && concept.data.concept.definition && (
+                      <p className="kg-def-tech">
+                        <span className="kg-def-tech-k">技术定义 · </span>
+                        {concept.data.concept.definition}
+                      </p>
                     )}
                     <h3 className="kg-backlink-h">谁在讲它（{concept.data.backlinks.length}）</h3>
                     {concept.data.backlinks.length === 0 && (

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="工厂与 MES 入门">
+  <rect width="32" height="32" rx="7" fill="#547C70"/>
+  <g fill="#ffffff">
+    <!-- 厂房 A -->
+    <path d="M6 24 V16 l3 -2.4 l3 2.4 V24 Z"/>
+    <!-- 厂房 B（更高）-->
+    <path d="M13 24 V13 l3 -2.4 l3 2.4 V24 Z"/>
+    <!-- 烟囱 -->
+    <rect x="21.4" y="9" width="2.6" height="8" rx="0.6"/>
+    <!-- 门洞（用底色挖空）-->
+    <rect x="8" y="20" width="2.6" height="4" rx="0.4" fill="#547C70"/>
+    <rect x="15" y="20" width="2.6" height="4" rx="0.4" fill="#547C70"/>
+    <rect x="22.1" y="14.6" width="1.2" height="2" rx="0.3" fill="#547C70"/>
+  </g>
+</svg>

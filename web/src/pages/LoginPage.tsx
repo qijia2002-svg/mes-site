@@ -40,7 +40,7 @@ export default function LoginPage() {
       <aside className="login-brand">
         <div className="login-brand-top">
           <span className="login-brand-mark">
-            <Icon name="workshop" size={24} />
+            <img src="/favicon.svg" alt="工厂与 MES 入门" width={24} height={24} className="login-brand-mark-img" />
           </span>
           <span className="login-brand-name">工厂与 MES 入门</span>
         </div>

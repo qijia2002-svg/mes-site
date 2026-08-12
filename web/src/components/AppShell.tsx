@@ -85,7 +85,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="sidebar" aria-label="主导航">
         <div className="sidebar-brand">
           <div className="sidebar-brand-logo">
-            <Icon name="workshop" size={20} />
+            <img src="/favicon.svg" alt="工厂与 MES 入门" width={20} height={20} className="brand-logo-img" />
           </div>
           <div className="sidebar-brand-text">
             <span className="sidebar-brand-title">工厂与 MES 入门</span>

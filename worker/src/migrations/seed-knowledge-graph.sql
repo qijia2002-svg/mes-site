@@ -37,6 +37,13 @@ INSERT INTO concepts (id, key, label, definition, topic_id, sort) VALUES
   (14, 'work_order',       '工单 Work Order',   'ERP 计划落成车间动作的核心单据，含产品 / 数量 / 工艺 / 交期。', 1, 14),
   (15, 'sales_order',      '销售订单',          '客户要什么、多少、何时要，全流程的起点。', NULL, 15);
 
+-- P1：四个高频概念的零基础白话兜底（打破 jargon 循环）。
+-- 仅 UPDATE，不改动概念主 INSERT；重跑安全（文件头部 DELETE 已清空 concepts）。
+UPDATE concepts SET zero_basis_def = '系统帮你算「要买什么、买多少、什么时候到」，免得靠人脑拍脑袋。它依据两张清单：客户要什么成品、做成品需要哪些零件。' WHERE key = 'mrp';
+UPDATE concepts SET zero_basis_def = '做一件成品需要哪些零件、各要多少个的「配料表」。比如做一张桌子，BOM 写：桌面 1、桌腿 4、螺丝 16。它只讲「需要什么」，不管时间。' WHERE key = 'bom';
+UPDATE concepts SET zero_basis_def = '开工前先清点：这张单子的所有零件是不是都到齐了？齐了才能开工，差一个都不行。「布尔判断」就是「齐 / 没齐」二选一。' WHERE key = 'kitting';
+UPDATE concepts SET zero_basis_def = '已经真正做完、并报给系统的数量。比如工单要 100 个，工人做完 60 个并上报，qty_done 就是 60——它和「计划做 100 个」(qty_plan) 是两回事。' WHERE key = 'qty_done';
+
 -- 指认层：concept_id 经 key 子查询解析；source_ref 按类型解析（见上说明）。
 INSERT INTO knowledge_links (concept_id, source_type, source_ref, relation, weight) VALUES
 

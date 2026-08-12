@@ -327,7 +327,7 @@ export interface KgBacklink {
 }
 
 export interface KnowledgeConcept {
-  concept: { key: string; label: string; definition: string };
+  concept: { key: string; label: string; definition: string; zeroBasisDef?: string };
   backlinks: KgBacklink[];
 }
 
