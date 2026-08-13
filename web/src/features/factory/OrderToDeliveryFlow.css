@@ -30,6 +30,92 @@
 .od-sub a { color: var(--accent); text-decoration: none; }
 .od-sub a:hover { text-decoration: underline; }
 
+/* ═══ 价值流河：订单 token 从源头流到发货 ═══ */
+.od-river {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+}
+.od-river-end {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-emph-cjk);
+  color: var(--fg-2);
+  white-space: nowrap;
+}
+.od-river-src svg { color: var(--phase-plan); }
+.od-river-dst svg { color: var(--phase-logistics); }
+.od-river-bed {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 120px;
+  height: 44px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.od-river-stream { position: absolute; inset: 0; }
+.od-river-dot {
+  position: absolute;
+  top: 50%;
+  left: -6%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  opacity: 0.45;
+  animation: odStream 9s linear infinite;
+}
+.od-river-dot:nth-child(1) { animation-delay: 0s; }
+.od-river-dot:nth-child(2) { animation-delay: -1.8s; }
+.od-river-dot:nth-child(3) { animation-delay: -3.6s; }
+.od-river-dot:nth-child(4) { animation-delay: -5.4s; }
+.od-river-dot:nth-child(5) { animation-delay: -7.2s; }
+.od-river-token {
+  position: absolute;
+  top: 50%;
+  left: -6%;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-on);
+  transform: translateY(-50%);
+  animation: odStream 12s linear infinite;
+  box-shadow: var(--elev-dropdown);
+}
+.od-river-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: var(--space-2) 0 0;
+}
+.od-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+.od-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--ph);
+}
+
 /* ═══ 顶部一行紧凑总览（横向连线）═══ */
 .od-overview {
   display: flex;
@@ -74,12 +160,35 @@
   align-items: center;
   padding: var(--space-1) var(--space-3);
   background: var(--ph);
-  color: #fff;
+  color: var(--accent-on);
   border-radius: var(--radius-pill);
   font-size: var(--text-sm);
   font-weight: var(--weight-announce-cjk);
 }
 .od-band-count { font-size: var(--text-xs); color: var(--muted); }
+
+/* 系统色带高亮：按阶段色流动，把「归哪套系统」讲清楚 */
+.od-band-flow {
+  position: relative;
+  height: 10px;
+  margin: var(--space-2) 0 var(--space-3);
+  background: color-mix(in srgb, var(--ph) 12%, var(--surface));
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.od-band-dot {
+  position: absolute;
+  top: 50%;
+  left: -6%;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: var(--radius-pill);
+  background: var(--ph);
+  animation: odStream 6s linear infinite;
+}
+.od-band-dot:nth-child(2) { animation-delay: -2s; }
+.od-band-dot:nth-child(3) { animation-delay: -4s; }
 
 /* ═══ 横向连线流程（桌面）═══ */
 .od-chain {
@@ -211,7 +320,7 @@
   align-items: center;
   justify-content: center;
   background: var(--ph, var(--accent-soft));
-  color: #fff;
+  color: var(--accent-on);
   font-weight: var(--weight-announce-cjk);
   font-size: var(--text-lg);
 }
@@ -262,7 +371,7 @@
   margin-top: var(--space-5);
   padding: var(--space-3) var(--space-4);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-on);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--weight-announce-cjk);
@@ -310,8 +419,10 @@
 
 @keyframes odFade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes odPop { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes odStream { from { left: -6%; } to { left: 106%; } }
 @media (prefers-reduced-motion: reduce) {
   .od-modal, .od-modal-card { animation: none; }
+  .od-river-dot, .od-river-token, .od-band-dot { animation: none !important; }
 }
 
 /* ═══ 移动端：横向连线转纵向（箭头朝下）═══ */
@@ -340,4 +451,6 @@
   .od-bridge { flex-wrap: wrap; }
   .od-bridge-go { width: 100%; justify-content: flex-end; }
   .od-overview { padding: var(--space-2) 0; }
+  .od-river { flex-wrap: wrap; }
+  .od-river-bed { flex-basis: 100%; order: 3; }
 }

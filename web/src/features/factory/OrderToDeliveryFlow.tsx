@@ -1,13 +1,14 @@
 /**
- * 订单到交付全景（Order-to-Delivery）独立页。
+ * 订单到交付全景（Order-to-Delivery）独立页 · 沉浸式动画叙事版。
  *
  * 与工厂页现有 12 环节「系统视角」互补：本页只讲业务怎么走、每步配什么单据。
  * 是用户提供的 16 步价值流的教学化呈现。纯 design token，零裸 hex / 零渐变 / 零弹性缓动。
  *
- * 交互（修复「点了没反应」）：
- *  · 顶部一行紧凑总览 + 4 阶段横向连线流程，每步都是可点击按钮；
- *  · 点击任意一步弹出详情（描述 + 配套 MES 单据 + 归属系统），即用户要的「弹窗附加信息」；
- *  · 底部一座桥指回 /simulator，标明「车间生产加工」的内部四道工序可在模拟器动手玩。
+ * 视觉叙事（用户要的「价值流河流」）：
+ *  · 顶部一条「价值流河」——订单 token 从「客户下单」一路流到「发货出库」；
+ *  · 4 个阶段各有一条按系统色（--phase-*）流动的高亮色带，把每步归哪套系统讲清楚；
+ *  · 每步仍是可点击按钮，点开弹窗看配套单据 / 归属系统（修过的「点了没反应」保留）。
+ *  · 底部一座桥指回 /simulator，标明「车间生产加工」内部四道工序可在模拟器动手玩。
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, Fragment } from 'react';
 import { Link } from 'react-router-dom';
@@ -66,7 +67,39 @@ export default function OrderToDeliveryFlow() {
         </p>
       </header>
 
-      {/* 一行紧凑总览：用户给的「客户下单→订单审核→…→发货出库」连线形态 */}
+      {/* ═══ 价值流河：订单 token 从源头流到发货 ═══ */}
+      <div className="od-river" aria-hidden="true">
+        <div className="od-river-end od-river-src">
+          <Icon name="shopping-cart" size={20} />
+          <span>客户下单</span>
+        </div>
+        <div className="od-river-bed">
+          <div className="od-river-stream">
+            <span className="od-river-dot" />
+            <span className="od-river-dot" />
+            <span className="od-river-dot" />
+            <span className="od-river-dot" />
+            <span className="od-river-dot" />
+          </div>
+          <div className="od-river-token">
+            <Icon name="package" size={16} />
+          </div>
+        </div>
+        <div className="od-river-end od-river-dst">
+          <Icon name="truck" size={20} />
+          <span>发货出库</span>
+        </div>
+      </div>
+      <div className="od-river-legend">
+        {OD_BANDS.map((b) => (
+          <span className="od-legend-item" key={b.key} style={{ '--ph': PHASE_VAR[b.key] } as CSSProperties}>
+            <i className="od-legend-dot" />
+            {b.label}
+          </span>
+        ))}
+      </div>
+
+      {/* 一行紧凑总览：客户下单→订单审核→…→发货出库 连线形态 */}
       <div className="od-overview" role="group" aria-label="全流程一览（可点击查看任一步）">
         {allSteps.map((st, i) => (
           <Fragment key={st.key}>
@@ -90,6 +123,14 @@ export default function OrderToDeliveryFlow() {
             <span className="od-band-tag">{band.label}</span>
             <span className="od-band-count">{band.steps.length} 步</span>
           </div>
+
+          {/* 系统色带高亮：按阶段色流动，把「归哪套系统」讲清楚 */}
+          <div className="od-band-flow" aria-hidden="true">
+            <span className="od-band-dot" />
+            <span className="od-band-dot" />
+            <span className="od-band-dot" />
+          </div>
+
           <ol className="od-chain">
             {band.steps.map((st) => (
               <li className="od-step" key={st.key}>

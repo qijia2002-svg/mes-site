@@ -1,16 +1,19 @@
 /**
- * 工厂模拟器（方案 A · 抽象数字流）—— 重建自旧「工厂搭建」沙盒。
+ * 工厂模拟器（沉浸式动画叙事版）—— 重建自旧「工厂搭建」沙盒。
  *
  * 设计铁律（零基础定位）：主界面禁止出现 MES / MRP / BOM / APS / OEE 缩写，
  * 专业术语只在「这趟看懂的 7 件事」折叠面板里出现。
  *
- * 与旧版最大的不同：把 4 道工序（下料→机加工→组装→检验）直接画成流程图，
- * 机器台数贴到对应工序上、瓶颈那道高亮，滑块不再抽象。底部一座桥指向
- * /factory 完整 12 环节工厂全景，做到"模拟器 + 工厂流程图"搭配教学。
+ * 与旧版最大的不同：把 4 道工序（下料→机加工→组装→检验）画成一条「会呼吸的活体产线」：
+ *  · 光点沿传送带流动 = 在制品在跑（流动快慢由真实产能 Tshift 驱动，不造假）；
+ *  · 卡住的工序红色脉冲闪烁 = 瓶颈（bottleneckIndex 驱动）；
+ *  · 产线末端一只会跳动的吞吐仪表 = 本单本班发出占比（M1 / Q 驱动）；
+ *  · 在制品堆积块 + 报废红块 = M3 / M5 真实数值。
+ * 机器台数贴到对应工序上、可加减；底部一座桥指向 /factory 完整 12 环节工厂全景。
  *
  * 计算全部来自 simCalc.ts（产能限流模型），本文件只做呈现与交互。
  */
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from '../../components/Icon';
 import {
@@ -58,6 +61,29 @@ const CONCEPTS: { label: string; term: string; concept: string; dict: string }[]
   { label: '加人到底有没有用', term: '班次 / 产能 / 负荷', concept: 'work_order', dict: 'SHIFT' },
 ];
 
+/** 末端吞吐仪表：本单本班发出占比（M1 / Q）。SVG 半圆，pathLength 归一 100。 */
+function ThroughputGauge({ pct, value, unit }: { pct: number; value: number; unit: string }) {
+  const offset = 100 * (1 - Math.max(0, Math.min(1, pct)));
+  return (
+    <div className="sim-gauge" role="img" aria-label={`本单本班发出约 ${Math.round(pct * 100)}%`}>
+      <svg viewBox="0 0 120 70" className="sim-gauge-svg">
+        <path className="gauge-track" d="M10 60 A 50 50 0 0 1 110 60" pathLength={100} />
+        <path
+          className="gauge-fill"
+          d="M10 60 A 50 50 0 0 1 110 60"
+          pathLength={100}
+          style={{ strokeDashoffset: offset }}
+        />
+      </svg>
+      <div className="sim-gauge-num" key={value}>
+        <b>{value}</b>
+        <span>{unit}</span>
+      </div>
+      <span className="sim-gauge-cap">本单本班发出</span>
+    </div>
+  );
+}
+
 export default function FactorySimPage() {
   const [params, setParams] = useState<SimParams>(DEFAULT_PARAMS);
   const [recent, setRecent] = useState<'swap' | 'shift' | null>(null);
@@ -80,6 +106,16 @@ export default function FactorySimPage() {
     });
     setRecent(null);
   }
+
+  // ── 由真实模型字段驱动的视觉量（不造假）──
+  const total = params.Q;
+  const pct = total > 0 ? Math.min(1, result.M1 / total) : 0;
+  // 流动快慢：产能越高，光点跑得越快（2.2s 最快 ~ 7s 最慢）
+  const flowDur = Math.max(2.2, Math.min(7, 8 - result.Tshift / 45));
+  // 在制品堆积块数（M3 占订单比例，封顶 16 块）
+  const wipBlocks = total > 0 ? Math.min(16, Math.round((result.M3 / total) * 16)) : 0;
+  // 报废红块（M5，封顶 12 块）
+  const scrapBlocks = Math.min(12, result.M5);
 
   return (
     <section className="sim">
@@ -130,55 +166,102 @@ export default function FactorySimPage() {
         </div>
       </div>
 
-      {/* 流程图（hero）：4 道工序，机器数贴工序、瓶颈高亮 */}
-      <div className="simflow" role="list" aria-label="工厂四道工序">
-        {STATIONS.map((st) => {
-          const isBn = result.bottleneckIndex === st.idx;
-          const mparam = MACHINE_PARAM[st.idx];
-          const count = mparam ? params[mparam] : 1;
-          const cap = result.capByNode[st.idx];
-          const idle = result.idleByNode[st.idx]?.idle ?? 0;
-          const busy = 100 - idle;
-          const range = mparam ? MACHINE_RANGE[mparam] : null;
-          return (
-            <Fragment key={st.idx}>
-              <div className={`simflow-node${isBn ? ' is-bn' : ''}`} role="listitem">
-                <div className="simflow-head">
-                  <span className="simflow-ic"><Icon name={st.icon} size={20} /></span>
-                  <span className="simflow-name">{st.name}</span>
-                  {isBn && <span className="simflow-badge">最卡</span>}
-                </div>
-                <div className="simflow-std">{st.std} 分 / 件</div>
-                <div className="simflow-cap">产能 <b>{cap}</b> 件/班</div>
+      {/* ═══ 活体产线（hero）：光点流动 + 瓶颈闪红 + 仪表跳动 + 在制品堆积 ═══ */}
+      <div className="sim-live">
+        <div className="sim-live-head">
+          <span className="sim-live-title"><Icon name="factory" size={20} /> 活体产线</span>
+          <span className="sim-live-hint">光点 = 在制品流动 · 红色脉冲 = 卡住的工序</span>
+        </div>
 
-                <div className="simflow-machines">
-                  <span className="simflow-ml">机台</span>
-                  {mparam && range ? (
-                    <div className="sim-stepper sim-stepper-sm">
-                      <button type="button" aria-label={`${st.name}减一台`} disabled={count <= range.min}
-                        onClick={() => changeMachine(st.idx, -1)}><Icon name="minus" size={16} /></button>
-                      <span className="sim-stepper-val">{count}<span className="sim-stepper-unit">台</span></span>
-                      <button type="button" aria-label={`${st.name}加一台`} disabled={count >= range.max}
-                        onClick={() => changeMachine(st.idx, 1)}><Icon name="plus" size={16} /></button>
+        <div className="sim-live-body">
+          {/* 传送带：4 道工序 + 3 段流动的光点 */}
+          <div className="sim-track" style={{ '--flow-dur': `${flowDur}s` } as CSSProperties}>
+            {STATIONS.map((st) => {
+              const isBn = result.bottleneckIndex === st.idx;
+              const mparam = MACHINE_PARAM[st.idx];
+              const count = mparam ? params[mparam] : 1;
+              const cap = result.capByNode[st.idx];
+              const idle = result.idleByNode[st.idx]?.idle ?? 0;
+              const busy = 100 - idle;
+              const range = mparam ? MACHINE_RANGE[mparam] : null;
+              return (
+                <Fragment key={st.idx}>
+                  <div className={`sim-cell${isBn ? ' is-bn' : ''}`}>
+                    <div className="sim-cell-pulse" aria-hidden="true" />
+                    <div className="sim-cell-head">
+                      <span className="sim-cell-ic"><Icon name={st.icon} size={20} /></span>
+                      <span className="sim-cell-name">{st.name}</span>
+                      {isBn && <span className="sim-cell-badge">最卡</span>}
                     </div>
-                  ) : (
-                    <span className="simflow-fixed">1 台（固定）</span>
-                  )}
-                </div>
+                    <div className="sim-cell-std">{st.std} 分 / 件</div>
+                    <div className="sim-cell-cap">产能 <b>{cap}</b> 件/班</div>
 
-                <div className="simflow-util">
-                  <div className="simflow-bar" role="img" aria-label={`${st.name}开工率约 ${busy}%`}>
-                    <i style={{ width: `${busy}%` }} />
+                    <div className="sim-cell-machines">
+                      <span className="sim-cell-ml">机台</span>
+                      {mparam && range ? (
+                        <div className="sim-stepper sim-stepper-sm">
+                          <button type="button" aria-label={`${st.name}减一台`} disabled={count <= range.min}
+                            onClick={() => changeMachine(st.idx, -1)}><Icon name="minus" size={16} /></button>
+                          <span className="sim-stepper-val">{count}<span className="sim-stepper-unit">台</span></span>
+                          <button type="button" aria-label={`${st.name}加一台`} disabled={count >= range.max}
+                            onClick={() => changeMachine(st.idx, 1)}><Icon name="plus" size={16} /></button>
+                        </div>
+                      ) : (
+                        <span className="sim-cell-fixed">1 台（固定）</span>
+                      )}
+                    </div>
+
+                    <div className="sim-cell-util">
+                      <div className="sim-cell-bar" role="img" aria-label={`${st.name}开工率约 ${busy}%`}>
+                        <i style={{ width: `${busy}%` }} />
+                      </div>
+                      <span className="sim-cell-util-num">开工 {busy}%</span>
+                    </div>
                   </div>
-                  <span className="simflow-util-num">开工 {busy}%</span>
-                </div>
+
+                  {st.idx < STATIONS.length - 1 && (
+                    <div className={`sim-conn${isBn ? ' from-bn' : ''}`} aria-hidden="true">
+                      <span className="sim-dot" />
+                      <span className="sim-dot" />
+                      <span className="sim-dot" />
+                    </div>
+                  )}
+                </Fragment>
+              );
+            })}
+          </div>
+
+          {/* 末端读数：吞吐仪表 + 在制品堆积 + 报废红块 */}
+          <aside className="sim-readout" aria-label="产线实时读数">
+            <ThroughputGauge pct={pct} value={result.M1} unit="件" />
+
+            <div className="sim-pile">
+              <div className="sim-pile-head">
+                <span><Icon name="boxes" size={16} /> 在制品堆积</span>
+                <b>{result.M3}<span>件</span></b>
               </div>
-              {st.idx < STATIONS.length - 1 && (
-                <div className="simflow-arrow" aria-hidden="true"><Icon name="arrow-right" size={20} /></div>
-              )}
-            </Fragment>
-          );
-        })}
+              <div className="sim-pile-bed">
+                {Array.from({ length: wipBlocks }).map((_, i) => (
+                  <span className="sim-pile-blk" key={i} style={{ '--i': i } as CSSProperties} />
+                ))}
+                {wipBlocks === 0 && <span className="sim-pile-empty">半路没堆货</span>}
+              </div>
+            </div>
+
+            <div className="sim-scrap">
+              <div className="sim-scrap-head">
+                <span><Icon name="warn" size={16} /> 做坏扔掉</span>
+                <b>{result.M5}<span>件</span></b>
+              </div>
+              <div className="sim-scrap-bed">
+                {Array.from({ length: scrapBlocks }).map((_, i) => (
+                  <span className="sim-scrap-blk" key={i} />
+                ))}
+                {scrapBlocks === 0 && <span className="sim-scrap-empty">没报废</span>}
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
 
       {/* 结果条 */}
