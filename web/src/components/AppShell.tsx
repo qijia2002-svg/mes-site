@@ -1,8 +1,9 @@
 /**
- * App Shell v6 — 左侧常驻导航（6 个一级 tab），移动端切换为底部 tabbar。
- * 桌面端导航：工厂 / 知识图 / 词典 / 课程 / 工具 / 我的。
- * 移动端底栏收为 4 项（工厂 / 知识图 / 词典 / 课程）：「我的」走顶栏头像、
+ * App Shell — 左侧常驻导航（5 个一级 tab），移动端切换为底部 tabbar。
+ * 桌面端导航：工厂 / 知识图 / 课程 / 工具 / 我的。
+ * 移动端底栏收为 3 项（工厂 / 知识图 / 课程）：「我的」走顶栏头像、
  * 「工具」含的模拟器与 SQL 沙盒在 /factory 页脚可达，故均不在底栏占位置。
+ * 「词典」入口已于导航移除（直接 URL /dictionary 仍可访问）。
  */
 import { useSyncExternalStore } from 'react';
 import { NavLink, Link, useLocation, type To } from 'react-router-dom';
@@ -57,14 +58,13 @@ type NavDef = { to: To; label: string; icon: IconName; match?: (p: string) => bo
 const NAV: NavDef[] = [
   { to: '/factory', label: '工厂', icon: 'factory' },
   { to: '/knowledge-graph', label: '知识图', icon: 'network' },
-  { to: '/dictionary', label: '词典', icon: 'dictionary' },
   { to: '/courses', label: '课程', icon: 'courses' },
   {
     to: '/tools',
     label: '工具',
     icon: 'tools',
-    // 移动端底栏只留 4 个主入口（工厂/知识图/词典/课程）；工具含的模拟器与 SQL 沙盒
-    // 在 /factory 页脚（FactoryExtras）均可达，故移动端底栏收起，避免 5 项过挤。
+    // 移动端底栏现为 3 个主入口（工厂/知识图/课程）；工具含的模拟器与 SQL 沙盒
+    // 在 /factory 页脚（FactoryExtras）均可达，故移动端底栏收起，避免项过挤。
     hideOnMobile: true,
     match: (p) => p.startsWith('/tools') || p.startsWith('/sql-space'),
   },

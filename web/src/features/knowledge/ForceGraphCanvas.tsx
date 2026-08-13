@@ -172,6 +172,42 @@ export function ForceGraphCanvas({ nodes, links, focusId, onSelect }: Props) {
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
 
+    // 容器尺寸自适应：监听 .kg-canvas-wrap 的尺寸变化（窗口缩放 / 横竖屏旋转 /
+    // 抽屉布局切换），重设 canvas 像素尺寸并重绘，让力导向图随屏幕自适应，
+    // 而非停留在挂载时的初值（此前无 resize 响应，图被「钉死」在初始尺寸）。
+    const ro = new ResizeObserver(() => {
+      const wrapEl = wrapRef.current;
+      const canvasEl2 = canvasRef.current;
+      if (!wrapEl || !canvasEl2 || !stateRef.current) return;
+      const dpr2 = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+      const nw = wrapEl.clientWidth;
+      const nh = wrapEl.clientHeight;
+      if (nw < 1 || nh < 1) return;
+      st.w = nw;
+      st.h = nh;
+      st.dpr = dpr2;
+      canvasEl2.width = nw * dpr2;
+      canvasEl2.height = nh * dpr2;
+      canvasEl2.style.width = `${nw}px`;
+      canvasEl2.style.height = `${nh}px`;
+      // 把越界节点拉回新边界内，避免缩放后节点漂在可视区外
+      for (const n of sim) {
+        const pad = n.r + 4;
+        if (n.x < pad) n.x = pad;
+        if (n.x > nw - pad) n.x = nw - pad;
+        if (n.y < pad) n.y = pad;
+        if (n.y > nh - pad) n.y = nh - pad;
+      }
+      // 给一点仿真动量，让节点朝新中心重新聚拢，并立即重绘一帧
+      st.alpha = Math.max(st.alpha, 0.4);
+      cancelAnimationFrame(st.raf);
+      st.raf = requestAnimationFrame(() => {
+        tick();
+      });
+      draw();
+    });
+    ro.observe(wrap);
+
     function neighborsOf(id: string): Set<string> {
       const set = new Set<string>([id]);
       for (const l of st.linkIdx) {
@@ -249,7 +285,7 @@ export function ForceGraphCanvas({ nodes, links, focusId, onSelect }: Props) {
     }
 
     function draw() {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.setTransform(st.dpr, 0, 0, st.dpr, 0, 0);
       ctx.clearRect(0, 0, st.w, st.h);
 
       // 边
@@ -409,6 +445,7 @@ export function ForceGraphCanvas({ nodes, links, focusId, onSelect }: Props) {
 
     return () => {
       cancelAnimationFrame(st.raf);
+      ro.disconnect();
       canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp);
