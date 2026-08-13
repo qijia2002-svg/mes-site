@@ -41,7 +41,7 @@ import { listLp, getLp } from './modules/learning-paths/lp.routes';
 import { listCert } from './modules/certifications/cert.routes';
 import { engineStatusHandler } from './modules/engine/engine.routes';
 import { listTracks, getTrack, listCareers, getCareer, getRoadmapGraph } from './modules/roadmap/roadmap.routes';
-import { studyTip, explainWord, tts } from './modules/ai/ai.routes';
+import { studyTip, explainWord, tts, tutor } from './modules/ai/ai.routes';
 import { getUserData, putUserData } from './modules/userdata/userdata.routes';
 import {
   getDict,
@@ -177,6 +177,15 @@ export const routes: Route[] = [
   { method: 'GET', path: '/api/v1/node-explainers', handler: getNodeExplainers, noAuth: true },
   // 零基础重学 v1：分级提示（按 level 单条下发，下一级只给 hasNext 布尔；ADR-019）
   { method: 'GET', path: '/api/v1/practice-hints', handler: getPracticeHint, noAuth: true },
+
+  // AI 导师（匿名可用，单请求硬限 1 次 AI 调用，失败走静态兜底文案）
+  {
+    method: 'POST',
+    path: '/api/v1/ai/tutor',
+    handler: tutor,
+    noAuth: true,
+    middlewares: [trace, security, aiLimit(), validate],
+  },
 
   // 名称翻译 / 专业词典（读取公开，供「名称翻译」页与选中翻译缓存；后台管理 admin）
   { method: 'GET', path: '/api/v1/dict', handler: getDict, noAuth: true },

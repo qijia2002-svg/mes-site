@@ -3,15 +3,21 @@ import { ok, fail } from '../../core/response';
 import { Err } from '../../core/errors';
 import { guardedAiRun } from '../../core/ai-guard';
 import { dictRepo } from '../../data/repositories/dict.repo';
+import {
+  buildTutorPrompt,
+  detectTutorCommand,
+  type TutorContext,
+  type TutorTurn,
+} from './mesTutor.prompt';
 
 /**
- * AI 模块（study-tip / explain-word / tts）
+ * AI 模块（study-tip / explain-word / tts / tutor）
  *
  * 全部 AI 调用统一经 core/ai-guard 的 guardedAiRun：
  *  - 5s 超时、受限重试、单路由熔断、日预算软告警、Bot 异常检测、结构化遥测。
- *  - 业务兜底（静态提示 / D1 词典 / {audio:''}）仍在此处处理，护栏只负责安全与成本。
+ *  - 业务兜底（静态提示 / D1 词典 / {audio:''} / 导师兜底文案）仍在此处处理，护栏只负责安全与成本。
  *
- * 路由 key 约定：ai:study-tip / ai:explain-word / ai:tts
+ * 路由 key 约定：ai:study-tip / ai:explain-word / ai:tts / ai:tutor
  */
 
 const MODEL = '@cf/meta/llama-3.2-3b-instruct';
@@ -272,4 +278,80 @@ export async function tts(c: Ctx): Promise<Response> {
       ? (result as { audio: string }).audio
       : '';
   return ok(c, { audio });
+}
+
+/* ============================ tutor ============================ */
+
+const TUTOR_MAX_INPUT = 600;
+const TUTOR_FALLBACK =
+  '导师暂时无法回答，请稍后再试；或输入 /plan 获取当前主题的学习路线图，输入 /help 查看全部命令。';
+
+interface TutorBody {
+  message?: unknown;
+  topic?: unknown;
+  chapter?: unknown;
+  term?: unknown;
+  stage?: unknown;
+  history?: unknown;
+}
+
+function parseTutorHistory(raw: unknown): TutorTurn[] {
+  if (!Array.isArray(raw)) return [];
+  const out: TutorTurn[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const o = item as Record<string, unknown>;
+    const role = o.role === 'assistant' ? 'assistant' : 'user';
+    const content = typeof o.content === 'string' ? o.content.trim().slice(0, 300) : '';
+    if (content) out.push({ role, content });
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
+function toTutorContext(b: TutorBody): TutorContext {
+  return {
+    topic: strOf(b.topic, 60),
+    chapter: strOf(b.chapter, 60),
+    term: strOf(b.term, 40),
+    stage: strOf(b.stage, 40),
+  };
+}
+
+export async function tutor(c: Ctx): Promise<Response> {
+  const ct = c.req.headers.get('content-type') ?? '';
+  if (!ct.includes('application/json')) return fail(c, Err.schemaRejected('content-type'));
+  const body = (await c.req.json().catch(() => null)) as TutorBody | null;
+  if (!body || typeof body !== 'object') return fail(c, Err.paramMissing());
+
+  const message = typeof body.message === 'string' ? body.message.trim() : '';
+  if (!message) return fail(c, Err.paramMissing());
+
+  const prompt = buildTutorPrompt(
+    message.slice(0, TUTOR_MAX_INPUT),
+    toTutorContext(body),
+    parseTutorHistory(body.history),
+  );
+
+  const { result, telemetry } = await guardedAiRun(c.env, {
+    route: 'ai:tutor',
+    models: [MODEL],
+    input: { prompt, temperature: 0.3, max_tokens: 512 },
+    log: c.log,
+    maxCallsPerRequest: 1,
+  });
+
+  let reply = '';
+  if (telemetry.ok && result) {
+    const raw =
+      typeof (result as { response?: unknown }).response === 'string'
+        ? (result as { response: string }).response
+        : '';
+    reply = raw.trim();
+  }
+
+  return ok(c, {
+    reply: reply || TUTOR_FALLBACK,
+    command: detectTutorCommand(message),
+  });
 }
