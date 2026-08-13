@@ -1,0 +1,208 @@
+/* AI 课程导师 · 全局浮动按钮 + 聊天抽屉
+   全部 token 化；按钮文字用 #fff（P0 硬编码例外）；无紫粉渐变、无弹性缓动。 */
+
+/* ── 浮动按钮 ── */
+.tutor-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 24px;
+  z-index: calc(var(--z-sticky) + 10); /* 高于移动底栏，低于模态层 */
+  width: 56px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: var(--elev-fab, 0 6px 18px rgba(0, 0, 0, 0.18));
+  transition: transform var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard);
+}
+.tutor-fab:hover {
+  transform: translateY(-2px);
+  background: var(--accent-strong, var(--accent));
+}
+.tutor-fab:active {
+  transform: translateY(0);
+}
+
+/* ── 聊天面板（桌面：右侧抽屉）── */
+.tutor-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  width: min(400px, 94vw);
+  height: 100vh;
+  height: 100dvh;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--elev-modal);
+  animation: tutorSlideIn var(--motion-slow) var(--ease-standard);
+}
+@keyframes tutorSlideIn {
+  from { transform: translateX(16px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.tutor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.tutor-head-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--weight-announce-cjk);
+  font-size: var(--text-base);
+  color: var(--fg);
+}
+.tutor-head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.tutor-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.tutor-empty {
+  margin: auto;
+  max-width: 32ch;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+.tutor-empty p { margin: 0 0 var(--space-2); }
+.tutor-empty ul { margin: 0; padding-left: var(--space-5); }
+.tutor-empty li { margin-top: var(--space-1); }
+
+.tutor-msg {
+  display: flex;
+}
+.tutor-msg-user {
+  justify-content: flex-end;
+}
+.tutor-msg-assistant {
+  justify-content: flex-start;
+}
+
+.tutor-bubble {
+  max-width: 86%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.tutor-msg-user .tutor-bubble {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: var(--radius-xs);
+}
+.tutor-msg-assistant .tutor-bubble {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: var(--radius-xs);
+}
+.tutor-bubble code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-xs);
+  padding: 1px 5px;
+}
+.tutor-bubble strong { font-weight: var(--weight-announce-cjk); }
+
+.tutor-typing {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tutor-error {
+  margin: 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft, rgba(200, 30, 30, 0.08));
+  color: var(--danger, #b42318);
+  font-size: var(--text-sm);
+}
+
+.tutor-input {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+}
+.tutor-input textarea {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  max-height: 120px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  line-height: var(--leading-body);
+}
+.tutor-input textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.tutor-send {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard), opacity var(--motion-fast) var(--ease-standard);
+}
+.tutor-send:hover:not(:disabled) {
+  background: var(--accent-strong, var(--accent));
+}
+.tutor-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── 移动端：全屏 sheet ── */
+@media (max-width: 640px) {
+  .tutor-fab {
+    bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom, 0px));
+  }
+  .tutor-panel {
+    width: 100%;
+    height: 100dvh;
+    border-left: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutor-panel { animation: none; }
+}

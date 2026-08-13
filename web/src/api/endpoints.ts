@@ -152,6 +152,26 @@ export interface ExplainWordResult {
   detail: string;
 }
 
+/** POST /api/v1/ai/tutor 入参：AI 课程导师（零基础 MES 助教）。 */
+export interface TutorTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+export interface TutorSendBody {
+  message: string;
+  topic?: string;
+  chapter?: string;
+  term?: string;
+  stage?: string;
+  /** 最近对话轮次，后端据此维持多轮上下文。 */
+  history?: TutorTurn[];
+}
+/** POST /api/v1/ai/tutor 出参：导师回复 + 命中的指令名（如 plan/test，无则 null）。 */
+export interface TutorResult {
+  reply: string;
+  command: string | null;
+}
+
 /** 字典类型（dict_type 表的 API 视图，camelCase）。 */
 export interface DictType {
   id: number;
@@ -501,6 +521,9 @@ export const api = {
 
   // AI 英文单词翻译/解释（离线词典兜底 + Workers AI 生成，按需调用）
   explainWord: (body: ExplainWordBody) => apiPost<ExplainWordResult>('/api/v1/ai/explain-word', body),
+
+  // AI 课程导师（零基础 MES 助教；全局浮动入口调用，history 带最近对话做多轮上下文）
+  tutor: (body: TutorSendBody) => apiPost<TutorResult>('/api/v1/ai/tutor', body),
 
   // 跨设备用户数据 KV（云端为主、本地兜底，按登录账号隔离）
   userDataGet: (key: string) =>

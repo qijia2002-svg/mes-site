@@ -73,6 +73,7 @@ import {
   LogOut,
   MapPin,
   Maximize2,
+  MessageCircle,
   Minimize2,
   Menu,
   Minus,
@@ -271,6 +272,10 @@ const REGISTRY = {
   'zoom-in': ZoomIn,
   'zoom-out': ZoomOut,
   'refresh-cw': RefreshCw,
+
+  // AI 课程导师（全局浮动入口，语义用对话气泡，不引第二个图标库、不用 emoji）
+  tutor: MessageCircle,
+  trash: Trash2, // 清空对话
 } as const;
 
 export type IconName = keyof typeof REGISTRY;

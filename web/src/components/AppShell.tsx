@@ -16,6 +16,7 @@ import { ScrollProgress } from './ScrollProgress';
 import { getNickname, subscribeProfile } from '../lib/profileStore';
 import { useFactorySummary } from '../features/factory/useFactorySummary';
 import { TopbarSearch } from './TopbarSearch';
+import { TutorFab } from '../features/tutor/TutorFab';
 
 function SidebarProgress() {
   const { total, touched, pct } = useFactorySummary();
@@ -166,6 +167,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </NavLink>
         ))}
       </nav>
+
+      {/* ═══ AI 课程导师 · 全局浮动入口（任意页面可唤起）═══ */}
+      <TutorFab />
     </div>
   );
 }
