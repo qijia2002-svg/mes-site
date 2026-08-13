@@ -104,7 +104,8 @@ export default function OrderToDeliveryFlow() {
         {allSteps.map((st, i) => (
           <Fragment key={st.key}>
             <button type="button" className="od-ov-node" onClick={() => open(st.key)}>
-              {st.name}
+              <span className="od-ov-seq">{st.seq}</span>
+              <span className="od-ov-name">{st.name}</span>
             </button>
             {i < allSteps.length - 1 && (
               <span className="od-ov-arrow" aria-hidden="true"><Icon name="chevron-right" size={16} /></span>

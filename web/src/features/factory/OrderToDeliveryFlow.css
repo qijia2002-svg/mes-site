@@ -130,6 +130,9 @@
 }
 .od-ov-node {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   white-space: nowrap;
   font-family: inherit;
   font-size: var(--text-xs);
@@ -142,6 +145,21 @@
   transition: color var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
     background var(--motion-fast) var(--ease-standard);
+}
+.od-ov-seq {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--weight-announce-cjk);
+  line-height: 1;
 }
 .od-ov-node:hover { color: var(--accent); border-color: var(--accent); }
 .od-ov-node:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

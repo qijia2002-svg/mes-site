@@ -155,6 +155,8 @@
 .tutor-input textarea {
   flex: 1;
   min-width: 0;
+  min-height: 40px; /* 与发送按钮等高，单行时也对齐 */
+  box-sizing: border-box;
   resize: none;
   max-height: 120px;
   padding: var(--space-2) var(--space-3);
@@ -162,7 +164,8 @@
   border-radius: var(--radius-md);
   background: var(--bg);
   color: var(--fg);
-  font: inherit;
+  font-family: inherit;
+  font-size: 16px; /* ≥16px 避免 iOS 自动缩放导致输入框跳位/对不上输入器 */
   line-height: var(--leading-body);
 }
 .tutor-input textarea:focus {
