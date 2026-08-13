@@ -45,6 +45,7 @@ export function TutorFab() {
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
 
   // 对话持久化（跨刷新保留，让「老师记得」）
   useEffect(() => {
@@ -66,6 +67,39 @@ export function TutorFab() {
       const t = setTimeout(() => inputRef.current?.focus(), 60);
       return () => clearTimeout(t);
     }
+  }, [open]);
+
+  // 移动端软键盘遮挡：用 visualViewport 把面板整体抬到键盘上方（仅移动端生效，
+  // 桌面无软键盘且为右侧抽屉，不注入内联 top/height）
+  useEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    if (!panel || !vv) return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const apply = () => {
+      if (!mq.matches) {
+        panel.style.removeProperty('top');
+        panel.style.removeProperty('height');
+        return;
+      }
+      // iOS：vv.offsetTop≈键盘高度、vv.height≈可视高度（不含键盘）
+      // Android：vv.offsetTop=0、vv.height≈可视高度
+      // 两者都令面板精确落在可视区（其下沿即键盘上沿），输入框浮于键盘之上
+      panel.style.top = `${vv.offsetTop}px`;
+      panel.style.height = `${vv.height}px`;
+    };
+    apply();
+    vv.addEventListener('resize', apply);
+    vv.addEventListener('scroll', apply);
+    window.addEventListener('resize', apply);
+    return () => {
+      vv.removeEventListener('resize', apply);
+      vv.removeEventListener('scroll', apply);
+      window.removeEventListener('resize', apply);
+      panel.style.removeProperty('top');
+      panel.style.removeProperty('height');
+    };
   }, [open]);
 
   // Esc 关闭
@@ -131,7 +165,7 @@ export function TutorFab() {
       )}
 
       {open && (
-        <section className="tutor-panel" role="dialog" aria-label="AI 课程老师" aria-modal="false">
+        <section ref={panelRef} className="tutor-panel" role="dialog" aria-label="AI 课程老师" aria-modal="false">
           <header className="tutor-head">
             <div className="tutor-head-title">
               <Icon name="tutor" size={20} />
