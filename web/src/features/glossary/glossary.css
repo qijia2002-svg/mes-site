@@ -189,8 +189,11 @@
     right: 0 !important;
     bottom: 0 !important;
     transform: none !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
+    /* 宽度由 left/right 边缘推导（= 视口宽），避免 100vw 含滚动条宽度时
+       逃逸 html,body{overflow-x:hidden} 导致整页可横向滑动。!important 同时
+       覆盖 TermPopover 桌面态内联的 width:320，保证手机端抽屉占满。 */
+    width: auto !important;
+    max-width: 100% !important;
     max-height: 78vh !important;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
     padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
