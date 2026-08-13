@@ -445,6 +445,16 @@
     transform: rotate(45deg);
   }
   .od-node { min-height: 60px; }
+
+  /* 概要条：手机端改为自动换行的可点芯片云，去掉横向滑动 + 难点的小药丸。
+     阶段带(下方 .od-chain)已是纵向全宽，概要与详情不再需要横向滚动。 */
+  .od-overview {
+    flex-wrap: wrap;
+    overflow: visible;
+    gap: var(--space-2);
+  }
+  .od-ov-arrow { display: none; }
+  .od-ov-node { min-height: 40px; }
 }
 
 @media (max-width: 640px) {
