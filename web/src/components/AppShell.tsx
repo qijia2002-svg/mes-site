@@ -1,7 +1,8 @@
 /**
- * App Shell v6 — 左侧常驻导航（5 个一级 tab），移动端切换为底部 tabbar。
- * 去掉右上角「菜单」抽屉按钮，导航始终可见：工厂 / 词典 / 课程 / 工具 / 我的。
- * 「工具」内含 SQL 沙盒 与 工厂模拟器 两个页面（经 /tools 枢纽进入）。
+ * App Shell v6 — 左侧常驻导航（6 个一级 tab），移动端切换为底部 tabbar。
+ * 桌面端导航：工厂 / 知识图 / 词典 / 课程 / 工具 / 我的。
+ * 移动端底栏收为 4 项（工厂 / 知识图 / 词典 / 课程）：「我的」走顶栏头像、
+ * 「工具」含的模拟器与 SQL 沙盒在 /factory 页脚可达，故均不在底栏占位置。
  */
 import { useSyncExternalStore } from 'react';
 import { NavLink, Link, useLocation, type To } from 'react-router-dom';
@@ -62,6 +63,9 @@ const NAV: NavDef[] = [
     to: '/tools',
     label: '工具',
     icon: 'tools',
+    // 移动端底栏只留 4 个主入口（工厂/知识图/词典/课程）；工具含的模拟器与 SQL 沙盒
+    // 在 /factory 页脚（FactoryExtras）均可达，故移动端底栏收起，避免 5 项过挤。
+    hideOnMobile: true,
     match: (p) => p.startsWith('/tools') || p.startsWith('/sql-space'),
   },
   { to: '/profile', label: '我的', icon: 'user', hideOnMobile: true },

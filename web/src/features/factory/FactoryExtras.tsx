@@ -15,6 +15,7 @@ const LINKS: { to: string; label: string; icon: IconName }[] = [
   { to: '/roadmap', label: '岗位路线', icon: 'stage' },
   { to: '/order-to-delivery', label: '订单到交付全景', icon: 'routing' },
   { to: '/simulator', label: '工厂模拟器', icon: 'gauge' },
+  { to: '/sql-space', label: 'SQL 沙盒', icon: 'sql' },
 ];
 
 export default function FactoryExtras() {
