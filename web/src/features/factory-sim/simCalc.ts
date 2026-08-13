@@ -45,6 +45,10 @@ export interface SimResult {
   M7: number;
   /** 最慢那道工序的显示名（大白话，不暴露专业术语） */
   bottleneckLabel: string;
+  /** 各工序最终产能（件/班），已含换型修正；供流程图展示利用率与瓶颈 */
+  capByNode: number[];
+  /** 瓶颈工序下标（0=下料, 1=机加工, 2=组装, 3=检验） */
+  bottleneckIndex: number;
   /** 理论加工工时（分/件）= 各工序标准工时之和，刻意保留 simEngine 的诚实注释精神 */
   theoreticalMin: number;
   /** 每道工序的闲置率明细（供标签 4 展开） */
@@ -107,7 +111,7 @@ export function runSim(p: SimParams): SimResult {
 
   const theoreticalMin = BASE_TIME.reduce((a, b) => a + b, 0); // 15.5 分/件
 
-  return { M1, M2, M3, M4, M5, M6, M7, bottleneckLabel, theoreticalMin, idleByNode, produced, defective, reworked, scrapped, Tbase, Tshift };
+  return { M1, M2, M3, M4, M5, M6, M7, bottleneckLabel, capByNode: rawCap, bottleneckIndex: bnIndex, theoreticalMin, idleByNode, produced, defective, reworked, scrapped, Tbase, Tshift };
 }
 
 export type FeedbackKey = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I';

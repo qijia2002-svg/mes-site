@@ -20,7 +20,7 @@ interface Dest {
 const STATIC_DESTS: Dest[] = [
   { label: '工厂全景', hint: '流程主线', to: '/factory' },
   { label: 'SQL 沙盒', hint: '工具', to: '/sql-space' },
-  { label: '工厂搭建', hint: '产线仿真', to: '/simulator' },
+  { label: '工厂模拟器', hint: '动手玩', to: '/simulator' },
   { label: '作品集', hint: '我的产出', to: '/portfolio' },
   { label: '学习路线', hint: '路径', to: '/learning-paths' },
   { label: '职业路线', hint: '岗位', to: '/roadmap' },

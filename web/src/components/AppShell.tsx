@@ -1,7 +1,7 @@
 /**
  * App Shell v6 — 左侧常驻导航（5 个一级 tab），移动端切换为底部 tabbar。
  * 去掉右上角「菜单」抽屉按钮，导航始终可见：工厂 / 词典 / 课程 / 工具 / 我的。
- * 「工具」内含 SQL 沙盒 与 工厂搭建 两个页面（经 /tools 枢纽进入）。
+ * 「工具」内含 SQL 沙盒 与 工厂模拟器 两个页面（经 /tools 枢纽进入）。
  */
 import { useSyncExternalStore } from 'react';
 import { NavLink, Link, useLocation, type To } from 'react-router-dom';
@@ -50,15 +50,14 @@ function HealthPill() {
 
 type NavDef = { to: To; label: string; icon: IconName; match?: (p: string) => boolean; hideOnMobile?: boolean };
 
-// 一级 tab。工具含子页（/sql-space），用 match 让子页也高亮「工具」。
-// 模拟器为新建的零基础动手模块，升为一级入口。
-// 「我的」在移动端顶栏已有头像入口，故移动端底栏隐藏，避免 7 项过挤（保持 6 项）。
+// 一级 tab。工具含子页（/sql-space、/simulator），用 match 让子页也高亮「工具」。
+// 模拟器归到「工具」枢纽（与 SQL 沙盒并列），不再单独占一级 tab，避免入口重复。
+// 「我的」在移动端顶栏已有头像入口，故移动端底栏隐藏，避免项过挤。
 const NAV: NavDef[] = [
   { to: '/factory', label: '工厂', icon: 'factory' },
   { to: '/knowledge-graph', label: '知识图', icon: 'network' },
   { to: '/dictionary', label: '词典', icon: 'dictionary' },
   { to: '/courses', label: '课程', icon: 'courses' },
-  { to: '/simulator', label: '模拟器', icon: 'gauge' },
   {
     to: '/tools',
     label: '工具',

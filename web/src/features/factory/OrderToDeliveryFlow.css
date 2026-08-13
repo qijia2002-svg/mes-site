@@ -1,0 +1,176 @@
+/* 订单到交付全景：竖向分步流程 + 单据徽标。纯 design token。 */
+.od {
+  max-width: var(--container-app);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-12);
+}
+
+.od-head { margin-bottom: var(--space-8); }
+.od-kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--meta);
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+.od-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-announce-cjk);
+  margin: 0;
+  color: var(--fg);
+}
+.od-sub {
+  margin: var(--space-3) 0 0;
+  color: var(--fg-2);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  max-width: 62ch;
+}
+.od-sub a { color: var(--accent); text-decoration: none; }
+.od-sub a:hover { text-decoration: underline; }
+
+/* 阶段带 */
+.od-band { margin-top: var(--space-8); }
+.od-band-head { margin-bottom: var(--space-4); }
+.od-band-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-announce-cjk);
+}
+
+/* 竖向分步列表 + 连接线 */
+.od-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+.od-item {
+  position: relative;
+  display: flex;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+}
+.od-item:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 34px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+.od-seq {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-weight: var(--weight-announce-cjk);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  z-index: 1;
+}
+
+/* 步骤卡 */
+.od-card {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+}
+.od-card-top {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.od-name {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-announce-cjk);
+  color: var(--fg);
+}
+.od-docs { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.od-doc {
+  font-size: var(--text-xs);
+  color: var(--accent);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+}
+.od-desc {
+  margin: var(--space-2) 0 0;
+  color: var(--fg-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+.od-sys {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+.od-sys-tag {
+  font-size: var(--text-xs);
+  color: var(--meta);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+}
+
+/* 桥接模拟器 */
+.od-bridge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-10);
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+.od-bridge:hover { border-color: var(--accent); }
+.od-bridge-ic { color: var(--accent); display: flex; flex: none; }
+.od-bridge-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.od-bridge-title {
+  font-weight: var(--weight-announce-cjk);
+  color: var(--fg);
+  font-size: var(--text-base);
+}
+.od-bridge-sub { color: var(--fg-2); font-size: var(--text-sm); }
+.od-bridge-go {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  flex: none;
+}
+
+@media (max-width: 640px) {
+  .od-bridge { flex-wrap: wrap; }
+  .od-bridge-go { width: 100%; justify-content: flex-end; }
+}

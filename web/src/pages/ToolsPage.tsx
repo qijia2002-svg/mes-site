@@ -1,13 +1,13 @@
 /**
  * 工具枢纽页 — 左侧「工具」一级 tab 的落地页。
- * 内含两个动手练习入口：SQL 沙盒（/sql-space）与 工厂搭建（/simulator）。
+ * 内含两个动手练习入口：SQL 沙盒（/sql-space）与 工厂模拟器（/simulator）。
  */
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 
 type ToolEntry = {
   to: string;
-  icon: 'sql' | 'routing';
+  icon: 'sql' | 'gauge';
   title: string;
   desc: string;
 };
@@ -21,9 +21,9 @@ const TOOLS: ToolEntry[] = [
   },
   {
     to: '/simulator',
-    icon: 'routing',
-    title: '工厂搭建',
-    desc: '把原料、工位、工序连成一条产线，看工单如何在各道工序之间流动。',
+    icon: 'gauge',
+    title: '工厂模拟器',
+    desc: '当一天厂长：看着下料→机加工→组装→检验四道工序，调一调机器和订单，整条线怎么转一目了然。',
   },
 ];
 
@@ -33,7 +33,7 @@ export default function ToolsPage() {
       <header className="page-head">
         <div>
           <h1>工具</h1>
-          <p className="page-sub">动手练习区：在 SQL 沙盒里跑通查询，用工厂搭建模拟产线运转。</p>
+          <p className="page-sub">动手练习区：在 SQL 沙盒里跑通查询，用工厂模拟器调一调产线怎么转。</p>
         </div>
       </header>
 

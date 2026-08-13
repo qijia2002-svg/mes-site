@@ -13,7 +13,8 @@ const LINKS: { to: string; label: string; icon: IconName }[] = [
   { to: '/courses', label: '课程目录', icon: 'courses' },
   { to: '/learning-paths', label: '学习路径', icon: 'paths' },
   { to: '/roadmap', label: '岗位路线', icon: 'stage' },
-  { to: '/simulator', label: '搭建产线', icon: 'routing' },
+  { to: '/order-to-delivery', label: '订单到交付全景', icon: 'routing' },
+  { to: '/simulator', label: '工厂模拟器', icon: 'gauge' },
 ];
 
 export default function FactoryExtras() {

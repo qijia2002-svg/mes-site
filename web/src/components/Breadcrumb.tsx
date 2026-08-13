@@ -45,7 +45,8 @@ const SECTION: Record<string, { label: string; to: string }> = {
   tracks: { label: '职业路径', to: '/roadmap' },
   'sql-space': { label: 'SQL 工作台', to: '/sql-space' },
   quiz: { label: '题库', to: '/quiz' },
-  simulator: { label: '搭建', to: '/simulator' },
+  simulator: { label: '模拟器', to: '/simulator' },
+  'order-to-delivery': { label: '订单到交付', to: '/order-to-delivery' },
   profile: { label: '个人中心', to: '/profile' },
   portfolio: { label: '作品集', to: '/portfolio' },
   dictionary: { label: '名称翻译', to: '/dictionary' },
@@ -62,7 +63,8 @@ const FALLBACK_LEAF: Record<string, string> = {
   tracks: '能力路线',
   'sql-space': '练习',
   quiz: '题目',
-  simulator: '仿真编辑',
+  simulator: '工厂模拟器',
+  'order-to-delivery': '全流程',
 };
 
 export function Breadcrumb() {

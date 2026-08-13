@@ -18,6 +18,8 @@ check('M5 报废', d.M5, 0);
 check('M6 返工', d.M6, 3);
 check('理论工时', d.theoreticalMin, 15.5);
 check('瓶颈名', d.bottleneckLabel, '机加工');
+check('各工序产能', d.capByNode, [240, 53, 160, 320]);
+check('瓶颈下标', d.bottleneckIndex, 1);
 
 console.log('--- 反直觉 A：k_f 1->3，M1 不动 ---');
 const kf = runSim({ ...DEFAULT_PARAMS, kf: 3 });
@@ -29,6 +31,8 @@ const kb = runSim({ ...DEFAULT_PARAMS, kb: 2 });
 check('k_b=2 M1', kb.M1, 100);
 check('k_b=2 M4', kb.M4, 1);
 check('k_b=2 反馈', pickFeedback({ ...DEFAULT_PARAMS, kb: 2 }, kb), 'B');
+check('k_b=2 机加工产能', kb.capByNode[1], 106);
+check('k_b=2 瓶颈下标', kb.bottleneckIndex, 1);
 
 console.log('--- 反直觉 C：Q 100->200，WIP 爆炸 ---');
 const q2 = runSim({ ...DEFAULT_PARAMS, Q: 200 });
