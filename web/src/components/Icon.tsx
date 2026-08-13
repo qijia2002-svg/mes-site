@@ -110,6 +110,9 @@ import {
   Truck,
   Send,
   ShoppingCart,
+  ZoomIn,
+  ZoomOut,
+  RefreshCw,
 } from 'lucide-react';
 
 /** 语义名 → lucide 组件。新增图标只在这张表里加，页面永远用语义名。 */
@@ -263,6 +266,11 @@ const REGISTRY = {
   cog: Cog,
   boxes: Boxes,
   quote: Quote,
+
+  // 知识图缩放控制
+  'zoom-in': ZoomIn,
+  'zoom-out': ZoomOut,
+  'refresh-cw': RefreshCw,
 } as const;
 
 export type IconName = keyof typeof REGISTRY;

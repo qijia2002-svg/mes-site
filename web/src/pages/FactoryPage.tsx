@@ -39,9 +39,13 @@ function HomeHeader({ title, total, status, nextNode, onResume, onOpenPrologue }
   const { practicedCount, touchedCount, practicableTotal } = status;
   const pct = practicableTotal > 0 ? (practicedCount / practicableTotal) * 100 : 0;
 
-  return (
+    return (
     <>
       <style>{`
+        .factory-home{max-width:var(--container-app);margin:0 auto;
+          padding:var(--space-4) var(--space-4) var(--space-10)}
+        @media(min-width:1400px){.factory-home{max-width:1200px}}
+        @media(max-width:720px){.factory-home{padding:var(--space-3) var(--space-3) var(--space-8)}}
         .hh-kicker{display:flex;align-items:center;gap:var(--space-2);color:var(--meta);
           margin:0 0 var(--space-2);font-size:var(--text-sm)}
         .hh-prog{margin-top:var(--space-4);padding:var(--space-4) var(--space-5);
@@ -56,6 +60,13 @@ function HomeHeader({ title, total, status, nextNode, onResume, onOpenPrologue }
         .hh-bar i{display:block;height:100%;border-radius:var(--radius-pill);
           background:var(--progress-fill);transition:width var(--motion-slow) var(--ease-standard)}
         .hh-sub{margin-top:var(--space-2);font-size:var(--text-xs);color:var(--meta)}
+        .hh-cta-main{animation:sim-pulse-ring 2.5s ease-in-out infinite;
+          transition:transform var(--motion-fast) var(--ease-standard)}
+        .hh-cta-main:hover{animation:none;transform:translateY(-1px)}
+        @keyframes sim-pulse-ring{
+          0%,100%{box-shadow:0 0 0 0 rgba(84,124,112,0.25)}
+          50%{box-shadow:0 0 0 6px rgba(84,124,112,0)}
+        }
         @media(max-width:720px){
           .hh-prog{margin-top:var(--space-3);padding:var(--space-3) var(--space-4)}
           .hh-prog-num{font-size:var(--text-base)}
@@ -80,7 +91,7 @@ function HomeHeader({ title, total, status, nextNode, onResume, onOpenPrologue }
             <Icon name="compass" size={16} /> 工厂一日游
           </button>
           {nextNode ? (
-            <button type="button" className="btn btn-primary" onClick={onResume}>
+            <button type="button" className="btn btn-primary hh-cta-main" onClick={onResume}>
               <Icon name="arrow-right" size={16} />
               {status.practicedCount === 0 ? '从这里开始' : '从这里继续'}
             </button>
@@ -114,7 +125,7 @@ function HomeHeader({ title, total, status, nextNode, onResume, onOpenPrologue }
   );
 }
 
-/* ═══ 模拟器英雄卡：首页特色功能 ═══ */
+/* ═══ 模拟器英雄卡：首页特色功能（增强互动感）═══ */
 function SimulatorHero() {
   return (
     <>
@@ -126,7 +137,8 @@ function SimulatorHero() {
         .sim-hero-badge{display:inline-flex;align-items:center;gap:var(--space-2);
           width:fit-content;padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);
           background:var(--accent);color:var(--accent-on);font-size:var(--text-xs);
-          font-weight:var(--weight-emph-cjk);letter-spacing:.03em}
+          font-weight:var(--weight-emph-cjk);letter-spacing:.03em;
+          animation:sim-badge-in 0.5s ease-out both}
         .sim-hero-title{font-size:var(--text-xl);font-weight:var(--weight-announce-cjk);
           color:var(--brand-ink);margin:0;line-height:var(--leading-snug)}
         .sim-hero-desc{font-size:var(--text-base);color:var(--fg-2);max-width:52ch;
@@ -135,23 +147,38 @@ function SimulatorHero() {
           flex-wrap:wrap;margin-top:var(--space-2)}
         .sim-hero-step{display:flex;align-items:center;gap:var(--space-2);
           padding:var(--space-2) var(--space-3);background:var(--bg);border:1px solid var(--border);
-          border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--fg-2)}
+          border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--fg-2);
+          transition:transform var(--motion-fast) var(--ease-standard),
+            border-color var(--motion-fast) var(--ease-standard),
+            box-shadow var(--motion-fast) var(--ease-standard);
+          animation:sim-step-in 0.4s ease-out both}
+        .sim-hero-step:hover{border-color:var(--accent);transform:translateY(-1px);
+          box-shadow:0 2px 8px rgba(84,124,112,0.12)}
         .sim-hero-step .step-num{display:inline-flex;align-items:center;justify-content:center;
           width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-on);
           font-size:var(--text-xs);font-weight:700;flex-shrink:0}
+        .sim-hero-step:nth-child(1){animation-delay:0.05s}
+        .sim-hero-step:nth-child(3){animation-delay:0.10s}
+        .sim-hero-step:nth-child(5){animation-delay:0.15s}
+        .sim-hero-step:nth-child(7){animation-delay:0.20s}
         .sim-hero-arrow{color:var(--border-strong);flex-shrink:0}
         .sim-hero-actions{display:flex;align-items:center;gap:var(--space-3);
           margin-top:var(--space-2);flex-wrap:wrap}
         .sim-hero-cta{display:inline-flex;align-items:center;gap:var(--space-2);
           padding:var(--space-3) var(--space-5);background:var(--accent);color:var(--accent-on);
           border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:600;
-          text-decoration:none;transition:opacity var(--motion-fast) var(--ease-standard)}
-        .sim-hero-cta:hover{opacity:.88}
+          text-decoration:none;transition:opacity var(--motion-fast) var(--ease-standard),
+            transform var(--motion-fast) var(--ease-standard),box-shadow var(--motion-fast) var(--ease-standard);
+          animation:sim-cta-in 0.5s ease-out 0.3s both}
+        .sim-hero-cta:hover{opacity:.88;transform:translateY(-1px);
+          box-shadow:0 4px 12px rgba(84,124,112,0.25)}
         .sim-hero-cta-secondary{display:inline-flex;align-items:center;gap:var(--space-2);
           padding:var(--space-3) var(--space-4);background:var(--bg);color:var(--fg-2);
           border:1px solid var(--border);border-radius:var(--radius-md);font-size:var(--text-sm);
-          text-decoration:none;transition:background var(--motion-fast) var(--ease-standard)}
-        .sim-hero-cta-secondary:hover{background:var(--surface-2)}
+          text-decoration:none;transition:background var(--motion-fast) var(--ease-standard),
+            transform var(--motion-fast) var(--ease-standard);
+          animation:sim-cta-in 0.5s ease-out 0.4s both}
+        .sim-hero-cta-secondary:hover{background:var(--surface-2);transform:translateY(-1px)}
         @media(max-width:720px){
           .sim-hero{padding:var(--space-4)}
           .sim-hero-title{font-size:var(--text-lg)}
@@ -160,6 +187,9 @@ function SimulatorHero() {
           .sim-hero-actions{flex-direction:column;align-items:stretch}
           .sim-hero-cta,.sim-hero-cta-secondary{justify-content:center;text-align:center}
         }
+        @keyframes sim-badge-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+        @keyframes sim-step-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+        @keyframes sim-cta-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
       `}</style>
 
       <section className="sim-hero" aria-label="工厂模拟器">
@@ -235,7 +265,7 @@ export default function FactoryPage() {
   if (q.isLoading) return <LoadingState label="加载首页…" />;
 
   return (
-    <section style={{ maxWidth: 'var(--container-app)', margin: '0 auto' }}>
+    <section className="factory-home">
       <FactoryPrologue
         open={prologueOpen}
         onClose={() => {

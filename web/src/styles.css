@@ -2909,9 +2909,16 @@ body,
 /* ==========================================================================
    知识点连线图（Obsidian 式）· KnowledgeGraphPage
    零新色相：全部走 design tokens，无紫粉渐变、无 emoji 图标。
+   
+   布局策略：知识图是全屏可视化组件，突破常规 container-app (1280px) 限制，
+   用更宽的容器让力导向画布有足够展开空间。桌面端双列（画布+抽屉），
+   移动端单列（画布全宽，抽屉覆盖/堆叠）。
    ========================================================================== */
-.kg-page { padding: var(--space-6) var(--space-6) var(--space-10); max-width: var(--container-app); margin: 0 auto; }
-.kg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-6); flex-wrap: wrap; margin-bottom: var(--space-5); }
+.kg-page { padding: var(--space-4) var(--space-4) var(--space-8); max-width: 1600px; margin: 0 auto; }
+@media (min-width: 1400px) {
+  .kg-page { max-width: 92vw; }
+}
+.kg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-4); }
 .kg-title { font-size: var(--text-2xl); margin: 0 0 var(--space-2); letter-spacing: var(--tracking-title); font-weight: var(--weight-announce-cjk); }
 .kg-sub { margin: 0; max-width: 56ch; color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-body); }
 .kg-legend { list-style: none; display: flex; gap: var(--space-4); margin: 0; padding: 0; align-items: center; }
@@ -2921,14 +2928,22 @@ body,
 .kg-dot-node { background: var(--brand-ink); }
 .kg-dot-artifact { background: var(--muted); }
 
-.kg-body { display: grid; grid-template-columns: 1fr; gap: var(--space-5); position: relative; }
-.kg-canvas-col { position: relative; }
-.kg-canvas-wrap { width: 100%; height: 62vh; min-height: 420px; border: 1px solid var(--border); border-radius: var(--card-radius); background: var(--surface); overflow: hidden; }
+.kg-body { display: grid; grid-template-columns: 1fr; gap: var(--space-4); position: relative; min-height: 0; }
+.kg-canvas-col { position: relative; min-width: 0; /* 防止 grid 子项溢出 */ }
+.kg-canvas-wrap { width: 100%; height: calc(100vh - 220px); min-height: 400px; border: 1px solid var(--border); border-radius: var(--card-radius); background: var(--surface); overflow: hidden; }
+@media (max-width: 768px) {
+  .kg-page { padding: var(--space-3) var(--space-3) var(--space-6); }
+  .kg-canvas-wrap { height: calc(100vh - 180px); min-height: 320px; }
+}
+@media (min-width: 1024px) {
+  .kg-body { grid-template-columns: 1fr 340px; }
+  .kg-canvas-wrap { height: calc(100vh - 200px); min-height: 480px; }
+}
 .kg-canvas-wrap canvas { display: block; touch-action: none; }
 .kg-loading, .kg-error { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: var(--text-sm); }
 .kg-error { color: var(--danger); }
 
-.kg-drawer { border: 1px solid var(--border); border-radius: var(--card-radius); background: var(--surface); padding: var(--space-5); align-self: start; position: sticky; top: var(--space-6); max-height: 62vh; overflow: auto; }
+.kg-drawer { border: 1px solid var(--border); border-radius: var(--card-radius); background: var(--surface); padding: var(--space-4); align-self: start; position: sticky; top: var(--space-4); max-height: calc(100vh - 220px); overflow: auto; }
 .kg-drawer-close { position: absolute; top: var(--space-3); right: var(--space-3); border: none; background: transparent; color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; padding: 2px 6px; border-radius: var(--radius-sm); }
 .kg-drawer-close:hover { background: var(--surface-2); }
 .kg-drawer-kind { display: inline-block; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--meta); margin-bottom: var(--space-2); }
@@ -2945,9 +2960,28 @@ body,
 .kg-backlink-title { color: var(--fg-2); font-size: var(--text-sm); }
 .kg-muted { color: var(--muted); font-size: var(--text-sm); margin: 0; }
 
-@media (min-width: 1024px) {
-  .kg-body { grid-template-columns: 1fr 320px; }
-}
+/* 知识图增强交互：tooltip / 缩放控制 / 提示文字 */
+.kg-tooltip { position: absolute; pointer-events: none; z-index: 10;
+  background: var(--brand-ink); color: var(--surface); padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm); font-size: var(--text-xs); line-height: 1.4;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15); white-space: nowrap;
+  transform: translate(0, -100%); animation: kg-fade-in 0.15s ease-out; }
+.kg-tooltip-kind { color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em;
+  font-size: 10px; margin-right: var(--space-2); }
+.kg-tooltip-label { color: var(--surface); }
+@keyframes kg-fade-in { from { opacity: 0; transform: translate(0, -90%); } to { opacity: 1; transform: translate(0, -100%); } }
+
+.kg-zoom-bar { position: absolute; bottom: var(--space-3); right: var(--space-3);
+  display: flex; gap: 2px; z-index: 10; }
+.kg-zoom-btn { display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--fg-2); cursor: pointer;
+  transition: background var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard); }
+.kg-zoom-btn:hover { background: var(--accent-soft); color: var(--accent); }
+.kg-zoom-reset { margin: 0 2px; width: 32px; border-color: var(--border-strong); }
+.kg-hint { position: absolute; bottom: var(--space-3); left: var(--space-3);
+  font-size: 10px; color: var(--meta); letter-spacing: 0.02em;
+  pointer-events: none; user-select: none; opacity: 0.6; }
 
 /* ==========================================================================
    学习路线入口湾（CoursesPage 置顶，零基础稳定可达，不依赖看过序章）
