@@ -159,6 +159,30 @@ export default function CoursesPage() {
         )}
       </div>
 
+      {/* 学习路线 · 零基础入口（置顶，确保二次访问稳定可达，不依赖看过序章） */}
+      {pathsQ.data && pathsQ.data.length > 0 && (
+        <div className="lp-highlight">
+          <div className="lp-highlight-head">
+            <Icon name="paths" size={20} />
+            <div>
+              <h2 className="lp-highlight-title">学习路线</h2>
+              <p className="lp-highlight-sub">零基础？建议从最上面的路线开始——几小节大白话，不用任何前提。</p>
+            </div>
+          </div>
+          <ul className="lp-highlight-list">
+            {pathsQ.data.slice(0, 3).map((p) => (
+              <li key={p.id}>
+                <Link className="lp-highlight-item" to={`/learning-paths?path=${p.id}`}>
+                  <span className="lp-highlight-name">{p.title}</span>
+                  <span className="lp-highlight-meta">{p.topicIds.length} 阶段</span>
+                  <Icon name="arrow-right" size={16} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {topics.isLoading && <LoadingState label="加载课程…" />}
       {topics.isError && <ErrorState error={topics.error} onRetry={() => void topics.refetch()} />}
       {topics.data?.length === 0 && <EmptyState title="还没有课程" hint="内容由后台导入" icon="courses" />}
@@ -199,28 +223,7 @@ export default function CoursesPage() {
             </ul>
           </div>
         );
-      })}
-
-      {/* 学习路径 */}
-      {pathsQ.data && pathsQ.data.length > 0 && (
-        <div className="section">
-          <div className="section-head">
-            <h2 className="section-title">学习路径</h2>
-            <span className="row-meta">结构化冲刺路线</span>
-          </div>
-          <ul className="card-grid">
-            {pathsQ.data.slice(0, 4).map((p) => (
-              <li key={p.id}>
-                <Link className="card" to={`/learning-paths?path=${p.id}`}>
-                  <h3 className="card-title">{p.title}</h3>
-                  <p className="card-desc">{p.description || `${p.topicIds.length} 个阶段`}</p>
-                  <span className="tag">{p.topicIds.length} 阶段</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      }      )}
     </section>
   );
 }

@@ -48,22 +48,24 @@ function HealthPill() {
   );
 }
 
-type NavDef = { to: To; label: string; icon: IconName; match?: (p: string) => boolean };
+type NavDef = { to: To; label: string; icon: IconName; match?: (p: string) => boolean; hideOnMobile?: boolean };
 
-// 一级 tab。工具含子页（/sql-space、/simulator），用 match 让子页也高亮「工具」。
-// 知识点连线图为工厂全景的伴生视图，置于「工厂」之后。
+// 一级 tab。工具含子页（/sql-space），用 match 让子页也高亮「工具」。
+// 模拟器为新建的零基础动手模块，升为一级入口。
+// 「我的」在移动端顶栏已有头像入口，故移动端底栏隐藏，避免 7 项过挤（保持 6 项）。
 const NAV: NavDef[] = [
   { to: '/factory', label: '工厂', icon: 'factory' },
   { to: '/knowledge-graph', label: '知识图', icon: 'network' },
   { to: '/dictionary', label: '词典', icon: 'dictionary' },
   { to: '/courses', label: '课程', icon: 'courses' },
+  { to: '/simulator', label: '模拟器', icon: 'gauge' },
   {
     to: '/tools',
     label: '工具',
     icon: 'tools',
-    match: (p) => p.startsWith('/tools') || p.startsWith('/sql-space') || p.startsWith('/simulator'),
+    match: (p) => p.startsWith('/tools') || p.startsWith('/sql-space'),
   },
-  { to: '/profile', label: '我的', icon: 'user' },
+  { to: '/profile', label: '我的', icon: 'user', hideOnMobile: true },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -148,7 +150,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ═══ MOBILE TAB BAR（与左侧 5 tab 一致）═══ */}
       <nav className="mobile-tabbar only-mobile" aria-label="主导航">
-        {NAV.map((item) => (
+        {NAV.filter((item) => !item.hideOnMobile).map((item) => (
           <NavLink
             key={String(item.to)}
             to={item.to}

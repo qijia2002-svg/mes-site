@@ -2948,3 +2948,77 @@ body,
 @media (min-width: 1024px) {
   .kg-body { grid-template-columns: 1fr 320px; }
 }
+
+/* ==========================================================================
+   学习路线入口湾（CoursesPage 置顶，零基础稳定可达，不依赖看过序章）
+   零新色相：全部走 design tokens。
+   ========================================================================== */
+.lp-highlight {
+  border: 1px solid var(--accent-border);
+  background: var(--accent-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.lp-highlight-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.lp-highlight-head svg { color: var(--accent); flex: none; margin-top: 2px; }
+.lp-highlight-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-emph-cjk);
+}
+.lp-highlight-sub {
+  margin: 2px 0 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+.lp-highlight-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+.lp-highlight-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-2);
+  text-decoration: none;
+  transition: border-color var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard);
+}
+.lp-highlight-item:hover {
+  border-color: var(--accent-border);
+  background: var(--state-hover-bg);
+}
+.lp-highlight-name { font-weight: var(--weight-emph-cjk); color: var(--fg); }
+.lp-highlight-meta { margin-left: auto; font-size: var(--text-xs); color: var(--meta); }
+.lp-highlight-item svg { color: var(--accent); flex: none; }
+
+/* ==========================================================================
+   移动端优化（遗留 #38）：超小屏字号收敛 + 卡片安全边距
+   ========================================================================== */
+@media (max-width: 480px) {
+  .content {
+    padding-left: var(--gutter-phone);
+    padding-right: var(--gutter-phone);
+  }
+  .section-title { font-size: var(--text-lg); }
+  .card-title { font-size: var(--text-base); }
+  .card-desc { font-size: var(--text-sm); }
+  .stat-value { font-size: var(--text-xl); }
+  .lp-highlight { padding: var(--space-4); }
+  .lp-highlight-list { grid-template-columns: 1fr; }
+}

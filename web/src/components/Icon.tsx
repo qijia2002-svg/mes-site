@@ -255,6 +255,12 @@ const REGISTRY = {
   factory: Factory,
   'check-circle': CircleCheck,
   'log-out': LogOut,
+
+  // 工厂模拟器 / 通用（复用已导入的 lucide 组件，不引第二个图标库）
+  gauge: Gauge,
+  cog: Cog,
+  boxes: Boxes,
+  quote: Quote,
 } as const;
 
 export type IconName = keyof typeof REGISTRY;
