@@ -1,8 +1,7 @@
 /**
  * App Shell — 左侧常驻导航（5 个一级 tab），移动端切换为底部 tabbar。
  * 桌面端导航：工厂 / 知识图 / 课程 / 工具 / 我的。
- * 移动端底栏收为 3 项（工厂 / 知识图 / 课程）：「我的」走顶栏头像、
- * 「工具」含的模拟器与 SQL 沙盒在 /factory 页脚可达，故均不在底栏占位置。
+ * 移动端底栏同样 5 项（工厂 / 知识图 / 课程 / 工具 / 我的），与桌面一级导航一致。
  * 「词典」入口已于导航移除（直接 URL /dictionary 仍可访问）。
  */
 import { useSyncExternalStore } from 'react';
@@ -51,7 +50,7 @@ function HealthPill() {
   );
 }
 
-type NavDef = { to: To; label: string; icon: IconName; match?: (p: string) => boolean; hideOnMobile?: boolean };
+type NavDef = { to: To; label: string; icon: IconName; match?: (p: string) => boolean };
 
 // 一级 tab。工具含子页（/sql-space、/simulator），用 match 让子页也高亮「工具」。
 // 模拟器归到「工具」枢纽（与 SQL 沙盒并列），不再单独占一级 tab，避免入口重复。
@@ -64,12 +63,11 @@ const NAV: NavDef[] = [
     to: '/tools',
     label: '工具',
     icon: 'tools',
-    // 移动端底栏现为 3 个主入口（工厂/知识图/课程）；工具含的模拟器与 SQL 沙盒
-    // 在 /factory 页脚（FactoryExtras）均可达，故移动端底栏收起，避免项过挤。
-    hideOnMobile: true,
-    match: (p) => p.startsWith('/tools') || p.startsWith('/sql-space'),
+    // 移动端底栏与桌面一致展示 5 项；模拟器归「工具」枢纽，故子页也高亮本 tab。
+    match: (p) =>
+      p.startsWith('/tools') || p.startsWith('/sql-space') || p.startsWith('/simulator'),
   },
-  { to: '/profile', label: '我的', icon: 'user', hideOnMobile: true },
+  { to: '/profile', label: '我的', icon: 'user' },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -154,7 +152,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ═══ MOBILE TAB BAR（与左侧 5 tab 一致）═══ */}
       <nav className="mobile-tabbar only-mobile" aria-label="主导航">
-        {NAV.filter((item) => !item.hideOnMobile).map((item) => (
+        {NAV.map((item) => (
           <NavLink
             key={String(item.to)}
             to={item.to}
