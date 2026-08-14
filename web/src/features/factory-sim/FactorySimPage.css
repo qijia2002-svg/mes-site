@@ -645,7 +645,21 @@
 @media (max-width: 768px) {
   .sim { padding: var(--section-y-tablet) var(--gutter-tablet); gap: var(--space-5); }
   .sim-title { font-size: var(--text-xl); }
+
+  /* 控制条：手机端整列堆叠，滑块占满宽更易拖动，开关均分 */
+  .sim-controls { flex-direction: column; align-items: stretch; gap: var(--space-4); }
+  .sim-order { flex-direction: row; align-items: center; justify-content: space-between; }
+  .sim-range { min-width: 0; flex: 1 1 100%; }
+  .sim-toggles { width: 100%; }
+  .sim-toggle, .sim-reset { flex: 1 1 auto; justify-content: center; min-height: 40px; }
+
+  /* 活体产线整体转纵向：4 道工序竖排 */
   .sim-live-body { flex-direction: column; }
+  .sim-track { flex-direction: column; }
+  .sim-cell { min-width: 0; flex: 0 0 auto; }
+  .sim-cell-machines { flex-wrap: wrap; }
+
+  /* 末端读数列：仪表独占一行，堆积/报废并排 */
   .sim-readout {
     flex-basis: auto;
     flex-direction: row;
@@ -654,13 +668,12 @@
     border-left: none;
     border-top: 1px solid var(--border);
     padding-top: var(--space-4);
-    gap: var(--space-5);
+    gap: var(--space-4);
   }
-  .sim-gauge { flex: 1 1 160px; }
-  .sim-pile, .sim-scrap { flex: 1 1 140px; }
-  /* 传送带转纵向：光点向下流 */
-  .sim-track { flex-direction: column; }
-  .sim-cell { min-width: 0; }
+  .sim-gauge { flex: 1 1 100%; }
+  .sim-pile, .sim-scrap { flex: 1 1 calc(50% - var(--space-4)); }
+
+  /* 纵向流动连线 */
   .sim-conn {
     flex: 0 0 36px;
     width: 28px;
@@ -673,11 +686,18 @@
     from { transform: translateY(-12px); }
     to { transform: translateY(48px); }
   }
+
+  /* 触屏点按区放大：步进器 ≥36–40px，便于手机操作 */
+  .sim-stepper button { width: 40px; height: 40px; }
+  .sim-stepper-sm button { width: 36px; height: 36px; }
+  .sim-stepper-sm .sim-stepper-val { min-width: 48px; }
 }
 @media (max-width: 480px) {
   .sim { padding: var(--section-y-phone) var(--gutter-phone); }
   .sim-controls { padding: var(--space-4); gap: var(--space-3); }
-  .sim-metric-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .sim-metric-grid { grid-template-columns: repeat(2, 1fr); }
   .sim-metric-value { font-size: var(--text-xl); }
   .sim-bridge { flex-wrap: wrap; }
+  /* 极窄屏：堆积/报废也各自占满一行，避免互相挤压 */
+  .sim-pile, .sim-scrap { flex: 1 1 100%; }
 }
