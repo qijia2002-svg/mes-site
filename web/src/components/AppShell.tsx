@@ -16,6 +16,7 @@ import { getNickname, subscribeProfile } from '../lib/profileStore';
 import { useFactorySummary } from '../features/factory/useFactorySummary';
 import { TopbarSearch } from './TopbarSearch';
 import { TutorFab } from '../features/tutor/TutorFab';
+import { TutorWorkspace } from '../features/tutor/TutorWorkspace';
 
 function SidebarProgress() {
   const { total, touched, pct } = useFactorySummary();
@@ -166,8 +167,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
 
-      {/* ═══ AI 课程导师 · 全局浮动入口（任意页面可唤起）═══ */}
+      {/* ═══ AI 课程导师 · 移动端浮动入口 + 桌面端常驻工作台 ═══ */}
       <TutorFab />
+      <TutorWorkspace />
     </div>
   );
 }

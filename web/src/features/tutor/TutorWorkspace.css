@@ -1,0 +1,301 @@
+/**
+ * TutorWorkspace.css — 桌面专属导师工作台（常驻右栏）。
+ * 仅桌面（≥1024px）可见：根元素带 only-desktop，移动端自动隐藏；移动端由 TutorFab 接管。
+ * 规范：token 化、禁 emoji、禁紫粉渐变、禁硬编码色（仅 #fff 按钮文字例外）、禁弹性缓动。
+ */
+
+/* ═══ 收起态：右边缘常驻竖排标签 ═══ */
+.tutor-ws-tab {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: calc(var(--z-sticky) + 5);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 7px;
+  border: none;
+  border-radius: 10px 0 0 10px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: var(--elev-fab);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-announce-cjk);
+  transition: background var(--motion-fast) var(--ease-standard),
+    padding-right var(--motion-fast) var(--ease-standard);
+}
+.tutor-ws-tab:hover {
+  background: var(--accent-strong, var(--accent));
+  padding-right: 11px;
+}
+.tutor-ws-tab span {
+  writing-mode: vertical-rl;
+  letter-spacing: 3px;
+}
+
+/* ═══ 展开态：右栏工作台 ═══ */
+.tutor-ws {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: var(--z-modal);
+  width: min(420px, 42vw);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--elev-modal);
+  animation: tutorWsSlideIn var(--motion-slow) var(--ease-standard);
+}
+@keyframes tutorWsSlideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.tutor-ws-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.tutor-ws-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+  font-weight: var(--weight-announce-cjk);
+  color: var(--fg);
+}
+.tutor-ws-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.tutor-ws-actions .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+.tutor-ws-actions .icon-btn:hover {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* ═══ 来源面板（RAG 引用）═══ */
+.tutor-ws-sources {
+  flex: none;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.tutor-ws-sources-head {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  margin-bottom: var(--space-2);
+}
+.tutor-ws-source-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.tutor-ws-source {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--fg);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  transition: border-color var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard);
+}
+.tutor-ws-source:hover {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+.tutor-ws-source .tutor-ws-source-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tutor-ws-source-glossary { color: var(--fg); }
+.tutor-ws-source-concept { color: var(--fg); }
+.tutor-ws-source-explainer { color: var(--fg); }
+
+/* ═══ 对话区 ═══ */
+.tutor-ws-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+.tutor-ws-empty {
+  margin: auto;
+  max-width: 32ch;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+.tutor-ws-empty p { margin: 0 0 var(--space-3); }
+.tutor-ws-empty ul { margin: 0; padding-left: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+
+.tutor-ws-msg { display: flex; }
+.tutor-ws-msg-user { justify-content: flex-end; }
+.tutor-ws-msg-assistant { justify-content: flex-start; }
+.tutor-ws-bubble {
+  max-width: 92%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.tutor-ws-msg-user .tutor-ws-bubble {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: var(--radius-xs);
+}
+.tutor-ws-msg-assistant .tutor-ws-bubble {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: var(--radius-xs);
+}
+.tutor-ws-bubble code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 0 4px;
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.tutor-ws-msg-assistant .tutor-ws-bubble code { color: var(--fg); }
+.tutor-ws-msg-user .tutor-ws-bubble code {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+.tutor-ws-typing { display: inline-flex; align-items: center; }
+
+/* 每条助手消息下方的来源 chip */
+.tutor-ws-msg-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+.tutor-ws-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tutor-ws-error {
+  flex: none;
+  margin: 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft, #fdecec);
+  color: var(--danger, #b42318);
+  font-size: var(--text-sm);
+}
+
+/* ═══ 输入区 ═══ */
+.tutor-ws-input {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.tutor-ws-input textarea {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 44px;
+  max-height: 140px;
+  resize: none;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 15px;
+  line-height: var(--leading-body);
+}
+.tutor-ws-input textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.tutor-ws-send {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease-standard),
+    opacity var(--motion-fast) var(--ease-standard);
+}
+.tutor-ws-send:hover:not(:disabled) {
+  background: var(--accent-strong, var(--accent));
+}
+.tutor-ws-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutor-ws { animation: none; }
+  .tutor-ws-tab,
+  .tutor-ws-source,
+  .tutor-ws-actions .icon-btn,
+  .tutor-ws-send { transition: none; }
+}

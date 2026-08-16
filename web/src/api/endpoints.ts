@@ -170,6 +170,16 @@ export interface TutorSendBody {
 export interface TutorResult {
   reply: string;
   command: string | null;
+  /** RAG 接地返回的引用来源（术语/概念/讲解），供前端来源面板展示。无命中则为空数组。 */
+  sources?: TutorSource[];
+}
+
+/** 导师 RAG 来源：类型 + 内部 id + 展示文案 + 跳转链接（桌面工作台点击联动）。 */
+export interface TutorSource {
+  type: 'glossary' | 'concept' | 'explainer' | 'topic' | 'micro';
+  id: number;
+  label: string;
+  href?: string;
 }
 
 /** 字典类型（dict_type 表的 API 视图，camelCase）。 */

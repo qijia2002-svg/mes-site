@@ -121,6 +121,7 @@ const REGISTRY = {
   // App Shell / 导航
   dashboard: LayoutDashboard,
   courses: BookOpen,
+  book: BookOpen, // 术语/词典来源（glossary）图标，复用 BookOpen
   chapter: FileText,
   paths: Route,
   sql: Database,

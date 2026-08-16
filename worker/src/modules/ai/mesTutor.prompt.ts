@@ -84,6 +84,7 @@ export function buildTutorPrompt(
   message: string,
   ctx?: TutorContext,
   history?: TutorTurn[],
+  references?: string[],
 ): string {
   const ctxLines: string[] = [];
   if (ctx?.topic) ctxLines.push(`主题=${ctx.topic}`);
@@ -100,6 +101,14 @@ export function buildTutorPrompt(
   }
   const userParts: string[] = [];
   if (histLines.length) userParts.push(histLines.join('\n'));
+  // RAG 接地：把站内参考资料作为强约束注入，要求模型基于资料作答并标注 [n] 引用。
+  if (references && references.length) {
+    const refBlock = references.map((r, i) => `[${i + 1}] ${r}`).join('\n');
+    userParts.push(
+      `【参考资料】（请优先依据以下站内资料作答，在相关句子后用 [n] 标注来源；` +
+        `资料未覆盖的内容如实说明你不确定，不要编造）：\n${refBlock}`,
+    );
+  }
   userParts.push(`学员输入：${message}${ctxBlock}`);
 
   return (

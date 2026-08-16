@@ -9,6 +9,7 @@ import {
   type TutorContext,
   type TutorTurn,
 } from './mesTutor.prompt';
+import { retrieveTutorSources, type TutorSource } from './tutorRetrieval';
 
 /**
  * AI 模块（study-tip / explain-word / tts / tutor）
@@ -327,11 +328,21 @@ export async function tutor(c: Ctx): Promise<Response> {
   const message = typeof body.message === 'string' ? body.message.trim() : '';
   if (!message) return fail(c, Err.paramMissing());
 
-  const prompt = buildTutorPrompt(
-    message.slice(0, TUTOR_MAX_INPUT),
-    toTutorContext(body),
-    parseTutorHistory(body.history),
-  );
+  // RAG 接地：先检索站点知识（术语/概念/讲解），作为参考资料喂给 LLM，
+  // 让它基于站内内容作答而非凭空编。检索失败不影响对话（降级为无参考资料）。
+  const msg = message.slice(0, TUTOR_MAX_INPUT);
+  const ctx = toTutorContext(body);
+  let references: string[] = [];
+  let sources: TutorSource[] = [];
+  try {
+    const r = await retrieveTutorSources(c.db, { message: msg, term: ctx.term, topic: ctx.topic });
+    references = r.references;
+    sources = r.sources;
+  } catch (e) {
+    c.log.warn({ msg: 'tutor retrieval failed', err: String(e) });
+  }
+
+  const prompt = buildTutorPrompt(msg, ctx, parseTutorHistory(body.history), references);
 
   const { result, telemetry } = await guardedAiRun(c.env, {
     route: 'ai:tutor',
@@ -353,5 +364,6 @@ export async function tutor(c: Ctx): Promise<Response> {
   return ok(c, {
     reply: reply || TUTOR_FALLBACK,
     command: detectTutorCommand(message),
+    sources,
   });
 }

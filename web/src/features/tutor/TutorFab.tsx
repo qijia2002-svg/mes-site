@@ -12,34 +12,17 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { Icon } from '../../components/Icon';
 import { api } from '../../api/endpoints';
 import type { TutorMsg } from './tutor.types';
+import {
+  loadTutorHistory,
+  saveTutorHistory,
+  clearTutorHistory,
+  renderRich,
+} from './tutor.shared';
 import './TutorFab.css';
-
-const STORAGE_KEY = 'mes-tutor-conv';
-
-function loadHistory(): TutorMsg[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as TutorMsg[]).slice(-20) : [];
-  } catch {
-    return [];
-  }
-}
-
-/** 先转义再处理 **粗体** / `代码`，杜绝 XSS；换行交给 CSS white-space:pre-wrap。 */
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-function renderRich(s: string): string {
-  return escapeHtml(s)
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`([^`]+?)`/g, '<code>$1</code>');
-}
 
 export function TutorFab() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<TutorMsg[]>(() => loadHistory());
+  const [messages, setMessages] = useState<TutorMsg[]>(() => loadTutorHistory());
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,11 +32,7 @@ export function TutorFab() {
 
   // 对话持久化（跨刷新保留，让「老师记得」）
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-20)));
-    } catch {
-      /* 隐私模式写入失败不阻断使用 */
-    }
+    saveTutorHistory(messages);
   }, [messages]);
 
   // 新消息自动滚到底
@@ -124,7 +103,7 @@ export function TutorFab() {
     const history = next.slice(-8).map((m) => ({ role: m.role, content: m.content }));
     try {
       const res = await api.tutor({ message: text, history });
-      setMessages((prev) => [...prev, { role: 'assistant', content: res.reply }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: res.reply, sources: res.sources }]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '请求失败，请稍后重试';
       setError(msg);
@@ -135,11 +114,7 @@ export function TutorFab() {
 
   function clearConv() {
     setMessages([]);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      /* noop */
-    }
+    clearTutorHistory();
   }
 
   function onInputKey(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -156,7 +131,7 @@ export function TutorFab() {
       {!open && (
         <button
           type="button"
-          className="tutor-fab"
+          className="tutor-fab only-mobile"
           onClick={() => setOpen(true)}
           aria-label="打开 AI 课程老师"
         >
