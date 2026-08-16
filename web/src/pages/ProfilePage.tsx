@@ -1,8 +1,8 @@
 /**
- * 个人中心 v4 — factory-first 口径。
- * 左栏：身份卡（工厂环节进度）+ 继续学习（下一环节）+ 工厂环节分布 + 账户设置
+ * 个人中心 v5 — Spine 统一口径（UX 重梳 Phase E）。
+ * 左栏：身份卡 + 学习主线（Spine 总进度 + 续学课程，与首页英雄区下方脊柱同源）+ 继续动手（工厂下一环节）+ 工厂环节分布 + 账户设置
  * 右栏：练习活跃度（连续学习 / 热力图）+ 快捷入口
- * 课程/章节维度已从口径移除（产品主轴是工厂全景，不是章节）。
+ * 课程/路径维度已恢复：学习主线即产品脊柱，与首页同源，不再只盯工厂全景。
  */
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ import { Icon, type IconName } from '../components/Icon';
 import { getProfile, setProfile } from '../lib/profileStore';
 import { api } from '../api/endpoints';
 import { useFactorySummary } from '../features/factory/useFactorySummary';
+import { useLearningSpine } from '../lib/learningSpine';
 import { DEFAULT_FLOW, type Phase } from '../features/factory/factoryFlow.data';
 
 const DAY_MS = 86_400_000;
@@ -62,6 +63,7 @@ export default function ProfilePage() {
 
   const progressQ = useQuery({ queryKey: ['progress'], queryFn: api.progress, staleTime: 60_000 });
   const summary = useFactorySummary();
+  const spine = useLearningSpine();
 
   const sqlPassed = progressQ.data?.passedExerciseIds?.length ?? 0;
   const streak = calcStreak((progressQ.data as { events?: { createdAt?: number }[] } | undefined)?.events ?? []);
@@ -193,9 +195,46 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Continue Learning */}
+          {/* Learning Spine — Phase E：恢复课程/路径维度，与首页英雄区下方脊柱同源 */}
+          <div className="panel pf-spine">
+            <div className="pf-spine-head">
+              <h3 className="card-title">学习主线</h3>
+              <Link to="/learning-paths" className="pf-spine-switch">切换路径</Link>
+            </div>
+            {spine.activePath != null ? (
+              <>
+                <div className="pf-spine-path">{spine.pathName}</div>
+                <div className="pf-spine-meter">
+                  <span className="pf-spine-num">{spine.completion}<span>%</span></span>
+                  <span className="pf-spine-cap">主线进度</span>
+                </div>
+                <div className="progress-track" style={{ height: 8, marginTop: 'var(--space-3)' }}>
+                  <div className="progress-fill" style={{ width: `${spine.completion}%` }} />
+                </div>
+                {spine.nextCourseId != null && (
+                  <Link
+                    to={`/courses/${spine.nextCourseId}`}
+                    className="btn btn-primary"
+                    style={{ width: '100%', justifyContent: 'space-between', marginTop: 'var(--space-4)' }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                      <Icon name="courses" size={16} /> 继续学：{spine.nextCourseName ?? '下一门课'}
+                    </span>
+                    <Icon name="arrow-right" size={16} />
+                  </Link>
+                )}
+              </>
+            ) : (
+              <div className="pf-spine-empty">
+                <p className="pf-spine-empty-text">还没设定学习路线。选一条路径，平台会替你记着学到哪、下一步去哪。</p>
+                <Link to="/learning-paths" className="btn btn-primary"><Icon name="paths" size={16} /> 选一条学习路线</Link>
+              </div>
+            )}
+          </div>
+
+          {/* Continue Learning — 工厂动手侧，与学习主线互补 */}
           <div className="panel">
-            <h3 className="card-title">继续学习</h3>
+            <h3 className="card-title">继续动手 · 工厂</h3>
             {nextNode ? (
               <Link
                 to={`/factory?node=${encodeURIComponent(nextNode.key)}`}

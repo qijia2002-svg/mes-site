@@ -2304,6 +2304,21 @@ body,
   .pc-tab { flex: 0 0 auto; }
 }
 
+/* ---------- 个人中心 · 学习主线（UX 重梳 Phase E） ---------- */
+.pf-spine-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.pf-spine-switch { font-size: var(--text-xs); color: var(--accent); text-decoration: none; }
+.pf-spine-switch:hover { text-decoration: underline; }
+.pf-spine-path { font-size: var(--text-xl); font-weight: var(--weight-announce-cjk); color: var(--fg); margin-top: var(--space-3); }
+.pf-spine-meter { display: flex; align-items: baseline; gap: var(--space-2); margin-top: var(--space-2); }
+.pf-spine-num { font-family: var(--font-mono); font-size: var(--text-3xl); font-weight: 700; color: var(--accent); line-height: 1; }
+.pf-spine-num span { font-size: var(--text-base); color: var(--meta); margin-left: 2px; }
+.pf-spine-cap { font-size: var(--text-xs); color: var(--meta); }
+.pf-spine-empty { margin-top: var(--space-3); }
+.pf-spine-empty-text { margin: 0 0 var(--space-4); font-size: var(--text-sm); color: var(--muted); line-height: 1.7; }
+@media (max-width: 720px) {
+  .pf-spine-num { font-size: var(--text-2xl); }
+}
+
 /* ---------- 名词搜索 ---------- */
 .glossary-wrap { position: relative; }
 .glossary-overlay {
