@@ -5,12 +5,19 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Icon } from './Icon';
 import { api, type QuizQuestion } from '../api/endpoints';
+import { recordQuiz, type QuizContext } from '../lib/practiceStore';
 import './flash-deck.css';
 
 interface QuizDeckProps {
   questions: QuizQuestion[];
   title: string;
   onComplete?: (score: number, total: number) => void;
+  /**
+   * 统一进度标记（UX 重梳 Phase C 验收 #3）：完成测验时向练习中心写同一份进度。
+   * 按入口归类——chapter（章节测验）/ module（模块考试）/ factory（工厂内联自测）/ standalone（随堂测验）。
+   * key 用于去重（同一章多次重做只记一次）；不传则按次数累计。
+   */
+  progress?: { context: QuizContext; key?: string | number };
 }
 
 interface QuestionResult {
@@ -19,7 +26,7 @@ interface QuestionResult {
   explanation: string;
 }
 
-export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
+export function QuizDeck({ questions, title, onComplete, progress }: QuizDeckProps) {
   const [current, setCurrent] = useState(0);
   const [sel, setSel] = useState<string[]>([]);
   const [graded, setGraded] = useState(false);
@@ -103,6 +110,8 @@ export function QuizDeck({ questions, title, onComplete }: QuizDeckProps) {
     } else {
       const score = results.filter(Boolean).length;
       setFinished(true);
+      // 统一进度：任何入口的测验完成都写同一份（练习中心据此汇总）。
+      recordQuiz({ context: progress?.context ?? 'standalone', key: progress?.key, score, total: questions.length });
       onComplete?.(score, questions.length);
     }
   }, [current, questions.length, results, onComplete]);

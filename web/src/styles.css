@@ -2304,6 +2304,45 @@ body,
   .pc-tab { flex: 0 0 auto; }
 }
 
+/* 全站练习进度汇总（UX 重梳 Phase C 验收 #3 · B4 收口） */
+.pc-summary {
+  margin: var(--space-5) 0 0;
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.pc-summary-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.pc-summary-head .inline-glyph { color: var(--accent); flex: none; }
+.pc-summary-head .caps { font-weight: var(--weight-emph-cjk); color: var(--fg); }
+.pc-summary-head .row-meta { margin-left: auto; }
+.pc-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+.pc-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+}
+.pc-stat-ic { color: var(--accent); flex: none; }
+.pc-stat-label { font-size: var(--text-xs); color: var(--meta); }
+.pc-stat-value { font-size: var(--text-base); font-weight: var(--weight-emph-cjk); color: var(--fg); }
+.pc-summary-empty { margin: var(--space-4) 0 0; font-size: var(--text-sm); color: var(--meta); line-height: 1.7; }
+@media (max-width: 720px) {
+  .pc-summary-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* ---------- 个人中心 · 学习主线（UX 重梳 Phase E） ---------- */
 .pf-spine-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
 .pf-spine-switch { font-size: var(--text-xs); color: var(--accent); text-decoration: none; }
@@ -2931,6 +2970,13 @@ body,
   margin-bottom: var(--space-3);
 }
 .nd-sec-h .caps { color: var(--meta); }
+.nd-sec-go {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
 .nd-count { font-size: var(--text-xs); color: var(--meta); }
 .nd-know {
   margin: 0;

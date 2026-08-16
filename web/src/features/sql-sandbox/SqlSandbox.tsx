@@ -25,6 +25,7 @@ import { useSandboxDb, type QueryOutcome } from './useSandboxDb';
 import { ResultTable } from './ResultTable';
 import { NODE_RESOURCE_DONE } from '../factory/useNodeProgress';
 import { peek } from '../../lib/userData';
+import { recordSqlPass } from '../../lib/practiceStore';
 
 type Verdict =
   | { kind: 'idle' }
@@ -89,6 +90,8 @@ export function SqlSandbox({ exercise }: { exercise?: SqlExercise }) {
             item_id: String(id),
             status: 'passed',
           });
+          // 统一进度：SQL 习题通过写同一份（练习中心据此汇总）。
+          recordSqlPass(id);
           // 通知工厂全景：该节点的 SQL 实战已完成（C1 完成度来源之一）。
           window.dispatchEvent(
             new CustomEvent(NODE_RESOURCE_DONE, { detail: { type: 'sql', refId: id } }),

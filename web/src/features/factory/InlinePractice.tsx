@@ -61,6 +61,7 @@ function InlineQuiz({ id }: { id: number }) {
     <QuizDeck
       questions={[q.data]}
       title="随堂测验"
+      progress={{ context: 'factory', key: id }}
       onComplete={() =>
         window.dispatchEvent(
           new CustomEvent(NODE_RESOURCE_DONE, { detail: { type: 'quiz', refId: id } }),

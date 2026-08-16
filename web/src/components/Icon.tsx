@@ -215,6 +215,7 @@ const REGISTRY = {
   'role-scada': Activity,
   'role-owner-digital': Compass,
   stage: Target,
+  target: Target, // 目标/去处语义（如"去练习中心"CTA），与 stage 共用 Target 图标
 
   // 后台 / 表格
   add: Plus,

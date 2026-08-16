@@ -153,7 +153,11 @@ export default function ChapterPage() {
                   开始测试
                 </button>
               ) : (
-                <QuizDeck questions={quizQ.data} title={chapter.data.title} />
+                <QuizDeck
+                  questions={quizQ.data}
+                  title={chapter.data.title}
+                  progress={{ context: 'chapter', key: chapter.data.id }}
+                />
               )}
             </div>
           )}

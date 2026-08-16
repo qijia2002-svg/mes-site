@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from '../components/Icon';
+import { usePracticeSummary } from '../lib/practiceStore';
 
 type TabKey = 'chapter' | 'module' | 'sql' | 'quiz' | 'dict' | 'wrong';
 
@@ -43,6 +44,7 @@ const SUBPAGE: Record<'sql' | 'quiz' | 'dict', { to: string; icon: IconName; tit
 
 export default function PracticePage() {
   const [tab, setTab] = useState<TabKey>('chapter');
+  const progress = usePracticeSummary();
 
   return (
     <div className="tools-hub">
@@ -54,6 +56,8 @@ export default function PracticePage() {
           </p>
         </div>
       </header>
+
+      <PracticeSummary progress={progress} />
 
       <div className="pc-tabs" role="tablist" aria-label="练习类型">
         {TABS.map((t) => (
@@ -141,5 +145,48 @@ function PracticeLink({ entry }: { entry: { to: string; icon: IconName; title: s
         <span className="tools-card-go">进入 <Icon name="arrow-right" size={16} /></span>
       </Link>
     </div>
+  );
+}
+
+/**
+ * 全站练习进度汇总（UX 重梳 Phase C 验收 #3 · 收口 B4）。
+ * 数据来自统一的 practiceStore：课程/工厂/随堂/SQL 各处完成都写同一份，这里聚合展示，
+ * 不再有 4 套互不通联的入口。零值时不造假，只给一句引导。
+ */
+function PracticeSummary({ progress }: { progress: ReturnType<typeof usePracticeSummary> }) {
+  const tiles: { icon: IconName; label: string; value: string }[] = [
+    { icon: 'chapter', label: '章节测验', value: `${progress.chaptersQuiz.length} 章完成` },
+    { icon: 'report', label: '模块考试', value: `${progress.modulesQuiz.length} 门通过` },
+    { icon: 'workshop', label: '工厂内联自测', value: `${progress.factoryQuiz.length} 个节点` },
+    { icon: 'sql', label: 'SQL 沙盒', value: `${progress.sqlPassed.length} 题通过` },
+  ];
+  const total =
+    progress.chaptersQuiz.length +
+    progress.modulesQuiz.length +
+    progress.factoryQuiz.length +
+    progress.sqlPassed.length;
+
+  return (
+    <section className="pc-summary" aria-label="全站练习进度汇总">
+      <div className="pc-summary-head">
+        <Icon name="dashboard" size={16} className="inline-glyph" />
+        <span className="caps">我的练习进度</span>
+        <span className="row-meta">全站各入口自动汇总</span>
+      </div>
+      <div className="pc-summary-grid">
+        {tiles.map((t) => (
+          <div className="pc-stat" key={t.label}>
+            <span className="pc-stat-ic"><Icon name={t.icon} size={20} /></span>
+            <span className="pc-stat-label">{t.label}</span>
+            <span className="pc-stat-value">{t.value}</span>
+          </div>
+        ))}
+      </div>
+      {total === 0 && (
+        <p className="pc-summary-empty">
+          你还没有在任何入口完成练习。在课程章节末尾做测验、去 SQL 沙盒跑通一题，进度都会自动汇集到这里。
+        </p>
+      )}
+    </section>
   );
 }

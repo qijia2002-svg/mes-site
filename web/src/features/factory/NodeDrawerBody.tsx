@@ -159,6 +159,10 @@ export default function NodeDrawerBody({
           <span className="caps">第二步 · 测一下懂没懂</span>
         </div>
         <BeginnerQuiz questions={path.quiz} onAllCorrect={() => solve('quiz', node.id)} />
+        <Link to="/practice" className="text-link nd-sec-go">
+          <Icon name="target" size={16} className="inline-glyph" />
+          去练习中心汇总我的练习进度 →
+        </Link>
       </section>
 
       {/* 第三步：微练习（SQL 前台阶，计入完成度） */}
@@ -194,6 +198,10 @@ export default function NodeDrawerBody({
           sqlCase={path.sql}
           onPass={() => { setSqlOpen(true); solve('sql', node.id); }}
         />
+        <Link to="/practice" className="text-link nd-sec-go">
+          <Icon name="target" size={16} className="inline-glyph" />
+          去练习中心汇总我的练习进度 →
+        </Link>
       </section>
 
       {/* 进阶详解（折叠，展开时懒加载；空数组优雅降级） */}

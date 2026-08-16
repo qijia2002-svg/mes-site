@@ -203,7 +203,11 @@ export default function CourseDetailPage() {
         ) : topicQuiz.isError ? (
           <ErrorState error={topicQuiz.error} onRetry={() => void topicQuiz.refetch()} />
         ) : topicQuiz.data && topicQuiz.data.length > 0 ? (
-          <QuizDeck questions={topicQuiz.data} title={topic?.title ?? '模块'} />
+          <QuizDeck
+            questions={topicQuiz.data}
+            title={topic?.title ?? '模块'}
+            progress={{ context: 'module', key: topic?.id }}
+          />
         ) : (
           <EmptyState title="这个模块还没有考题" hint="考题由后台导入后会出现在这里。" icon="quiz" />
         )}
