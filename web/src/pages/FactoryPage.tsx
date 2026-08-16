@@ -17,10 +17,11 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { LoadingState } from '../components/StateBlock';
 import { api } from '../api/endpoints';
-import type { FlowNodeDTO } from '../api/endpoints';
+import type { FlowNodeDTO, NodeResourceDTO } from '../api/endpoints';
 import FactoryExtras from '../features/factory/FactoryExtras';
 import FactoryPrologue, { hasSeenPrologue, markPrologueSeen } from '../features/factory/FactoryPrologue';
 import OrderToDeliveryFlow from '../features/factory/OrderToDeliveryFlow';
+import FactoryFlow from '../features/factory/FactoryFlow';
 import { DEFAULT_FLOW, PHASE_BY_KEY, buildSteps, type LaidNode, type Phase } from '../features/factory/factoryFlow.data';
 import { useNodeProgress } from '../features/factory/useNodeProgress';
 import { useNodeStatus, type NodeStatusApi } from '../features/factory/useNodeStatus';
@@ -44,6 +45,7 @@ function HomeHeader({ title, total, status, nextNode, onResume, onOpenPrologue }
       <style>{`
         .factory-home{max-width:var(--container-app);margin:0 auto;
           padding:var(--space-4) var(--space-4) var(--space-10)}
+        .factory-panorama{margin-top:var(--space-10)}
         @media(min-width:1400px){.factory-home{max-width:1200px}}
         @media(max-width:720px){.factory-home{padding:var(--space-3) var(--space-3) var(--space-8)}}
         .hh-kicker{display:flex;align-items:center;gap:var(--space-2);color:var(--meta);
@@ -71,6 +73,7 @@ function HomeHeader({ title, total, status, nextNode, onResume, onOpenPrologue }
           .hh-prog{margin-top:var(--space-3);padding:var(--space-3) var(--space-4)}
           .hh-prog-num{font-size:var(--text-base)}
           .hh-bar{margin-top:var(--space-2);height:4px}
+          .factory-panorama{margin-top:var(--space-8)}
         }
       `}</style>
 
@@ -241,6 +244,17 @@ export default function FactoryPage() {
   // 后端无数据 → 兜底，进度卡永远能渲染。
   const flow = q.data && q.data.nodes?.length ? q.data : DEFAULT_FLOW;
 
+  // 节点资源按 nodeId 归组，供完成度派生层与全景抽屉共用（唤醒此前被埋没的真实进度）。
+  const resourcesByNode = useMemo(() => {
+    const m = new Map<number, NodeResourceDTO[]>();
+    for (const r of flow.resources) {
+      const arr = m.get(r.nodeId);
+      if (arr) arr.push(r);
+      else m.set(r.nodeId, [r]);
+    }
+    return m;
+  }, [flow.resources]);
+
   const nodes = useMemo(() => {
     const raw = flow.nodes as (FlowNodeDTO & { phase?: Phase })[];
     const laid: LaidNode[] = raw.map((n) => ({
@@ -250,10 +264,11 @@ export default function FactoryPage() {
     return buildSteps(laid, flow.edges).flat();
   }, [flow.nodes, flow.edges]);
 
-  const status = useNodeStatus(nodes, new Map(), isDone);
+  const status = useNodeStatus(nodes, resourcesByNode, isDone);
 
   // 零基础序章
   const [prologueOpen, setPrologueOpen] = useState(false);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   useEffect(() => {
     if (!hasSeenPrologue()) setPrologueOpen(true);
   }, []);
@@ -261,6 +276,16 @@ export default function FactoryPage() {
   const nextNode = status.nextKey
     ? nodes.find((n) => n.key === status.nextKey) ?? null
     : null;
+
+  // 首页 CTA：选中「建议从此继续」的节点并平滑滚到全景，而不是空操作。
+  const handleResume = () => {
+    if (status.nextKey) setSelectedKey(status.nextKey);
+    requestAnimationFrame(() => {
+      document
+        .getElementById('factory-panorama')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
   if (q.isLoading) return <LoadingState label="加载首页…" />;
 
@@ -279,9 +304,21 @@ export default function FactoryPage() {
         total={nodes.length}
         status={status}
         nextNode={nextNode}
-        onResume={() => nextNode && null /* 首页 CTA 改为指向模拟器 */}
+        onResume={handleResume}
         onOpenPrologue={() => setPrologueOpen(true)}
       />
+
+      {/* ★ 主视觉：12 环节工厂全景（系统视角）—— 每步归 MES/ERP/WMS/QMS 哪套系统管 */}
+      <section id="factory-panorama" className="factory-panorama" aria-label="工厂全景地图">
+        <FactoryFlow
+          nodes={nodes}
+          resourcesByNode={resourcesByNode}
+          isDone={isDone}
+          status={status}
+          selectedKey={selectedKey}
+          onSelect={setSelectedKey}
+        />
+      </section>
 
       {/* ★ 英雄特色：工厂模拟器 */}
       <SimulatorHero />

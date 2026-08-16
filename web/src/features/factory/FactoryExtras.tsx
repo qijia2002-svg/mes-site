@@ -19,7 +19,9 @@ const LINKS: { to: string; label: string; icon: IconName }[] = [
 ];
 
 export default function FactoryExtras() {
-  const [open, setOpen] = useState(false);
+  // 四套系统（MES/ERP/WMS/QMS）是平台核心 teaching object，默认展开始终可见，
+  // 不再藏在折叠里 —— 呼应「工厂页 = 系统视角」的定位。
+  const [open, setOpen] = useState(true);
 
   return (
     <section className="fx">
