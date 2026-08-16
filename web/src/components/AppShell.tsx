@@ -67,7 +67,6 @@ const NAV: NavDef[] = [
       { to: '/roadmap', label: '岗位路线', icon: 'stage' },
     ],
   },
-  { to: '/knowledge-graph', label: '知识图', icon: 'network' },
   {
     to: '/tools',
     label: '练习',

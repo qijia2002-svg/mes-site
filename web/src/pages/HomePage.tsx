@@ -62,12 +62,6 @@ const FEATURES: Feature[] = [
     desc: 'MES 实施 / 二开 / SCADA 的职业能力地图与成长阶段。',
   },
   {
-    to: '/knowledge-graph',
-    icon: 'network',
-    title: '知识图谱',
-    desc: '概念关系网，一处不懂顺藤摸瓜，把零散知识点串起来。',
-  },
-  {
     to: '/tools',
     icon: 'tools',
     title: '动手练习',
@@ -199,7 +193,7 @@ export default function HomePage() {
         </p>
         <h1 className="hp-title">零基础，把工厂和 MES 一次看明白</h1>
         <p className="hp-sub">
-          课程 + 模拟器 + 知识图 + 练习，边看边玩边练。先看懂工厂怎么转，再动手调产线、跑流程。
+          课程 + 模拟器 + 练习，边看边玩边练。先看懂工厂怎么转，再动手调产线、跑流程。
         </p>
         <div className="hp-cta">
           <Link to="/factory" className="btn btn-primary">
