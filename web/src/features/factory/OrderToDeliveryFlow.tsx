@@ -1,19 +1,20 @@
 /**
- * 订单到交付全景（Order-to-Delivery）独立页 · 沉浸式动画叙事版。
+ * 订单到交付全景（Order-to-Delivery）独立页 · 实用参考版（v2 重做）。
  *
- * 与工厂页现有 12 环节「系统视角」互补：本页只讲业务怎么走、每步配什么单据。
- * 是用户提供的 16 步价值流的教学化呈现。纯 design token，零裸 hex / 零渐变 / 零弹性缓动。
+ * v1 是「价值流河流 + 4 阶段流动色带 + 弹窗」的沉浸式叙事版，用户反馈：
+ *   "太花哨、没有实用价值、流向也不对"。本版据此重做 ——
+ *   · 砍掉所有装饰性流动动画（河流 / 阶段色带 / 重复的流程总览条）；
+ *   · 改为一张可直接读的「价值流参考表」：4 个阶段顺序展开，每步编号、说明、
+ *     配套单据、归属系统全部**内联可见**，不用逐个点弹窗；
+ *   · 顺序严格 1→16（接单备料 → 生产执行 → 质检包装 → 入库交付），流向一目了然；
+ *   · 第 9 步「车间生产加工」内联指向 /simulator，承接工厂全景的「业务单据视角」。
  *
- * 视觉叙事（用户要的「价值流河流」）：
- *  · 顶部一条「价值流河」——订单 token 从「客户下单」一路流到「发货出库」；
- *  · 4 个阶段各有一条按系统色（--phase-*）流动的高亮色带，把每步归哪套系统讲清楚；
- *  · 每步仍是可点击按钮，点开弹窗看配套单据 / 归属系统（修过的「点了没反应」保留）。
- *  · 底部一座桥指回 /simulator，标明「车间生产加工」内部四道工序可在模拟器动手玩。
+ * 纯 design token；无 emoji 图标、无渐变、无裸 hex、无弹性缓动。
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, Fragment } from 'react';
+import { type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../../components/Icon';
-import { OD_BANDS, type ODStep } from './orderToDelivery.data';
+import { OD_BANDS } from './orderToDelivery.data';
 import './OrderToDeliveryFlow.css';
 
 const PHASE_VAR: Record<string, string> = {
@@ -30,28 +31,7 @@ const PHASE_SOFT: Record<string, string> = {
 };
 
 export default function OrderToDeliveryFlow() {
-  const [activeKey, setActiveKey] = useState<string | null>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
-
-  const allSteps = useMemo(() => OD_BANDS.flatMap((b) => b.steps), []);
-  const bandLabelOf = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const b of OD_BANDS) for (const s of b.steps) m.set(s.key, b.label);
-    return (key: string) => m.get(key) ?? '';
-  }, []);
-  const active: ODStep | null = activeKey ? allSteps.find((s) => s.key === activeKey) ?? null : null;
-
-  useEffect(() => {
-    if (!active) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setActiveKey(null);
-    };
-    document.addEventListener('keydown', onKey);
-    closeRef.current?.focus();
-    return () => document.removeEventListener('keydown', onKey);
-  }, [active]);
-
-  const open = (k: string) => setActiveKey(k);
+  const total = OD_BANDS.reduce((n, b) => n + b.steps.length, 0);
 
   return (
     <section className="od">
@@ -62,94 +42,86 @@ export default function OrderToDeliveryFlow() {
         </p>
         <h1 className="od-title">订单到交付全流程</h1>
         <p className="od-sub">
-          从客户下单到发货出库，真实离散制造厂 16 步业务流。点任意一步，看它配什么单据、归哪套系统。
+          真实离散制造厂从客户下单到发货出库的 <b>{total}</b> 步业务流。每步配什么单据、归哪套系统，一目了然；
           想看「归哪套系统」的俯瞰视角，去 <Link to="/factory">工厂全景</Link>。
         </p>
       </header>
 
-      {/* ═══ 价值流河：订单 token 从源头流到发货 ═══ */}
-      <div className="od-river" aria-hidden="true">
-        <div className="od-river-end od-river-src">
-          <Icon name="shopping-cart" size={20} />
-          <span>客户下单</span>
-        </div>
-        <div className="od-river-bed">
-          <div className="od-river-stream">
-            <span className="od-river-dot" />
-            <span className="od-river-dot" />
-            <span className="od-river-dot" />
-            <span className="od-river-dot" />
-            <span className="od-river-dot" />
-          </div>
-          <div className="od-river-token">
-            <Icon name="package" size={16} />
-          </div>
-        </div>
-        <div className="od-river-end od-river-dst">
-          <Icon name="truck" size={20} />
-          <span>发货出库</span>
-        </div>
-      </div>
-      <div className="od-river-legend">
-        {OD_BANDS.map((b) => (
-          <span className="od-legend-item" key={b.key} style={{ '--ph': PHASE_VAR[b.key] } as CSSProperties}>
-            <i className="od-legend-dot" />
-            {b.label}
-          </span>
-        ))}
-      </div>
-
-      {/* 一行紧凑总览：客户下单→订单审核→…→发货出库 连线形态 */}
-      <div className="od-overview" role="group" aria-label="全流程一览（可点击查看任一步）">
-        {allSteps.map((st, i) => (
-          <Fragment key={st.key}>
-            <button type="button" className="od-ov-node" onClick={() => open(st.key)}>
-              <span className="od-ov-seq">{st.seq}</span>
-              <span className="od-ov-name">{st.name}</span>
-            </button>
-            {i < allSteps.length - 1 && (
-              <span className="od-ov-arrow" aria-hidden="true"><Icon name="chevron-right" size={16} /></span>
+      {/* 阶段速览：4 个阶段顺序 + 步数，给整体方向感（非装饰动画） */}
+      <ol className="od-phases" aria-label="四个阶段顺序">
+        {OD_BANDS.map((b, i) => (
+          <li
+            className="od-phase"
+            key={b.key}
+            style={{ '--ph': PHASE_VAR[b.key], '--ph-soft': PHASE_SOFT[b.key] } as CSSProperties}
+          >
+            <span className="od-phase-dot" aria-hidden="true" />
+            <span className="od-phase-label">{b.label}</span>
+            <span className="od-phase-count">{b.steps.length} 步</span>
+            {i < OD_BANDS.length - 1 && (
+              <Icon name="chevron-right" size={16} className="od-phase-arrow" aria-hidden="true" />
             )}
-          </Fragment>
+          </li>
         ))}
-      </div>
+      </ol>
 
+      {/* 4 个阶段，依次展开；每步内联说明 + 单据 + 系统 */}
       {OD_BANDS.map((band) => (
         <section
           className="od-band"
           key={band.key}
           style={{ '--ph': PHASE_VAR[band.key], '--ph-soft': PHASE_SOFT[band.key] } as CSSProperties}
+          aria-label={band.label}
         >
           <div className="od-band-head">
             <span className="od-band-tag">{band.label}</span>
-            <span className="od-band-count">{band.steps.length} 步</span>
-          </div>
-
-          {/* 系统色带高亮：按阶段色流动，把「归哪套系统」讲清楚 */}
-          <div className="od-band-flow" aria-hidden="true">
-            <span className="od-band-dot" />
-            <span className="od-band-dot" />
-            <span className="od-band-dot" />
+            <span className="od-band-count">
+              第 {band.steps[0].seq}–{band.steps[band.steps.length - 1].seq} 步
+            </span>
           </div>
 
           <ol className="od-chain">
             {band.steps.map((st) => (
               <li className="od-step" key={st.key}>
-                <button type="button" className="od-node" onClick={() => open(st.key)} aria-haspopup="dialog">
-                  <span className="od-seq">{st.seq}</span>
-                  <span className="od-node-name">{st.name}</span>
-                  <span className="od-node-cue">
-                    看单据 <Icon name="chevron-down" size={16} />
-                  </span>
-                </button>
+                <span className="od-marker" aria-hidden="true">{st.seq}</span>
+                <div className="od-body">
+                  <div className="od-name-row">
+                    <span className="od-name">{st.name}</span>
+                    {st.key === 'shopfloor' && (
+                      <Link to="/simulator" className="od-inline-cta">
+                        动手调这道工序的机器 <Icon name="arrow-right" size={16} />
+                      </Link>
+                    )}
+                  </div>
+                  <p className="od-desc">{st.desc}</p>
+                  <div className="od-chips">
+                    <span className="od-chip-group">
+                      <Icon name="chapter" size={16} className="od-chip-ic" aria-hidden="true" />
+                      {st.docs.length > 0 ? (
+                        st.docs.map((d) => (
+                          <span className="od-chip" key={d}>{d}</span>
+                        ))
+                      ) : (
+                        <span className="od-chip od-chip-none">无独立业务单据</span>
+                      )}
+                    </span>
+                    <span className="od-chip-group">
+                      <Icon name="boxes" size={16} className="od-chip-ic" aria-hidden="true" />
+                      {st.systems.map((s) => (
+                        <span className="od-chip od-chip-sys" key={s}>{s}</span>
+                      ))}
+                    </span>
+                  </div>
+                </div>
               </li>
             ))}
           </ol>
         </section>
       ))}
 
+      {/* 桥接工厂模拟器：第 9 步「车间生产加工」的内部四道工序可在模拟器动手玩 */}
       <Link to="/simulator" className="od-bridge">
-        <span className="od-bridge-ic"><Icon name="routing" size={24} /></span>
+        <span className="od-bridge-ic"><Icon name="gauge" size={24} /></span>
         <span className="od-bridge-body">
           <span className="od-bridge-title">第 9 步「车间生产加工」内部长什么样？</span>
           <span className="od-bridge-sub">
@@ -158,67 +130,6 @@ export default function OrderToDeliveryFlow() {
         </span>
         <span className="od-bridge-go">玩工厂模拟器 <Icon name="arrow-right" size={16} /></span>
       </Link>
-
-      {active && (
-        <div
-          className="od-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="od-modal-title"
-          onClick={() => setActiveKey(null)}
-        >
-          <div className="od-modal-card" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="od-modal-close"
-              aria-label="关闭"
-              ref={closeRef}
-              onClick={() => setActiveKey(null)}
-            >
-              <Icon name="close" size={20} />
-            </button>
-
-            <div className="od-modal-head">
-              <span className="od-modal-seq">{active.seq}</span>
-              <div>
-                <h2 id="od-modal-title" className="od-modal-title">{active.name}</h2>
-                <p className="od-modal-phase">{bandLabelOf(active.key)}</p>
-              </div>
-            </div>
-
-            <p className="od-modal-desc">{active.desc}</p>
-
-            <div className="od-modal-rows">
-              <div className="od-modal-row">
-                <span className="od-modal-lbl"><Icon name="chapter" size={16} /> 配套单据</span>
-                {active.docs.length > 0 ? (
-                  <span className="od-docs">
-                    {active.docs.map((d) => (
-                      <span className="od-doc" key={d}>{d}</span>
-                    ))}
-                  </span>
-                ) : (
-                  <span className="od-doc-none">此步为计划 / 评审类，无独立业务单据</span>
-                )}
-              </div>
-              <div className="od-modal-row">
-                <span className="od-modal-lbl"><Icon name="boxes" size={16} /> 归属系统</span>
-                <span className="od-sys">
-                  {active.systems.map((s) => (
-                    <span className="od-sys-tag" key={s}>{s}</span>
-                  ))}
-                </span>
-              </div>
-            </div>
-
-            {active.key === 'shopfloor' && (
-              <Link to="/simulator" className="od-modal-cta">
-                动手调这道工序的机器 <Icon name="arrow-right" size={16} />
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
     </section>
   );
 }

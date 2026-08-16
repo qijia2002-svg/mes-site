@@ -1,484 +1,221 @@
-/* 订单到交付全景：4 阶段连线流程 + 点击弹窗。纯 design token。 */
+/* ═══ 订单到交付 · 实用参考版（v2）═══
+   纯 design token；无装饰性流动动画；时间线 + 内联单据/系统。
+   配色只用 --phase-* 小面积点缀（圆点 / 序号圈 / 阶段标题），不整块填充。 */
+
 .od {
   max-width: var(--container-app);
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4) var(--space-12);
+  padding: var(--space-8) var(--space-6) var(--space-12);
 }
 
-.od-head { margin-bottom: var(--space-6); }
+/* ── 页头 ── */
+.od-head { max-width: 64ch; }
 .od-kicker {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  color: var(--meta);
   margin: 0 0 var(--space-2);
+  color: var(--meta);
   font-size: var(--text-sm);
 }
+.od-kicker .caps { color: var(--meta); }
 .od-title {
-  font-size: var(--text-2xl);
-  font-weight: var(--weight-announce-cjk);
   margin: 0;
-  color: var(--fg);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-announce-cjk);
+  color: var(--brand-ink);
+  letter-spacing: var(--tracking-title);
+  line-height: var(--leading-tight);
 }
 .od-sub {
   margin: var(--space-3) 0 0;
-  color: var(--fg-2);
   font-size: var(--text-base);
   line-height: var(--leading-body);
-  max-width: 62ch;
+  color: var(--fg-2);
 }
+.od-sub b { color: var(--brand-ink); font-weight: var(--weight-announce-cjk); }
 .od-sub a { color: var(--accent); text-decoration: none; }
 .od-sub a:hover { text-decoration: underline; }
 
-/* ═══ 价值流河：订单 token 从源头流到发货 ═══ */
-.od-river {
+/* ── 阶段速览条 ── */
+.od-phases {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
+  padding: var(--space-4);
+  list-style: none;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: var(--space-4) var(--space-5);
 }
-.od-river-end {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-emph-cjk);
-  color: var(--fg-2);
-  white-space: nowrap;
-}
-.od-river-src svg { color: var(--phase-plan); }
-.od-river-dst svg { color: var(--phase-logistics); }
-.od-river-bed {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 120px;
-  height: 44px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-}
-.od-river-stream { position: absolute; inset: 0; }
-.od-river-dot {
-  position: absolute;
-  top: 50%;
-  left: -6%;
-  width: 7px;
-  height: 7px;
-  margin-top: -3.5px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  opacity: 0.45;
-  animation: odStream 9s linear infinite;
-}
-.od-river-dot:nth-child(1) { animation-delay: 0s; }
-.od-river-dot:nth-child(2) { animation-delay: -1.8s; }
-.od-river-dot:nth-child(3) { animation-delay: -3.6s; }
-.od-river-dot:nth-child(4) { animation-delay: -5.4s; }
-.od-river-dot:nth-child(5) { animation-delay: -7.2s; }
-.od-river-token {
-  position: absolute;
-  top: 50%;
-  left: -6%;
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: var(--accent-on);
-  transform: translateY(-50%);
-  animation: odStream 12s linear infinite;
-  box-shadow: var(--elev-dropdown);
-}
-.od-river-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  margin: var(--space-2) 0 0;
-}
-.od-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-xs);
-  color: var(--muted);
-}
-.od-legend-dot {
+.od-phase { display: inline-flex; align-items: center; gap: var(--space-2); }
+.od-phase-dot {
   width: 10px;
   height: 10px;
-  border-radius: var(--radius-pill);
+  border-radius: 50%;
   background: var(--ph);
-}
-
-/* ═══ 顶部一行紧凑总览（横向连线）═══ */
-.od-overview {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  overflow-x: auto;
-  padding: var(--space-3) 0;
-  margin-bottom: var(--space-2);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  scrollbar-width: thin;
-}
-.od-ov-node {
   flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  font-family: inherit;
-  font-size: var(--text-xs);
-  color: var(--fg-2);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  padding: var(--space-1) var(--space-3);
-  cursor: pointer;
-  transition: color var(--motion-fast) var(--ease-standard),
-    border-color var(--motion-fast) var(--ease-standard),
-    background var(--motion-fast) var(--ease-standard);
 }
-.od-ov-seq {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: #fff;
-  font-size: 11px;
-  font-weight: var(--weight-announce-cjk);
-  line-height: 1;
-}
-.od-ov-node:hover { color: var(--accent); border-color: var(--accent); }
-.od-ov-node:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.od-ov-arrow { flex: none; display: flex; color: var(--border-strong); }
+.od-phase-label { font-weight: var(--weight-announce-cjk); color: var(--brand-ink); }
+.od-phase-count { font-size: var(--text-xs); color: var(--meta); }
+.od-phase-arrow { color: var(--border-strong); margin: 0 var(--space-1); flex: none; }
 
-/* ═══ 阶段带 ═══ */
+/* ── 阶段区块 ── */
 .od-band { margin-top: var(--space-8); }
 .od-band-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--ph);
 }
 .od-band-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--space-1) var(--space-3);
-  background: var(--ph);
-  color: var(--accent-on);
-  border-radius: var(--radius-pill);
-  font-size: var(--text-sm);
+  font-size: var(--text-lg);
   font-weight: var(--weight-announce-cjk);
+  color: var(--ph);
+  letter-spacing: var(--tracking-title);
 }
-.od-band-count { font-size: var(--text-xs); color: var(--muted); }
+.od-band-count { font-size: var(--text-xs); color: var(--meta); }
 
-/* 系统色带高亮：按阶段色流动，把「归哪套系统」讲清楚 */
-.od-band-flow {
-  position: relative;
-  height: 10px;
-  margin: var(--space-2) 0 var(--space-3);
-  background: color-mix(in srgb, var(--ph) 12%, var(--surface));
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-}
-.od-band-dot {
-  position: absolute;
-  top: 50%;
-  left: -6%;
-  width: 8px;
-  height: 8px;
-  margin-top: -4px;
-  border-radius: var(--radius-pill);
-  background: var(--ph);
-  animation: odStream 6s linear infinite;
-}
-.od-band-dot:nth-child(2) { animation-delay: -2s; }
-.od-band-dot:nth-child(3) { animation-delay: -4s; }
-
-/* ═══ 横向连线流程（桌面）═══ */
+/* ── 时间线（每步一节点，序号圈落在竖脊上）── */
 .od-chain {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  gap: 0;
-  align-items: stretch;
-  overflow-x: auto;
-  padding-bottom: var(--space-5);
-  scrollbar-width: thin;
+  position: relative;
+}
+.od-chain::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: var(--ph-soft);
 }
 .od-step {
   position: relative;
-  flex: 1 0 168px;
   display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
 }
-/* 步骤之间的箭头连线（指向右侧） */
-.od-step::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: -10px;
-  width: 8px;
-  height: 8px;
-  border-top: 2px solid var(--border-strong);
-  border-right: 2px solid var(--border-strong);
-  transform: translateY(-50%) rotate(45deg);
-  z-index: 2;
-}
-.od-step:last-child::after { display: none; }
-
-.od-node {
-  position: relative;
-  width: 100%;
-  text-align: left;
-  font-family: inherit;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-height: 66px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-top: 3px solid var(--ph);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-3) var(--space-2);
-  transition: border-color var(--motion-fast) var(--ease-standard),
-    background var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard);
-}
-.od-node:hover {
-  border-color: var(--ph);
-  background: var(--ph-soft);
-  box-shadow: 0 0 0 3px var(--ph-soft);
-}
-.od-node:focus-visible { outline: 2px solid var(--ph); outline-offset: 2px; }
-.od-seq {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-announce-cjk);
-  color: var(--ph);
-}
-.od-node-name {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-announce-cjk);
-  color: var(--fg);
-  line-height: var(--leading-snug);
-}
-.od-node-cue {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin-top: auto;
-  font-size: var(--text-xs);
-  color: var(--muted);
-}
-.od-node:hover .od-node-cue { color: var(--ph); }
-
-/* ═══ 弹窗 ═══ */
-.od-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  background: color-mix(in srgb, var(--brand-ink) 45%, transparent);
-  animation: odFade var(--motion-base) var(--ease-standard);
-}
-.od-modal-card {
-  position: relative;
-  width: min(520px, 100%);
-  max-height: 86vh;
-  overflow: auto;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  box-shadow: 0 12px 40px color-mix(in srgb, var(--brand-ink) 22%, transparent);
-  animation: odPop var(--motion-base) var(--ease-standard);
-}
-.od-modal-close {
-  position: absolute;
-  top: var(--space-3);
-  right: var(--space-3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: var(--surface-2);
-  color: var(--muted);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: color var(--motion-fast) var(--ease-standard),
-    background var(--motion-fast) var(--ease-standard);
-}
-.od-modal-close:hover { color: var(--fg); background: var(--border); }
-.od-modal-head { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); }
-.od-modal-seq {
+.od-marker {
   flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--ph, var(--accent-soft));
-  color: var(--accent-on);
+  background: var(--surface);
+  border: 2px solid var(--ph);
+  color: var(--ph);
+  font-size: var(--text-sm);
   font-weight: var(--weight-announce-cjk);
+  z-index: 1;
+}
+.od-body { flex: 1; min-width: 0; padding-top: 2px; }
+.od-name-row { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
+.od-name {
   font-size: var(--text-lg);
+  font-weight: var(--weight-announce-cjk);
+  color: var(--brand-ink);
 }
-.od-modal-title { margin: 0; font-size: var(--text-xl); font-weight: var(--weight-announce-cjk); color: var(--fg); }
-.od-modal-phase {
-  margin: 2px 0 0;
-  font-size: var(--text-xs);
-  color: var(--muted);
-}
-.od-modal-desc {
-  margin: 0 0 var(--space-4);
-  color: var(--fg-2);
-  font-size: var(--text-base);
-  line-height: var(--leading-body);
-}
-.od-modal-rows { display: flex; flex-direction: column; gap: var(--space-3); }
-.od-modal-row { display: flex; flex-direction: column; gap: var(--space-2); }
-.od-modal-lbl {
+.od-inline-cta {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
   font-size: var(--text-xs);
-  font-weight: var(--weight-announce-cjk);
-  color: var(--meta);
-}
-.od-docs { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-.od-doc {
-  font-size: var(--text-sm);
+  font-weight: var(--weight-emph-cjk);
   color: var(--accent);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 2px var(--space-2);
-}
-.od-doc-none { font-size: var(--text-sm); color: var(--meta); }
-.od-sys { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-.od-sys-tag {
-  font-size: var(--text-xs);
-  color: var(--meta);
-  background: var(--bg);
-  border-radius: var(--radius-sm);
-  padding: 2px var(--space-2);
-}
-.od-modal-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-5);
-  padding: var(--space-3) var(--space-4);
-  background: var(--accent);
-  color: var(--accent-on);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-announce-cjk);
   text-decoration: none;
 }
-.od-modal-cta:hover { background: var(--accent-hover, var(--accent)); }
+.od-inline-cta:hover { text-decoration: underline; }
+.od-desc {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--muted);
+  max-width: 64ch;
+}
+.od-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+.od-chip-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+.od-chip-ic { color: var(--meta); flex: none; }
+.od-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--fg-2);
+  font-size: var(--text-xs);
+}
+.od-chip-sys {
+  background: var(--ph-soft);
+  border-color: transparent;
+  color: var(--ph);
+  font-weight: var(--weight-emph-cjk);
+}
+.od-chip-none { color: var(--meta); background: transparent; border-style: dashed; }
 
-/* ═══ 桥接模拟器 ═══ */
+/* ── 桥接模拟器 ── */
 .od-bridge {
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  margin-top: var(--space-10);
+  margin-top: var(--space-8);
   padding: var(--space-5);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-lg);
   text-decoration: none;
-  color: inherit;
-  transition: border-color var(--motion-fast) var(--ease-standard);
-}
-.od-bridge:hover { border-color: var(--accent); }
-.od-bridge-ic { color: var(--accent); display: flex; flex: none; }
-.od-bridge-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-.od-bridge-title {
-  font-weight: var(--weight-announce-cjk);
   color: var(--fg);
-  font-size: var(--text-base);
+  transition: border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
 }
-.od-bridge-sub { color: var(--fg-2); font-size: var(--text-sm); }
+.od-bridge:hover { border-color: var(--accent); box-shadow: var(--elev-card-hover); }
+.od-bridge-ic {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--accent);
+}
+.od-bridge-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.od-bridge-title { font-weight: var(--weight-announce-cjk); color: var(--brand-ink); }
+.od-bridge-sub { font-size: var(--text-sm); color: var(--muted); line-height: var(--leading-snug); }
 .od-bridge-go {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
   color: var(--accent);
-  font-size: var(--text-sm);
-  flex: none;
+  font-weight: var(--weight-emph-cjk);
+  white-space: nowrap;
 }
 
-@keyframes odFade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes odPop { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
-@keyframes odStream { from { left: -6%; } to { left: 106%; } }
-@media (prefers-reduced-motion: reduce) {
-  .od-modal, .od-modal-card { animation: none; }
-  .od-river-dot, .od-river-token, .od-band-dot { animation: none !important; }
-}
-
-/* ═══ 移动端：横向连线转纵向（箭头朝下）═══ */
-@media (max-width: 768px) {
-  .od-chain {
-    flex-direction: column;
-    overflow: visible;
-    padding-bottom: 0;
-  }
-  .od-step { flex: 1 0 auto; }
-  .od-step::after {
-    top: auto;
-    bottom: -12px;
-    right: auto;
-    left: 28px;
-    border-top: none;
-    border-right: none;
-    border-left: 2px solid var(--border-strong);
-    border-bottom: 2px solid var(--border-strong);
-    transform: rotate(45deg);
-  }
-  .od-node { min-height: 60px; }
-
-  /* 概要条：手机端改为自动换行的可点芯片云，去掉横向滑动 + 难点的小药丸。
-     阶段带(下方 .od-chain)已是纵向全宽，概要与详情不再需要横向滚动。 */
-  .od-overview {
-    flex-wrap: wrap;
-    overflow: visible;
-    gap: var(--space-2);
-  }
-  .od-ov-arrow { display: none; }
-  .od-ov-node { min-height: 40px; }
-}
-
-@media (max-width: 640px) {
-  .od-bridge { flex-wrap: wrap; }
-  .od-bridge-go { width: 100%; justify-content: flex-end; }
-  .od-overview { padding: var(--space-2) 0; }
-  .od-river { flex-wrap: wrap; }
-  .od-river-bed { flex-basis: 100%; order: 3; }
+/* ── 响应式 ── */
+@media (max-width: 720px) {
+  .od { padding: var(--space-5) var(--space-4) var(--space-10); }
+  .od-title { font-size: var(--text-2xl); }
+  .od-band { margin-top: var(--space-6); }
+  .od-bridge { flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+  .od-bridge-go { align-self: flex-end; }
 }
