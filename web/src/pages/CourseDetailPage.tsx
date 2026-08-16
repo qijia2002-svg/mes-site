@@ -10,9 +10,9 @@ import { useCrumbTail } from '../components/Breadcrumb';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
 import { QuizDeck } from '../components/QuizDeck';
 import { api, type CourseState, type PathSummary, type StageSummary } from '../api/endpoints';
-import { peek, useActivePath } from '../lib/userData';
+import { useActivePath } from '../lib/userData';
 
-// 学习引擎状态（激活路径 / 选中路径）走云端镜像 userData，跨设备一致（见 lib/userData.ts）
+// 学习引擎状态（激活路径）走云端镜像 userData，跨设备一致（见 lib/userData.ts）
 
 export default function CourseDetailPage() {
   const { topicId } = useParams();
@@ -246,15 +246,12 @@ export default function CourseDetailPage() {
  */
 function PathContextBar({ topicId }: { topicId: number }) {
   const activePath = useActivePath() ?? undefined;
-  const selectedPaths = peek<number[]>('engine.selectedPaths', []);
 
   const engineQ = useQuery({
-    queryKey: ['engine-status', activePath, selectedPaths],
-    queryFn: () => api.engineStatus({
-      activePath, selectedPaths: selectedPaths.length > 0 ? selectedPaths : undefined,
-    }),
+    queryKey: ['engine-status', activePath],
+    queryFn: () => api.engineStatus({ activePath }),
     staleTime: 60_000,
-    enabled: selectedPaths.length > 0 || !!activePath,
+    enabled: !!activePath,
   });
 
   if (!engineQ.data || engineQ.data.paths.length === 0) return null;

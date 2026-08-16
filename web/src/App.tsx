@@ -48,6 +48,8 @@ export default function App() {
                   <Route path="/" element={<HomePage />} />
                   <Route path="/factory" element={<FactoryPage />} />
                   <Route path="/knowledge-graph" element={<KnowledgeGraphPage />} />
+                  {/* 模拟器「去知识图」深链：/knowledge-graph/concept/:concept 落到同一页并按参数预选概念节点 */}
+                  <Route path="/knowledge-graph/concept/:concept" element={<KnowledgeGraphPage />} />
                   <Route path="/engine" element={<Navigate to="/factory" replace />} />
                   <Route path="/simulator" element={<SimulatorPage />} />
                   <Route path="/order-to-delivery" element={<OrderToDeliveryPage />} />

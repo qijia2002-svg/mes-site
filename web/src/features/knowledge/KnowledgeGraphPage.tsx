@@ -4,8 +4,8 @@
  * 全图一次性加载；点概念节点 → 右侧抽屉列出「谁在讲它」的反链清单
  * （节点讲解 / 微练习 / 术语 / 课程 / SQL 练习 / 流程节点），点流程节点类反链可跳工厂全景。
  */
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/endpoints';
 import type { KgNode } from '../../api/endpoints';
@@ -14,6 +14,7 @@ import { ForceGraphCanvas, KIND_LABEL } from './ForceGraphCanvas';
 const DEFAULT_FLOW = 'generic-factory';
 
 export function KnowledgeGraphPage() {
+  const { concept: conceptParam } = useParams<{ concept?: string }>();
   const [selected, setSelected] = useState<KgNode | null>(null);
 
   const graph = useQuery({
@@ -27,6 +28,15 @@ export function KnowledgeGraphPage() {
     enabled: !!conceptKey,
     queryFn: ({ signal }) => api.knowledgeGraphConcept(conceptKey as string, signal),
   });
+
+  // 深链预选：/knowledge-graph/concept/:concept 进入时，图加载完成后自动选中对应概念节点
+  useEffect(() => {
+    if (!conceptParam || !graph.data) return;
+    const target = graph.data.nodes.find(
+      (n) => n.kind === 'concept' && n.id.split(':')[1] === conceptParam,
+    );
+    if (target) setSelected(target);
+  }, [conceptParam, graph.data]);
 
   const onSelect = (n: KgNode) => setSelected(n);
 
