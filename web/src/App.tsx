@@ -6,6 +6,7 @@ import { RequireAuth } from './components/AuthGuard';
 import { LoadingState } from './components/StateBlock';
 import CoursesPage from './pages/CoursesPage';
 import FactoryPage from './pages/FactoryPage';
+import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 
 // 路由级代码分割（优化：首屏只加载 Login/Factory，其余页面按需拆成独立 chunk，
@@ -43,8 +44,8 @@ export default function App() {
             <AppShell>
               <Suspense fallback={<LoadingState label="加载页面…" />}>
                 <Routes>
-                  {/* /factory 只干一件事：工厂全景。其余各自独立成页，不再塞进双层 Tab */}
-                  <Route path="/" element={<Navigate to="/factory" replace />} />
+                  {/* / 是真正独立的门户首页；/factory 继续做工厂深钻 */}
+                  <Route path="/" element={<HomePage />} />
                   <Route path="/factory" element={<FactoryPage />} />
                   <Route path="/knowledge-graph" element={<KnowledgeGraphPage />} />
                   <Route path="/engine" element={<Navigate to="/factory" replace />} />
