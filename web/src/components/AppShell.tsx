@@ -14,7 +14,6 @@ import { NetworkBanner } from './NetworkBanner';
 import { api } from '../api/endpoints';
 import { ScrollProgress } from './ScrollProgress';
 import { getNickname, subscribeProfile } from '../lib/profileStore';
-import { LearningSpine } from './LearningSpine';
 import { TopbarSearch } from './TopbarSearch';
 import { TutorFab } from '../features/tutor/TutorFab';
 import { TutorWorkspace } from '../features/tutor/TutorWorkspace';
@@ -159,7 +158,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Icon name="admin" size={16} />
             </Link>
           </div>
-          <LearningSpine />
         </div>
       </aside>
 

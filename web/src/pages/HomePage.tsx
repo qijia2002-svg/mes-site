@@ -12,6 +12,8 @@
  */
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from '../components/Icon';
+import { useLearningSpine } from '../lib/learningSpine';
+import { NextActionCard } from '../components/NextAction';
 
 type Feature = {
   to: string;
@@ -77,6 +79,8 @@ const STEPS: { to: string; icon: IconName; title: string; desc: string }[] = [
 ];
 
 export default function HomePage() {
+  const spine = useLearningSpine();
+
   return (
     <section className="hp">
       <style>{`
@@ -183,6 +187,46 @@ export default function HomePage() {
           .hp-section{margin-top:var(--space-8)}
           .hp-grid{grid-template-columns:1fr;gap:var(--space-3)}
         }
+
+        /* ── 首页脊柱仪表盘 ── */
+        .hp-spine{margin-top:var(--space-6);padding:var(--space-6);
+          background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)}
+        .hp-spine-empty{background:var(--accent-soft);border-color:var(--accent-border)}
+        .hp-spine-head{display:flex;justify-content:space-between;align-items:baseline;
+          margin-bottom:var(--space-4)}
+        .hp-spine-label{font-size:var(--text-xs);color:var(--meta);
+          text-transform:uppercase;letter-spacing:var(--tracking-caps);font-weight:var(--weight-emph-cjk)}
+        .hp-spine-switch{font-size:var(--text-xs);color:var(--accent);
+          text-decoration:none;font-weight:var(--weight-emph-cjk)}
+        .hp-spine-switch:hover{text-decoration:underline}
+        .hp-spine-body{display:flex;align-items:center;gap:var(--space-6);
+          flex-wrap:wrap}
+        .hp-spine-path{font-size:var(--text-xl);font-weight:var(--weight-announce-cjk);
+          color:var(--brand-ink);letter-spacing:var(--tracking-title)}
+        .hp-spine-metrics{display:flex;align-items:center;gap:var(--space-5);flex:1;
+          flex-wrap:wrap}
+        .hp-spine-metric{display:flex;flex-direction:column;gap:2px}
+        .hp-spine-num{font-family:var(--font-mono);font-size:var(--text-3xl);
+          font-weight:var(--weight-announce);color:var(--fg);line-height:1}
+        .hp-spine-num span{font-size:var(--text-base);color:var(--meta);margin-left:2px}
+        .hp-spine-cap{font-size:var(--text-xs);color:var(--meta)}
+        /* 覆盖 next-card 默认样式以适配首页宽屏 */
+        .hp-spine .next-card{flex:1 1 280px;border-left-width:3px;
+          padding:var(--space-4) var(--space-5)}
+        .hp-spine-empty-text{margin:0 0 var(--space-4);font-size:var(--text-sm);
+          color:var(--fg-2);line-height:var(--leading-relaxed);max-width:48ch}
+        .hp-spine-factory{display:inline-flex;align-items:center;gap:var(--space-2);
+          margin-top:var(--space-4);padding:var(--space-2) var(--space-4);
+          background:var(--surface-2);border-radius:var(--radius-md);
+          font-size:var(--text-sm);color:var(--accent);text-decoration:none;
+          transition:background var(--motion-fast) var(--ease-standard)}
+        .hp-spine-factory:hover{background:var(--accent-soft)}
+        @media(max-width:720px){
+          .hp-spine{padding:var(--space-4)}
+          .hp-spine-body{flex-direction:column;align-items:stretch;gap:var(--space-3)}
+          .hp-spine-metrics{gap:var(--space-3)}
+          .hp-spine-num{font-size:var(--text-2xl)}
+        }
       `}</style>
 
       {/* ═══ 英雄区：身份 + 价值主张 + 主入口 ═══ */}
@@ -210,6 +254,53 @@ export default function HomePage() {
           <span className="hp-pill">AI 导师随时问</span>
         </div>
       </header>
+
+      {/* ═══ 学习脊柱仪表盘（首页专属，侧栏不再放） ═══ */}
+      {spine.activePath != null ? (
+        <section className="hp-spine" aria-label="学习进度">
+          <div className="hp-spine-head">
+            <span className="hp-spine-label">我的学习主线</span>
+            <Link to="/learning-paths" className="hp-spine-switch">切换路径</Link>
+          </div>
+          <div className="hp-spine-body">
+            <div className="hp-spine-path">{spine.pathName}</div>
+            <div className="hp-spine-metrics">
+              <div className="hp-spine-metric">
+                <span className="hp-spine-num">{spine.completion}<span>%</span></span>
+                <span className="hp-spine-cap">主线进度</span>
+              </div>
+              {spine.nextCourseId != null && (
+                <NextActionCard
+                  action={{
+                    to: `/courses/${spine.nextCourseId}`,
+                    label: `继续学：${spine.nextCourseName ?? '下一门课'}`,
+                    hint: '主线推荐的下一步',
+                    icon: 'courses',
+                    kind: 'learn',
+                  }}
+                />
+              )}
+            </div>
+          </div>
+          <Link to="/factory" className="hp-spine-factory">
+            <Icon name="factory" size={16} />
+            进工厂全景看看走到哪了
+            <Icon name="arrow-right" size={16} />
+          </Link>
+        </section>
+      ) : (
+        <section className="hp-spine hp-spine-empty" aria-label="学习进度">
+          <div className="hp-spine-head">
+            <span className="hp-spine-label">我的学习主线</span>
+          </div>
+          <p className="hp-spine-empty-text">
+            还没设定学习路线。选一条路径，平台会替你记着学到哪、下一步去哪。
+          </p>
+          <Link to="/learning-paths" className="btn btn-primary">
+            <Icon name="paths" size={16} /> 选一条学习路径
+          </Link>
+        </section>
+      )}
 
       {/* ═══ 新手上路：三段式入口 ═══ */}
       <nav className="hp-steps" aria-label="新手上路">
