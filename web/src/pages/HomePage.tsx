@@ -64,9 +64,9 @@ const FEATURES: Feature[] = [
     desc: 'MES 实施 / 二开 / SCADA 的职业能力地图与成长阶段。',
   },
   {
-    to: '/tools',
+    to: '/practice',
     icon: 'tools',
-    title: '动手练习',
+    title: '练习中心',
     desc: 'SQL 沙盒 + 测验 + 词典，边学边练，学了就能验。',
   },
 ];

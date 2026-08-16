@@ -1,9 +1,10 @@
 /**
- * App Shell — 左侧常驻分组导航（5 个一级区，桌面端子页平铺），移动端切换为底部 5 tab。
- * 导航按「学习者旅程」分组：
- *   工厂（全景 / 模拟器 / 订单到交付）· 课程（课程 / 学习路径 / 岗位路线）
- *   知识图 · 练习（SQL 沙盒 / 测验 / 词典）· 我的（个人中心 / 作品集）
- * 移动端底栏只显示 5 个一级区，子页在各落地页内进入；桌面端侧栏直接平铺子页，一屏可达。
+ * App Shell — 左侧常驻分组导航（4 个一级区，按学习意图分组，桌面端子页平铺），移动端切换为底部 4 tab。
+ * 导航按「学习意图」分组：
+ *   看 · 工厂（全景 / 模拟器 / 订单到交付）· 学 · 课程（课程 / 学习路径 / 岗位路线）
+ *   练 · 练习（SQL 沙盒 / 测验 / 词典 / 练习中心）· 我的（个人中心 / 作品集）
+ * 学习主线（Spine）常驻首页英雄区下方，不占一级导航。知识图已降级为页内/搜索可达，不在主导航。
+ * 移动端底栏只显示 4 个一级区，子页在各落地页内进入；桌面端侧栏直接平铺子页，一屏可达。
  */
 import { useSyncExternalStore } from 'react';
 import { NavLink, Link, useLocation, type To } from 'react-router-dom';
@@ -42,12 +43,13 @@ type NavDef = {
   match?: (p: string) => boolean;
 };
 
-// 导航按学习者旅程分组。模拟器/订单到交付归「工厂」（本质是工厂下钻），不再散落「工具」。
-// 测验/词典归「练习」（动手自测），与 SQL 沙盒并列。学习路径/岗位路线归「课程」。作品集归「我的」。
+// 导航按学习意图重组（UX 重梳 Phase D）：看·工厂 / 学·课程 / 练·练习 / 我的。
+// 学习主线（Spine）已移至首页英雄区下方常驻，不单独占一级导航。
+// 模拟器/订单到交付归「看·工厂」（本质是工厂下钻）；SQL 沙盒/测验/词典归「练·练习」，练习中心 /practice 为枢纽落地页。
 const NAV: NavDef[] = [
   {
     to: '/factory',
-    label: '工厂',
+    label: '看 · 工厂',
     icon: 'factory',
     match: (p) => p === '/factory' || p.startsWith('/simulator') || p.startsWith('/order-to-delivery'),
     children: [
@@ -57,7 +59,7 @@ const NAV: NavDef[] = [
   },
   {
     to: '/courses',
-    label: '课程',
+    label: '学 · 课程',
     icon: 'courses',
     match: (p) =>
       p.startsWith('/courses') || p.startsWith('/learning-paths') || p.startsWith('/roadmap') || p.startsWith('/tracks'),
@@ -67,10 +69,10 @@ const NAV: NavDef[] = [
     ],
   },
   {
-    to: '/tools',
-    label: '练习',
+    to: '/practice',
+    label: '练 · 练习',
     icon: 'tools',
-    match: (p) => p.startsWith('/tools') || p.startsWith('/sql-space') || p.startsWith('/quiz') || p.startsWith('/dictionary'),
+    match: (p) => p.startsWith('/practice') || p.startsWith('/sql-space') || p.startsWith('/quiz') || p.startsWith('/dictionary'),
     children: [
       { to: '/sql-space', label: 'SQL 沙盒', icon: 'sql' },
       { to: '/quiz', label: '测验', icon: 'quiz' },
