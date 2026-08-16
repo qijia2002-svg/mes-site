@@ -183,6 +183,12 @@ export default function CoursesPage() {
         </div>
       )}
 
+      {/* 路线直达：移动端底栏无子页，这里补「岗位路线」与「全部学习路径」入口 */}
+      <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-3)', flexWrap: 'wrap' }}>
+        <Link to="/roadmap" className="text-link"><Icon name="stage" size={16} /> 岗位路线</Link>
+        <Link to="/learning-paths" className="text-link"><Icon name="paths" size={16} /> 全部学习路径</Link>
+      </div>
+
       {topics.isLoading && <LoadingState label="加载课程…" />}
       {topics.isError && <ErrorState error={topics.error} onRetry={() => void topics.refetch()} />}
       {topics.data?.length === 0 && <EmptyState title="还没有课程" hint="内容由后台导入" icon="courses" />}

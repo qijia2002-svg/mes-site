@@ -1,8 +1,9 @@
 /**
- * App Shell — 左侧常驻导航（5 个一级 tab），移动端切换为底部 tabbar。
- * 桌面端导航：工厂 / 知识图 / 课程 / 工具 / 我的。
- * 移动端底栏同样 5 项（工厂 / 知识图 / 课程 / 工具 / 我的），与桌面一级导航一致。
- * 「词典」入口已于导航移除（直接 URL /dictionary 仍可访问）。
+ * App Shell — 左侧常驻分组导航（5 个一级区，桌面端子页平铺），移动端切换为底部 5 tab。
+ * 导航按「学习者旅程」分组：
+ *   工厂（全景 / 模拟器 / 订单到交付）· 课程（课程 / 学习路径 / 岗位路线）
+ *   知识图 · 练习（SQL 沙盒 / 测验 / 词典）· 我的（个人中心 / 作品集）
+ * 移动端底栏只显示 5 个一级区，子页在各落地页内进入；桌面端侧栏直接平铺子页，一屏可达。
  */
 import { useSyncExternalStore } from 'react';
 import { NavLink, Link, useLocation, type To } from 'react-router-dom';
@@ -51,24 +52,60 @@ function HealthPill() {
   );
 }
 
-type NavDef = { to: To; label: string; icon: IconName; match?: (p: string) => boolean };
+type NavChild = { to: To; label: string; icon: IconName };
+type NavDef = {
+  to: To;
+  label: string;
+  icon: IconName;
+  /** 子页：桌面侧栏平铺，移动端由各落地页进入。 */
+  children?: NavChild[];
+  /** 命中任一子路由时，该一级区高亮。 */
+  match?: (p: string) => boolean;
+};
 
-// 一级 tab。工具含子页（/sql-space、/simulator），用 match 让子页也高亮「工具」。
-// 模拟器归到「工具」枢纽（与 SQL 沙盒并列），不再单独占一级 tab，避免入口重复。
-// 「我的」在移动端顶栏已有头像入口，故移动端底栏隐藏，避免项过挤。
+// 导航按学习者旅程分组。模拟器/订单到交付归「工厂」（本质是工厂下钻），不再散落「工具」。
+// 测验/词典归「练习」（动手自测），与 SQL 沙盒并列。学习路径/岗位路线归「课程」。作品集归「我的」。
 const NAV: NavDef[] = [
-  { to: '/factory', label: '工厂', icon: 'factory' },
+  {
+    to: '/factory',
+    label: '工厂',
+    icon: 'factory',
+    match: (p) => p === '/factory' || p.startsWith('/simulator') || p.startsWith('/order-to-delivery'),
+    children: [
+      { to: '/simulator', label: '模拟器', icon: 'gauge' },
+      { to: '/order-to-delivery', label: '订单到交付', icon: 'truck' },
+    ],
+  },
+  {
+    to: '/courses',
+    label: '课程',
+    icon: 'courses',
+    match: (p) =>
+      p.startsWith('/courses') || p.startsWith('/learning-paths') || p.startsWith('/roadmap') || p.startsWith('/tracks'),
+    children: [
+      { to: '/learning-paths', label: '学习路径', icon: 'paths' },
+      { to: '/roadmap', label: '岗位路线', icon: 'stage' },
+    ],
+  },
   { to: '/knowledge-graph', label: '知识图', icon: 'network' },
-  { to: '/courses', label: '课程', icon: 'courses' },
   {
     to: '/tools',
-    label: '工具',
+    label: '练习',
     icon: 'tools',
-    // 移动端底栏与桌面一致展示 5 项；模拟器归「工具」枢纽，故子页也高亮本 tab。
-    match: (p) =>
-      p.startsWith('/tools') || p.startsWith('/sql-space') || p.startsWith('/simulator'),
+    match: (p) => p.startsWith('/tools') || p.startsWith('/sql-space') || p.startsWith('/quiz') || p.startsWith('/dictionary'),
+    children: [
+      { to: '/sql-space', label: 'SQL 沙盒', icon: 'sql' },
+      { to: '/quiz', label: '测验', icon: 'quiz' },
+      { to: '/dictionary', label: '词典', icon: 'dictionary' },
+    ],
   },
-  { to: '/profile', label: '我的', icon: 'user' },
+  {
+    to: '/profile',
+    label: '我的',
+    icon: 'user',
+    match: (p) => p.startsWith('/profile') || p.startsWith('/portfolio'),
+    children: [{ to: '/portfolio', label: '作品集', icon: 'portfolio' }],
+  },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -99,21 +136,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="sidebar-nav" aria-label="主导航">
-          <ul className="nav-list">
-            {NAV.map((item) => (
-              <li key={String(item.to)}>
-                <NavLink
-                  to={item.to}
-                  className={({ isActive: navActive }) =>
-                    `nav-item${isActive(item, navActive) ? ' is-active' : ''}`
-                  }
-                >
-                  <Icon name={item.icon} size={20} className="nav-glyph" />
-                  <span className="nav-label">{item.label}</span>
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+          {NAV.map((section) => (
+            <div className="nav-group" key={String(section.to)}>
+              <NavLink
+                to={section.to}
+                className={({ isActive: navActive }) =>
+                  `nav-item${isActive(section, navActive) ? ' is-active' : ''}`
+                }
+              >
+                <Icon name={section.icon} size={20} className="nav-glyph" />
+                <span className="nav-label">{section.label}</span>
+              </NavLink>
+              {section.children && (
+                <ul className="nav-sublist">
+                  {section.children.map((c) => {
+                    const childActive =
+                      loc.pathname === String(c.to) || loc.pathname.startsWith(`${String(c.to)}/`);
+                    return (
+                      <li key={String(c.to)}>
+                        <NavLink to={c.to} className={`nav-subitem${childActive ? ' is-active' : ''}`}>
+                          <Icon name={c.icon} size={16} className="nav-subglyph" />
+                          <span>{c.label}</span>
+                        </NavLink>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          ))}
         </nav>
 
         <div className="sidebar-foot">

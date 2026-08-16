@@ -1,13 +1,14 @@
 /**
- * 工具枢纽页 — 左侧「工具」一级 tab 的落地页。
- * 内含两个动手练习入口：SQL 沙盒（/sql-space）与 工厂模拟器（/simulator）。
+ * 练习枢纽页 — 左侧「练习」一级区（原「工具」）的落地页。
+ * 内含三个动手/自测入口：SQL 沙盒（/sql-space）、测验（/quiz）、词典（/dictionary）。
+ * 工厂模拟器已归「工厂」分组（/simulator），不再出现在这里，避免入口重复。
  */
 import { Link } from 'react-router-dom';
-import { Icon } from '../components/Icon';
+import { Icon, type IconName } from '../components/Icon';
 
 type ToolEntry = {
   to: string;
-  icon: 'sql' | 'gauge';
+  icon: IconName;
   title: string;
   desc: string;
 };
@@ -20,10 +21,16 @@ const TOOLS: ToolEntry[] = [
     desc: '对着真实样例库写 SQL，即时看结果、对照参考解答、出错自动给出修改建议。',
   },
   {
-    to: '/simulator',
-    icon: 'gauge',
-    title: '工厂模拟器',
-    desc: '当一天厂长：看着下料→机加工→组装→检验四道工序，调一调机器和订单，整条线怎么转一目了然。',
+    to: '/quiz',
+    icon: 'quiz',
+    title: '测验',
+    desc: '学完即测：选择题与判断题即时判分，巩固 MES / ERP 关键概念。',
+  },
+  {
+    to: '/dictionary',
+    icon: 'dictionary',
+    title: '词典',
+    desc: 'MES / ERP 术语速查，点词即看释义与关联概念，配合 AI 导师随时追问。',
   },
 ];
 
@@ -32,8 +39,8 @@ export default function ToolsPage() {
     <div className="tools-hub">
       <header className="page-head">
         <div>
-          <h1>工具</h1>
-          <p className="page-sub">动手练习区：在 SQL 沙盒里跑通查询，用工厂模拟器调一调产线怎么转。</p>
+          <h1>练习</h1>
+          <p className="page-sub">动手练习区：在 SQL 沙盒里跑通查询，用测验检验掌握度，遇术语随时查词典。</p>
         </div>
       </header>
 
