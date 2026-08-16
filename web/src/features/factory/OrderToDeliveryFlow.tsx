@@ -14,6 +14,8 @@
 import { type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../../components/Icon';
+import { NextActionGroup } from '../../components/NextAction';
+import { otdNextActions } from '../../lib/nextAction';
 import { OD_BANDS } from './orderToDelivery.data';
 import './OrderToDeliveryFlow.css';
 
@@ -130,6 +132,9 @@ export default function OrderToDeliveryFlow() {
         </span>
         <span className="od-bridge-go">玩工厂模拟器 <Icon name="arrow-right" size={16} /></span>
       </Link>
+
+      {/* 跨模式下一步：16 步看完了，从「看」回到「学」——修复 B2 断链 */}
+      <NextActionGroup title="这 16 步看完了，下一步：" actions={otdNextActions()} />
     </section>
   );
 }

@@ -16,6 +16,9 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from '../../components/Icon';
+import { NextActionGroup } from '../../components/NextAction';
+import { useLearningSpine } from '../../lib/learningSpine';
+import { simulatorNextActions } from '../../lib/nextAction';
 import {
   runSim,
   pickFeedback,
@@ -191,6 +194,9 @@ export default function FactorySimPage() {
   const liveWipBlocks = live
     ? (total > 0 ? Math.min(16, Math.round((live.wip / total) * 16)) : 0)
     : wipBlocks;
+
+  // 学习脊柱：模拟器跑完后给出跨模式「下一步」（接主线推荐的课，或落回学习路径）。
+  const spine = useLearningSpine();
 
   return (
     <section className="sim">
@@ -452,6 +458,17 @@ export default function FactorySimPage() {
         </span>
         <span className="sim-bridge-go">看订单到交付全景 <Icon name="arrow-right" size={16} /></span>
       </Link>
+
+      {/* 跨模式下一步：这班跑完后，从「玩」回到「学」——修复 B2 断链 */}
+      {play === 'done' && (
+        <NextActionGroup
+          title="这班跑完了，下一步："
+          actions={simulatorNextActions({
+            nextCourseId: spine.nextCourseId,
+            nextCourseName: spine.nextCourseName,
+          })}
+        />
+      )}
     </section>
   );
 }

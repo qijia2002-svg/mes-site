@@ -12,8 +12,10 @@ import { Icon } from '../components/Icon';
 import { useCrumbTail } from '../components/Breadcrumb';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
 import { QuizDeck } from '../components/QuizDeck';
+import { NextActionGroup } from '../components/NextAction';
 import { renderChapterMarkdown } from '../lib/markdown';
 import { api } from '../api/endpoints';
+import { chapterNextActions } from '../lib/nextAction';
 import { NODE_RESOURCE_DONE } from '../features/factory/useNodeProgress';
 import { GlossaryProvider } from '../features/glossary/glossary.context';
 import { TermAwareHtml } from '../features/glossary/TermAwareHtml';
@@ -46,6 +48,11 @@ export default function ChapterPage() {
     queryFn: () => api.chapters(chapter.data?.topicId ?? 0),
     enabled: valid && !!chapter.data?.topicId,
   });
+
+  // 同课程章节排序，定位「下一章」用于页脚下一步导航
+  const sortedChapters = (chaptersQ.data ?? []).slice().sort((a, b) => a.sort - b.sort);
+  const curIdx = sortedChapters.findIndex((c) => c.id === id);
+  const nextChapter = curIdx >= 0 && curIdx < sortedChapters.length - 1 ? sortedChapters[curIdx + 1] : null;
 
   const [showQuiz, setShowQuiz] = useState(false);
 
@@ -156,17 +163,15 @@ export default function ChapterPage() {
               <Icon name="arrow-left" size={16} />
               返回章节列表
             </Link>
-            {(() => {
-              const chs = (chaptersQ.data ?? []).slice().sort((a, b) => a.sort - b.sort);
-              const idx = chs.findIndex((c) => c.id === id);
-              const next = idx >= 0 && idx < chs.length - 1 ? chs[idx + 1] : null;
-              return next ? (
-                <Link className="btn btn-primary btn-sm" to={`/chapters/${next.id}`}>
-                  下一章：{next.title}
-                  <Icon name="arrow-right" size={16} />
-                </Link>
-              ) : null;
-            })()}
+            <NextActionGroup
+              title="下一步："
+              actions={chapterNextActions({
+                nextChapterId: nextChapter?.id ?? null,
+                nextChapterTitle: nextChapter?.title,
+                hasQuiz: (quizQ.data?.length ?? 0) > 0,
+                onQuiz: () => setShowQuiz(true),
+              })}
+            />
           </footer>
         </div>
 

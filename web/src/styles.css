@@ -370,6 +370,140 @@ body,
 }
 .sidebar-progress-cta:hover { background: var(--accent-border); }
 
+/* ═══ 学习脊柱卡（取代原 sidebar-progress，成为产品脊柱常驻入口）═══ */
+.spine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.spine-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.spine-label {
+  font-size: var(--text-xs);
+  color: var(--meta);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+.spine-switch {
+  font-size: var(--text-xs);
+  color: var(--accent);
+  text-decoration: none;
+}
+.spine-switch:hover { text-decoration: underline; }
+.spine-path {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-announce-cjk);
+  color: var(--fg);
+}
+.spine-empty-text {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--fg-2);
+  line-height: var(--leading-relaxed);
+}
+.spine-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-emph-cjk);
+  text-decoration: none;
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+.spine-cta:hover { opacity: 0.9; }
+.spine-stats {
+  display: flex;
+  gap: var(--space-3);
+}
+.spine-stat { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.spine-stat-num {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-announce);
+  color: var(--fg);
+  line-height: 1;
+}
+.spine-stat-num span { font-size: var(--text-sm); color: var(--meta); margin-left: 2px; }
+.spine-stat-cap { font-size: var(--text-xs); color: var(--meta); }
+.spine-factory {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-1);
+}
+.spine-factory-meta { font-size: var(--text-xs); color: var(--meta); font-family: var(--font-mono); }
+.spine-factory-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-xs);
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.spine-factory-go:hover { text-decoration: underline; }
+
+/* ═══ 跨模式「下一步」卡片（看 / 学 / 练 统一入口，修复 B2 断链）═══ */
+.next-group { margin-top: var(--space-6); }
+.next-group-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-emph-cjk);
+  color: var(--fg-2);
+  margin: 0 0 var(--space-2);
+}
+.next-list { display: grid; gap: var(--space-2); }
+.next-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard),
+    border-left-color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+.next-card:hover {
+  background: var(--surface-2);
+  transform: translateX(2px);
+}
+.next-ic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  flex: none;
+}
+.next-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.next-label { font-size: var(--text-sm); font-weight: var(--weight-emph-cjk); color: var(--fg); }
+.next-hint { font-size: var(--text-xs); color: var(--meta); }
+.next-go { color: var(--meta); flex: none; }
+
 /* ═══════════════════════════════════════════════════════════════════════════
    MOBILE OVERLAY + SIDEBAR DRAWER
    ═══════════════════════════════════════════════════════════════════════════ */

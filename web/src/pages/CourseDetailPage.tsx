@@ -10,7 +10,7 @@ import { useCrumbTail } from '../components/Breadcrumb';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
 import { QuizDeck } from '../components/QuizDeck';
 import { api, type CourseState, type PathSummary, type StageSummary } from '../api/endpoints';
-import { peek } from '../lib/userData';
+import { peek, useActivePath } from '../lib/userData';
 
 // 学习引擎状态（激活路径 / 选中路径）走云端镜像 userData，跨设备一致（见 lib/userData.ts）
 
@@ -245,7 +245,7 @@ export default function CourseDetailPage() {
  * 路径信息栏：显示当前课程在哪些路径中、位置、前置状态。
  */
 function PathContextBar({ topicId }: { topicId: number }) {
-  const activePath = peek<number | undefined>('engine.activePath', undefined);
+  const activePath = useActivePath() ?? undefined;
   const selectedPaths = peek<number[]>('engine.selectedPaths', []);
 
   const engineQ = useQuery({

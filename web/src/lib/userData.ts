@@ -13,6 +13,7 @@
  *
  * 约定：本地镜像统一前缀 mes.ud.，与遗留键（mes.portfolio 等）区分，便于一次性迁移。
  */
+import { useSyncExternalStore } from 'react';
 import { apiGet, apiPut } from '../api/client';
 
 /** 已知键：启动水合时全部拉取一遍；迁移时按 LEGACY 映射从遗留键迁入。 */
@@ -56,6 +57,21 @@ function lsSet<T>(key: string, value: T): void {
 }
 
 /**
+ * 轻量发布订阅：写入 engine.activePath 等脊柱键后通知订阅者（侧栏脊柱卡 / 路径页），
+ * 让 UI 在「设为学习主线」后无需刷新即可立即反映。仅本地镜像变更时触发；云端同步失败不影响。
+ */
+const udListeners = new Set<() => void>();
+function emitUd(): void {
+  udListeners.forEach((cb) => cb());
+}
+export function subscribeUserData(cb: () => void): () => void {
+  udListeners.add(cb);
+  return () => {
+    udListeners.delete(cb);
+  };
+}
+
+/**
  * 同步写入本地镜像，并返回真实是否写入成功（隐私模式 / 配额耗尽时返回 false）。
  * 与 `write` 的区别：`write` 还会异步同步云端且返回 void；本函数只管本地、
  * 且把"是否真的写进去了"如实交给调用方，避免上层误以为永远成功。
@@ -83,6 +99,7 @@ export async function load<T>(key: string, fallback: T): Promise<T> {
     if (res.value !== null && res.value !== undefined) {
       const v = res.value as T;
       lsSet(key, v);
+      emitUd();
       return v;
     }
   } catch {
@@ -97,6 +114,7 @@ export async function load<T>(key: string, fallback: T): Promise<T> {
  */
 export async function write<T>(key: string, value: T): Promise<void> {
   lsSet(key, value);
+  emitUd();
   try {
     await apiPut(`/api/v1/user/data/${encodeURIComponent(key)}`, { value });
   } catch {
@@ -155,4 +173,27 @@ export async function bootstrapUserData(timeoutMs = 4000): Promise<void> {
     })(),
     new Promise<void>((resolve) => setTimeout(() => resolve(), timeoutMs)),
   ]);
+}
+
+/**
+ * 当前激活的学习路径 id（响应式）。脊柱的「单一事实来源」——
+ * 学习路径页「设为学习主线」写入，侧栏脊柱卡 / 课程页路径栏读取。
+ * 返回 null 表示尚未设定任何主线。
+ */
+export function useActivePath(): number | null {
+  return useSyncExternalStore(
+    subscribeUserData,
+    () => peek<number | null>('engine.activePath', null),
+    () => null,
+  );
+}
+
+/** 设定某路径为当前学习主线（云端镜像 + 本地，离线也能记）。 */
+export async function activatePath(pathId: number): Promise<void> {
+  await write('engine.activePath', pathId);
+}
+
+/** 取消当前学习主线设定。 */
+export async function clearActivePath(): Promise<void> {
+  await write('engine.activePath', null);
 }

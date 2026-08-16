@@ -14,30 +14,10 @@ import { NetworkBanner } from './NetworkBanner';
 import { api } from '../api/endpoints';
 import { ScrollProgress } from './ScrollProgress';
 import { getNickname, subscribeProfile } from '../lib/profileStore';
-import { useFactorySummary } from '../features/factory/useFactorySummary';
+import { LearningSpine } from './LearningSpine';
 import { TopbarSearch } from './TopbarSearch';
 import { TutorFab } from '../features/tutor/TutorFab';
 import { TutorWorkspace } from '../features/tutor/TutorWorkspace';
-
-function SidebarProgress() {
-  const { total, touched, pct } = useFactorySummary();
-
-  return (
-    <div className="sidebar-progress">
-      <div className="sidebar-progress-head">
-        <span className="sidebar-progress-label">工厂进度</span>
-        <span className="sidebar-progress-pct">{pct}%</span>
-      </div>
-      <div className="sidebar-progress-track">
-        <div className="sidebar-progress-fill" style={{ width: `${pct}%` }} />
-      </div>
-      <div className="sidebar-progress-meta">走过 {touched} / {total} 个环节</div>
-      <Link className="sidebar-progress-cta" to="/factory">
-        进入工厂全景 <Icon name="arrow-right" size={16} />
-      </Link>
-    </div>
-  );
-}
 
 function HealthPill() {
   const health = useQuery({ queryKey: ['health'], queryFn: api.health, refetchInterval: 60_000, retry: 1 });
@@ -180,7 +160,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Icon name="admin" size={16} />
             </Link>
           </div>
-          <SidebarProgress />
+          <LearningSpine />
         </div>
       </aside>
 

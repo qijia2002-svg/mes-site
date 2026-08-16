@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
 import { api } from '../api/endpoints';
+import { useActivePath, activatePath, clearActivePath } from '../lib/userData';
 
 export default function LearningPathsPage() {
   const pathsQ = useQuery({ queryKey: ['learning-paths'], queryFn: api.learningPaths });
@@ -17,6 +18,9 @@ export default function LearningPathsPage() {
 
   const titleOf = (id: number) => topicsQ.data?.find((t) => t.id === id)?.title ?? `#${id}`;
   const paths = pathsQ.data ?? [];
+
+  // 读取当前激活主线，让「设为学习主线」按钮即时反映状态（写入走云端镜像 + 本地）。
+  const activePath = useActivePath();
 
   // 深链 ?path=<id>：从课程页那几张路径卡点进来时，直接定位到对应的那一条。
   // 以前它们统一指向 /factory?view=paths，而工厂页根本不读 view，四张卡等于同一个链接。
@@ -57,12 +61,14 @@ export default function LearningPathsPage() {
 
       {paths.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-4)' }}>
-          {paths.map((p) => (
+          {paths.map((p) => {
+            const isActive = activePath === p.id;
+            return (
             <div
               key={p.id}
               className="card"
               ref={p.id === focusId ? focusRef : undefined}
-              style={p.id === focusId
+              style={(p.id === focusId || isActive)
                 ? { outline: '2px solid var(--accent)', outlineOffset: 2 }
                 : undefined}
             >
@@ -75,9 +81,26 @@ export default function LearningPathsPage() {
                   </li>
                 ))}
               </ol>
-              <span className="tag" style={{ marginTop: 'auto' }}>{p.topicIds.length} 门课</span>
+              <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                <span className="tag">{p.topicIds.length} 门课</span>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${isActive ? 'btn-secondary' : 'btn-primary'}`}
+                  style={{ marginLeft: 'auto' }}
+                  onClick={() => (isActive ? clearActivePath() : activatePath(p.id))}
+                >
+                  <Icon name={isActive ? 'check-circle' : 'stage'} size={16} />
+                  {isActive ? '当前主线' : '设为学习主线'}
+                </button>
+              </div>
+              {isActive && (
+                <span className="pill pill-ok" style={{ marginTop: 'var(--space-2)', alignSelf: 'flex-start' }}>
+                  学习中 · 侧栏会替你记着进度
+                </span>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
