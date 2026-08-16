@@ -701,3 +701,117 @@
   /* 极窄屏：堆积/报废也各自占满一行，避免互相挤压 */
   .sim-pile, .sim-scrap { flex: 1 1 100%; }
 }
+
+/* ── 跑班动态播放 ── */
+.sim-playbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-5);
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 72%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.sim-play-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter var(--motion-fast, 0.16s) var(--ease-standard, ease);
+}
+.sim-play-btn:hover { filter: brightness(1.06); }
+.sim-play-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted, var(--text));
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: border-color var(--motion-fast, 0.16s) var(--ease-standard, ease),
+    color var(--motion-fast, 0.16s) var(--ease-standard, ease);
+}
+.sim-play-reset:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.sim-play-reset:disabled { opacity: 0.45; cursor: not-allowed; }
+.sim-play-progress {
+  flex: 1 1 160px;
+  min-width: 120px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 70%, transparent);
+  overflow: hidden;
+}
+.sim-play-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.1s linear;
+}
+.sim-play-time {
+  font-size: var(--text-sm);
+  color: var(--text-muted, var(--text));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sim-play-done { color: var(--accent); }
+
+/* 工序在播放时的实时状态 */
+.sim-cell.is-live {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.sim-cell-live {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+.sim-cell-live.is-bn { background: var(--danger); color: #fff; }
+.sim-cell-live.is-blocked { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+.sim-cell-live.is-starved { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.sim-cell-livecount {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted, var(--text));
+  font-variant-numeric: tabular-nums;
+}
+.sim-cell-livecount b { color: var(--text); font-weight: 600; }
+
+/* 连接段：播放时拥堵 / 饥饿 */
+.sim-conn.is-congested {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border-radius: 6px;
+}
+.sim-conn.is-congested .sim-dot {
+  background: var(--danger);
+  animation-duration: 1s;
+  opacity: 1;
+}
+.sim-conn.is-starved .sim-dot {
+  opacity: 0.28;
+  animation-duration: 3.2s;
+}
+
+@media (max-width: 768px) {
+  .sim-playbar { gap: var(--space-2); padding: var(--space-3); }
+  .sim-play-btn, .sim-play-reset { flex: 1 1 auto; justify-content: center; }
+  .sim-play-progress { flex-basis: 100%; order: 3; }
+  .sim-play-time { flex-basis: 100%; order: 4; text-align: center; }
+}

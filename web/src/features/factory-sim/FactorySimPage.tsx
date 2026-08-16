@@ -13,7 +13,7 @@
  *
  * 计算全部来自 simCalc.ts（产能限流模型），本文件只做呈现与交互。
  */
-import { Fragment, useMemo, useState, type CSSProperties } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from '../../components/Icon';
 import {
@@ -40,6 +40,30 @@ const MACHINE_RANGE: Record<'kb' | 'kf', { min: number; max: number }> = {
   kf: { min: 1, max: 3 },
 };
 
+/** 跑班播放：把稳态产能展开成「一个班次内逐分钟累计」的活体模型（仅动画用，不动 simCalc 核心数学）。
+ * 纯串联队列：第 i 道工序累计完成 = min(上游累计, 本工序单班产能×班次进度)。
+ * 终态(t=480)收敛到 simCalc 的 produced，因此动画与右侧稳态读数完全一致、不造假。 */
+const SHIFT_MIN = 480; // 单班分钟数（与 simCalc 保持一致）
+const PLAY_SPEED = 34; // 播放速度：每真实秒推进的班次分钟数（约 14 秒跑完一班）
+
+function cumAt(caps: number[], Q: number, t: number): number[] {
+  const f = Math.max(0, Math.min(1, t / SHIFT_MIN));
+  const c: number[] = [];
+  for (let i = 0; i < caps.length; i++) {
+    const input = i === 0 ? Q : c[i - 1];
+    c[i] = Math.min(input, Math.floor(caps[i] * f));
+  }
+  return c;
+}
+
+/** 连接段样式：播放时，喂向瓶颈的段拥堵（前面积压）、瓶颈之后的段饥饿稀疏（等料）。 */
+function connClass(upIdx: number, bn: number, playing: boolean): string {
+  if (!playing) return upIdx === bn ? 'sim-conn from-bn' : 'sim-conn';
+  if (upIdx === bn - 1) return 'sim-conn is-congested';
+  if (upIdx >= bn) return 'sim-conn is-starved';
+  return 'sim-conn';
+}
+
 const METRICS: { key: 'M1' | 'M2' | 'M3' | 'M4' | 'M5' | 'M6' | 'M7'; label: string; unit: string; tone?: 'good' | 'warn' | 'danger' }[] = [
   { key: 'M1', label: '这班交出多少好货', unit: '件', tone: 'good' },
   { key: 'M2', label: '产线最大能耐', unit: '件/班' },
@@ -62,7 +86,7 @@ const CONCEPTS: { label: string; term: string; concept: string; dict: string }[]
 ];
 
 /** 末端吞吐仪表：本单本班发出占比（M1 / Q）。SVG 半圆，pathLength 归一 100。 */
-function ThroughputGauge({ pct, value, unit }: { pct: number; value: number; unit: string }) {
+function ThroughputGauge({ pct, value, unit, live }: { pct: number; value: number; unit: string; live?: boolean }) {
   const offset = 100 * (1 - Math.max(0, Math.min(1, pct)));
   return (
     <div className="sim-gauge" role="img" aria-label={`本单本班发出约 ${Math.round(pct * 100)}%`}>
@@ -75,7 +99,7 @@ function ThroughputGauge({ pct, value, unit }: { pct: number; value: number; uni
           style={{ strokeDashoffset: offset }}
         />
       </svg>
-      <div className="sim-gauge-num" key={value}>
+      <div className="sim-gauge-num" key={live ? 'live' : value}>
         <b>{value}</b>
         <span>{unit}</span>
       </div>
@@ -90,6 +114,42 @@ export default function FactorySimPage() {
 
   const result = useMemo(() => runSim(params), [params]);
   const feedback = useMemo(() => pickFeedback(params, result, recent), [params, result, recent]);
+
+  // ── 跑班动态播放（前端动画驱动，不动核心数学）──
+  const [play, setPlay] = useState<'idle' | 'playing' | 'paused' | 'done'>('idle');
+  const [playT, setPlayT] = useState(0); // 当前班次已过分钟 0..480
+  const rafRef = useRef<number | null>(null);
+  const lastRef = useRef<number>(0);
+
+  // 改配置即重开这一班，保证动画与当前参数一致
+  useEffect(() => { setPlay('idle'); setPlayT(0); }, [params]);
+
+  // 播放循环：用 requestAnimationFrame 推进班次时间
+  useEffect(() => {
+    if (play !== 'playing') return;
+    lastRef.current = performance.now();
+    const tick = (now: number) => {
+      const dt = (now - lastRef.current) / 1000;
+      lastRef.current = now;
+      setPlayT((t) => Math.min(SHIFT_MIN, t + dt * PLAY_SPEED));
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [play]);
+
+  // 跑满一班自动停
+  useEffect(() => {
+    if (play === 'playing' && playT >= SHIFT_MIN) setPlay('done');
+  }, [play, playT]);
+
+  const isPlaying = play !== 'idle';
+  function togglePlay() {
+    if (play === 'idle' || play === 'done') { setPlayT(0); setPlay('playing'); }
+    else if (play === 'playing') setPlay('paused');
+    else setPlay('playing');
+  }
+  function resetPlay() { setPlay('idle'); setPlayT(0); }
 
   function setNum(key: 'Q' | 'p' | 'B', v: number) {
     setParams((p) => ({ ...p, [key]: v }));
@@ -116,6 +176,21 @@ export default function FactorySimPage() {
   const wipBlocks = total > 0 ? Math.min(16, Math.round((result.M3 / total) * 16)) : 0;
   // 报废红块（M5，封顶 12 块）
   const scrapBlocks = Math.min(12, result.M5);
+
+  // 跑班时的活体读数：班次进度→累计产出/在制品，终态与稳态一致
+  const live = useMemo(() => {
+    if (!isPlaying) return null;
+    const c = cumAt(result.capByNode, total, playT);
+    const good = Math.floor(c[c.length - 1] * (1 - params.p / 100));
+    const wip = Math.max(0, total - good);
+    return { c, good, wip, pct: total > 0 ? Math.min(1, good / total) : 0 };
+  }, [isPlaying, playT, result.capByNode, total, params.p]);
+
+  const shownPct = live ? live.pct : pct;
+  const shownM1 = live ? live.good : result.M1;
+  const liveWipBlocks = live
+    ? (total > 0 ? Math.min(16, Math.round((live.wip / total) * 16)) : 0)
+    : wipBlocks;
 
   return (
     <section className="sim">
@@ -173,6 +248,27 @@ export default function FactorySimPage() {
           <span className="sim-live-hint">光点 = 在制品流动 · 红色脉冲 = 卡住的工序</span>
         </div>
 
+        {/* 跑班播放条：点播放后这班从头跑到尾，在制品随班次慢慢堆起来 */}
+        <div className="sim-playbar">
+          <button type="button" className="sim-play-btn" onClick={togglePlay}
+            aria-label={play === 'playing' ? '暂停播放' : '播放这一班'}>
+            <Icon name={play === 'playing' ? 'pause' : 'play'} size={20} />
+            {play === 'playing' ? '暂停' : play === 'paused' ? '继续' : play === 'done' ? '重跑' : '跑班'}
+          </button>
+          <button type="button" className="sim-play-reset" onClick={resetPlay}
+            aria-label="重置播放" disabled={play === 'idle'}>
+            <Icon name="reset" size={16} /> 重置
+          </button>
+          <div className="sim-play-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100}
+            aria-valuenow={Math.round((playT / SHIFT_MIN) * 100)}>
+            <div className="sim-play-fill" style={{ width: `${(playT / SHIFT_MIN) * 100}%` }} />
+          </div>
+          <span className="sim-play-time">
+            {(playT / 60).toFixed(1)} / 8 小时
+            {play === 'done' && <b className="sim-play-done">· 本班跑完</b>}
+          </span>
+        </div>
+
         <div className="sim-live-body">
           {/* 传送带：4 道工序 + 3 段流动的光点 */}
           <div className="sim-track" style={{ '--flow-dur': `${flowDur}s` } as CSSProperties}>
@@ -184,17 +280,34 @@ export default function FactorySimPage() {
               const idle = result.idleByNode[st.idx]?.idle ?? 0;
               const busy = 100 - idle;
               const range = mparam ? MACHINE_RANGE[mparam] : null;
+              // 跑班实时状态：累计完成数 + 瓶颈拥堵 / 下游饥饿
+              const liveCount = live ? live.c[st.idx] : null;
+              let liveStatus: 'bn' | 'blocked' | 'starved' | null = null;
+              if (live && play !== 'idle' && playT > 10) {
+                if (isBn) liveStatus = 'bn';
+                else if (st.idx < result.bottleneckIndex) {
+                  if (live.c[st.idx] > live.c[st.idx + 1] && live.c[st.idx] < total) liveStatus = 'blocked';
+                } else if (live.c[st.idx] >= live.c[st.idx - 1] && live.c[st.idx - 1] > 0) {
+                  liveStatus = 'starved';
+                }
+              }
               return (
                 <Fragment key={st.idx}>
-                  <div className={`sim-cell${isBn ? ' is-bn' : ''}`}>
+                  <div className={`sim-cell${isBn ? ' is-bn' : ''}${live && play === 'playing' ? ' is-live' : ''}`}>
                     <div className="sim-cell-pulse" aria-hidden="true" />
                     <div className="sim-cell-head">
                       <span className="sim-cell-ic"><Icon name={st.icon} size={20} /></span>
                       <span className="sim-cell-name">{st.name}</span>
                       {isBn && <span className="sim-cell-badge">最卡</span>}
+                      {live && (
+                        <span className={`sim-cell-live${liveStatus ? ` is-${liveStatus}` : ''}`}>
+                          {liveStatus === 'blocked' ? '干等料出不去' : liveStatus === 'starved' ? '等料停工' : liveStatus === 'bn' ? '前面积压' : '运转中'}
+                        </span>
+                      )}
                     </div>
                     <div className="sim-cell-std">{st.std} 分 / 件</div>
                     <div className="sim-cell-cap">产能 <b>{cap}</b> 件/班</div>
+                    {live && <div className="sim-cell-livecount">本班已做 <b>{liveCount}</b> 件</div>}
 
                     <div className="sim-cell-machines">
                       <span className="sim-cell-ml">机台</span>
@@ -220,7 +333,7 @@ export default function FactorySimPage() {
                   </div>
 
                   {st.idx < STATIONS.length - 1 && (
-                    <div className={`sim-conn${isBn ? ' from-bn' : ''}`} aria-hidden="true">
+                    <div className={connClass(st.idx, result.bottleneckIndex, isPlaying)} aria-hidden="true">
                       <span className="sim-dot" />
                       <span className="sim-dot" />
                       <span className="sim-dot" />
@@ -233,7 +346,7 @@ export default function FactorySimPage() {
 
           {/* 末端读数：吞吐仪表 + 在制品堆积 + 报废红块 */}
           <aside className="sim-readout" aria-label="产线实时读数">
-            <ThroughputGauge pct={pct} value={result.M1} unit="件" />
+            <ThroughputGauge pct={shownPct} value={shownM1} unit="件" live={isPlaying} />
 
             <div className="sim-pile">
               <div className="sim-pile-head">
@@ -241,7 +354,7 @@ export default function FactorySimPage() {
                 <b>{result.M3}<span>件</span></b>
               </div>
               <div className="sim-pile-bed">
-                {Array.from({ length: wipBlocks }).map((_, i) => (
+                {Array.from({ length: liveWipBlocks }).map((_, i) => (
                   <span className="sim-pile-blk" key={i} style={{ '--i': i } as CSSProperties} />
                 ))}
                 {wipBlocks === 0 && <span className="sim-pile-empty">半路没堆货</span>}
@@ -323,7 +436,7 @@ export default function FactorySimPage() {
         <ul>
           <li>产线固定为 4 道工序串行（下料 → 机加工 → 组装 → 检验），每道工序默认 1 台设备。</li>
           <li>换型只扣最慢那道工序的时间，真实工厂换型会影响整条线节拍。</li>
-          <li>「卡在半路的半成品」是投了减流出的终态值，没演示它随时间慢慢堆起来的过程。</li>
+          <li>「卡在半路的半成品」在「跑班」播放里会随班次一点点堆起来——点产线顶部的「跑班」，就能看见它从 0 涨到终态值，瓶颈前面越堆越高、下游在干等。</li>
           <li>本版只算「流不流得动」，不算「赚不赚钱」——工资、电费、设备折旧都没算进去。</li>
         </ul>
       </details>
