@@ -20,7 +20,6 @@ import { api } from '../api/endpoints';
 import type { FlowNodeDTO, NodeResourceDTO } from '../api/endpoints';
 import FactoryExtras from '../features/factory/FactoryExtras';
 import FactoryPrologue, { hasSeenPrologue, markPrologueSeen } from '../features/factory/FactoryPrologue';
-import OrderToDeliveryFlow from '../features/factory/OrderToDeliveryFlow';
 import FactoryFlow from '../features/factory/FactoryFlow';
 import { DEFAULT_FLOW, PHASE_BY_KEY, buildSteps, type LaidNode, type Phase } from '../features/factory/factoryFlow.data';
 import { useNodeProgress } from '../features/factory/useNodeProgress';
@@ -225,6 +224,9 @@ function SimulatorHero() {
           <Link to="/order-to-delivery" className="sim-hero-cta-secondary">
             <Icon name="routing" size={16} /> 看订单交付全流程
           </Link>
+          <Link to="/scheduling" className="sim-hero-cta-secondary">
+            <Icon name="sort" size={16} /> 玩排产找瓶颈
+          </Link>
         </div>
       </section>
     </>
@@ -322,9 +324,6 @@ export default function FactoryPage() {
 
       {/* ★ 英雄特色：工厂模拟器 */}
       <SimulatorHero />
-
-      {/* ★ 核心视觉：订单到交付价值流河流（用户最满意的页面） */}
-      <OrderToDeliveryFlow />
 
       {/* 底部入口导航 */}
       <FactoryExtras />
