@@ -37,8 +37,14 @@ jobs:
           echo "TEST_ADMIN_PASSWORD=$ADMIN_PW" >> .dev.vars
           echo "NODE_ENV=test" >> .dev.vars
 
-      # Workers 测试池：进程内真实 D1 + DO，无需起 server
-      - name: Run API tests (Vitest + Workers pool)
+      # 构建前端，生成 worker/dist（wrangler dev 的 Static Assets 绑定依赖该目录）
+      - name: Build web (populate worker/dist)
+        run: npm run build --workspace web
+        env:
+          CI: true
+
+      # 本地拉起 wrangler dev + 进程内真实 D1/DO，跑契约/安全/功能/性能四类用例
+      - name: Run API tests (Vitest + wrangler dev)
         run: npm run test --workspace worker -- --coverage
 
       - name: Upload coverage

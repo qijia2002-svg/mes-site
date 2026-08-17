@@ -33,9 +33,18 @@ export default {
 
     const matched = matchRoute(req.method, url.pathname);
     if (!matched) {
+      // 未匹配路由也必须返回统一信封（含 traceId），否则前端 ApiError 报障定位失效。
+      // 注意：此处不走 errorBoundary，需自行生成 traceId（与 errorBoundary 的 x-trace-id 同源语义）。
+      const traceId = crypto.randomUUID();
       return new Response(
-        JSON.stringify({ code: 404, msg: 'not found', data: null }),
-        { status: 404, headers: { 'content-type': 'application/json; charset=utf-8' } },
+        JSON.stringify({ code: 404, msg: 'not found', data: null, traceId }),
+        {
+          status: 404,
+          headers: {
+            'content-type': 'application/json; charset=utf-8',
+            'x-trace-id': traceId,
+          },
+        },
       );
     }
 
