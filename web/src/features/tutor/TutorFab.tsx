@@ -12,6 +12,8 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type R
 import { Icon } from '../../components/Icon';
 import { api } from '../../api/endpoints';
 import type { TutorMsg } from './tutor.types';
+import { NextActionCard } from '../../components/NextAction';
+import { useTutorContext } from './useTutorContext';
 import {
   loadTutorHistory,
   saveTutorHistory,
@@ -41,6 +43,9 @@ export function TutorFab() {
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const panelRef = useRef<HTMLElement>(null);
+
+  // v2.1：接入 Spine 总线 —— 感知当前课程/章节 + 同步脊柱下一步
+  const ctx = useTutorContext();
 
   // AI 导师入口可拖动，落点持久化（用户要求）
   const drag = useDraggable({ storageKey: 'tutor.fab.pos', defaultPos: fabDefaultPos });
@@ -137,7 +142,12 @@ export function TutorFab() {
     setError(null);
     const history = next.slice(-8).map((m) => ({ role: m.role, content: m.content }));
     try {
-      const res = await api.tutor({ message: text, history });
+      const res = await api.tutor({
+        message: text,
+        history,
+        topic: ctx.topic ?? undefined,
+        chapter: ctx.chapter ?? undefined,
+      });
       setMessages((prev) => [...prev, { role: 'assistant', content: res.reply, sources: res.sources }]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '请求失败，请稍后重试';
@@ -200,6 +210,20 @@ export function TutorFab() {
               </button>
             </div>
           </header>
+
+          <div className="tutor-ctx">
+            {ctx.topic && (
+              <p className="tutor-ctx-where">
+                {ctx.scope === 'chapter' ? '所属课程' : '正在看'}：<strong>{ctx.topic}</strong>
+              </p>
+            )}
+            {ctx.chapter && (
+              <p className="tutor-ctx-where">
+                在章节：<strong>{ctx.chapter}</strong>
+              </p>
+            )}
+            {ctx.spineAction && <NextActionCard action={ctx.spineAction} />}
+          </div>
 
           <div className="tutor-list" ref={listRef}>
             {messages.length === 0 && (

@@ -145,6 +145,29 @@
   font-size: var(--text-sm);
 }
 
+/* ── 学习上下文条（v2.1 Spine 接入）：正在看 / 在章节 + 脊柱下一步 ── */
+.tutor-ctx {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-2, var(--bg));
+  border-bottom: 1px solid var(--border);
+}
+.tutor-ctx-where {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-2);
+}
+.tutor-ctx-where strong {
+  color: var(--fg);
+  font-weight: var(--weight-announce-cjk);
+}
+/* 脊柱下一步卡片在导师面板内收窄，复用全局 .next-card 视觉 */
+.tutor-ctx .next-card {
+  margin-top: 2px;
+}
+
 .tutor-input {
   display: flex;
   align-items: flex-end;

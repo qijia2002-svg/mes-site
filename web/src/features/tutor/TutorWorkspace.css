@@ -97,6 +97,29 @@
   color: var(--fg);
 }
 
+/* ── 学习上下文条（v2.1 Spine 接入）：正在看 / 在章节 + 脊柱下一步 ── */
+.tutor-ctx {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-2, var(--bg));
+  border-bottom: 1px solid var(--border);
+}
+.tutor-ctx-where {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+.tutor-ctx-where strong {
+  color: var(--fg);
+  font-weight: var(--weight-announce-cjk);
+}
+.tutor-ctx .next-card {
+  margin-top: 2px;
+}
+
 /* ═══ 来源面板（RAG 引用）═══ */
 .tutor-ws-sources {
   flex: none;

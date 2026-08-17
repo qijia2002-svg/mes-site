@@ -15,6 +15,8 @@ import { Icon, type IconName } from '../../components/Icon';
 import { api } from '../../api/endpoints';
 import type { TutorMsg } from './tutor.types';
 import type { TutorSource } from '../../api/endpoints';
+import { NextActionCard } from '../../components/NextAction';
+import { useTutorContext } from './useTutorContext';
 import {
   loadTutorHistory,
   saveTutorHistory,
@@ -54,6 +56,9 @@ export function TutorWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // v2.1：接入 Spine 总线 —— 感知当前课程/章节 + 同步脊柱下一步
+  const ctx = useTutorContext();
 
   // 桌面端收起态标签可拖动，落点持久化（用户要求）
   const drag = useDraggable({ storageKey: 'tutor.ws.pos', defaultPos: wsTabDefaultPos });
@@ -97,7 +102,12 @@ export function TutorWorkspace() {
     setError(null);
     const history = next.slice(-8).map((m) => ({ role: m.role, content: m.content }));
     try {
-      const res = await api.tutor({ message: text, history });
+      const res = await api.tutor({
+        message: text,
+        history,
+        topic: ctx.topic ?? undefined,
+        chapter: ctx.chapter ?? undefined,
+      });
       setMessages((prev) => [...prev, { role: 'assistant', content: res.reply, sources: res.sources }]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '请求失败，请稍后重试';
@@ -172,6 +182,20 @@ export function TutorWorkspace() {
           </button>
         </div>
       </header>
+
+      <div className="tutor-ctx">
+        {ctx.topic && (
+          <p className="tutor-ctx-where">
+            {ctx.scope === 'chapter' ? '所属课程' : '正在看'}：<strong>{ctx.topic}</strong>
+          </p>
+        )}
+        {ctx.chapter && (
+          <p className="tutor-ctx-where">
+            在章节：<strong>{ctx.chapter}</strong>
+          </p>
+        )}
+        {ctx.spineAction && <NextActionCard action={ctx.spineAction} />}
+      </div>
 
       {lastSources.length > 0 && (
         <div className="tutor-ws-sources">
