@@ -352,6 +352,21 @@
   --console-accent-soft: #16293B;   /* 选中底（钢蓝微染）*/
   --iso-depth: 14px;                /* 数字孪生等距厚度（设计师 advisory）*/
 
+  /* 深色控制台上的状态色。--status-* 是为浅底调的（#15803d 一类深色），
+     压在 --console-bg 上对比不足；这里给同语义的暗底可读变体。
+     语义不变（P1 颜色只编码状态）：绿=已通 / 琥珀=进行中 / 钢灰=未开工 / 红=故障。
+     浅底组件一律继续用 --status-*，不要混用。 */
+  --console-status-running: #5FD98C;
+  --console-status-stopped: #F0BE5E;
+  --console-status-idle: #7C8A9A;
+  --console-status-fault: #F2777A;
+  --console-status-running-soft: color-mix(in srgb, var(--console-status-running) 15%, var(--console-bg));
+  --console-status-stopped-soft: color-mix(in srgb, var(--console-status-stopped) 15%, var(--console-bg));
+  --console-status-idle-soft: var(--console-bg-2);
+  --console-status-running-border: color-mix(in srgb, var(--console-status-running) 40%, transparent);
+  --console-status-stopped-border: color-mix(in srgb, var(--console-status-stopped) 40%, transparent);
+  --console-status-idle-border: var(--console-border-strong);
+
   /* 学习进度 */
   --progress-track: var(--surface-3);
   --progress-fill: var(--accent);

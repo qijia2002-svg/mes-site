@@ -1,19 +1,31 @@
 /**
- * / —— 真正独立的门户首页（v1）。
+ * / —— 门户首页（v2：工业运维控制台 R3「首页即工厂全景」）。
  *
- * 之前的「首页」其实是 /factory 直接重定向，平台已有 课程 / 知识图 / 练习 / 模拟器 /
- * 职业路线 等多个板块，却一进来就掉进工厂全景，新用户看不出平台能玩什么。
- * 本页把 / 做成一个轻量门户：欢迎英雄区 + 新手上路三步 + 全站功能导览卡，
- * 让新用户一眼看懂「这个平台有什么、从哪进」。/factory 继续做工厂深钻。
+ * v1 是「欢迎英雄卡 + 功能导览」，一进来像网课平台首页。R3 按设计方向 P3 改口径：
+ * **首屏第一眼是「产线走到哪、哪里堵、你学到哪」，不是推荐课程。**
+ * 首屏因此改成一条深色工厂全景条（全站两处深色锚点之一，另一处是 SQL 沙箱），
+ * 把身份 / 价值主张 / 主 CTA 全部并进控制室面板，下面接学情仪表网格。
+ *
+ * 数据纪律（关键）：全景条上每个环节点的颜色、三项计数、四个仪表读数，
+ * **全部来自 useFactorySummary + useLearningSpine + practiceStore 的真实进度**，
+ * 没有一个演示用的假设备遥测。本平台是实训平台，不是真 MES——
+ * 编造「12 在产工单 / 2 告警」既没有信息量，也会教坏学员对 MES 数据的直觉。
+ * 流程图接口没下发时 useFactorySummary 回落静态 DEFAULT_FLOW，此时状态灯诚实显示
+ * 「离线兜底」而不是假装已连线。
  *
  * 设计纪律：纯 design token；无 emoji 图标（走 Icon 语义名）；无紫粉渐变；
- * 无裸 hex；动效仅 hover + 轻量入场（≤420ms，无弹性缓动）。
- * 页面是「应用」不是「落地页」——节区纵向间距走 48px 档，不堆 80px 巨幅 hero。
+ * 无裸 hex（深色面板一律 --console-*）；动效仅 hover + 轻量入场，无弹性缓动；
+ * 全局 prefers-reduced-motion 兜底已在 design-tokens.css 关掉动画。
+ * 页面是「应用」不是「落地页」——节区纵向间距走 48px 档。
  */
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from '../components/Icon';
 import { useLearningSpine } from '../lib/learningSpine';
 import { NextActionCard } from '../components/NextAction';
+import { useFactorySummary } from '../features/factory/useFactorySummary';
+import type { NodeStatus } from '../features/factory/useNodeStatus';
+import { usePracticeSummary } from '../lib/practiceStore';
+import './HomePage.css';
 
 type Feature = {
   to: string;
@@ -78,182 +90,196 @@ const STEPS: { to: string; icon: IconName; title: string; desc: string }[] = [
   { to: '/courses', icon: 'courses', title: '系统学课程', desc: '按路线从零到上岗' },
 ];
 
+/**
+ * 环节状态 → 控制室状态语义。三档而已，不要再加：
+ * practiced=已练通（绿灯）/ touched=进行中（琥珀）/ plain=未开工（钢灰）。
+ */
+const TONE_BY_STATUS: Record<NodeStatus, 'run' | 'wip' | 'idle'> = {
+  practiced: 'run',
+  touched: 'wip',
+  plain: 'idle',
+};
+const TONE_TEXT: Record<'run' | 'wip' | 'idle', string> = {
+  run: '已练通',
+  wip: '进行中',
+  idle: '未开工',
+};
+
 export default function HomePage() {
   const spine = useLearningSpine();
+  const factory = useFactorySummary();
+  const practice = usePracticeSummary();
+
+  /* ── 全景条计数：三档互斥，加起来等于总环节数 ── */
+  const runCount = factory.practiced;
+  const wipCount = Math.max(0, factory.touched - factory.practiced);
+  const idleCount = Math.max(0, factory.total - factory.touched);
+
+  /* ── 主 CTA 绑真实下一环节，没有就回落全景页 ── */
+  const nextIndex = factory.nextKey
+    ? factory.nodes.findIndex((n) => n.key === factory.nextKey)
+    : -1;
+  const nextNode = nextIndex >= 0 ? factory.nodes[nextIndex] : null;
+  const primaryTo = nextNode
+    ? `/factory?node=${encodeURIComponent(nextNode.key)}`
+    : '/factory';
+  const primaryLabel = nextNode
+    ? `继续第 ${nextIndex + 1} 环节 · ${nextNode.label}`
+    : '进入工厂全景';
+
+  /* ── 学情仪表：分母全部有真实来源，凑不出分母的改用计数卡 ── */
+  const drillPct =
+    factory.practicableTotal > 0
+      ? Math.round((factory.practiced / factory.practicableTotal) * 100)
+      : 0;
+  const quizCount =
+    practice.chaptersQuiz.length +
+    practice.modulesQuiz.length +
+    practice.factoryQuiz.length +
+    practice.standaloneQuiz;
+
+  const live = factory.source === 'api';
 
   return (
     <section className="hp">
-      <style>{`
-        .hp{max-width:var(--container-app);margin:0 auto;
-          padding:var(--space-8) var(--space-6) var(--space-12)}
-        @media(max-width:720px){.hp{padding:var(--space-5) var(--space-4) var(--space-10)}}
 
-        /* ── 英雄区 ── */
-        .hp-hero{position:relative;overflow:hidden;padding:var(--space-10) var(--space-8);
-          background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)}
-        .hp-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
-          background:var(--accent)}
-        .hp-kicker{display:flex;align-items:center;gap:var(--space-2);margin:0 0 var(--space-3);
-          color:var(--meta);font-size:var(--text-sm)}
-        .hp-kicker .caps{color:var(--meta)}
-        .hp-title{margin:0;font-size:var(--text-3xl);line-height:var(--leading-tight);
-          font-weight:var(--weight-announce-cjk);color:var(--brand-ink);
-          letter-spacing:var(--tracking-title);max-width:18ch}
-        .hp-sub{margin:var(--space-3) 0 0;max-width:56ch;font-size:var(--text-base);
-          line-height:var(--leading-body);color:var(--fg-2)}
-        .hp-cta{display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-5);flex-wrap:wrap}
-        .hp-cta .btn{display:inline-flex;align-items:center;gap:var(--space-2);
-          padding:var(--space-3) var(--space-5);font-size:var(--text-sm);font-weight:var(--weight-emph-cjk);
-          text-decoration:none;border-radius:var(--radius-md);cursor:pointer;
-          transition:background var(--motion-fast) var(--ease-standard),
-            border-color var(--motion-fast) var(--ease-standard),
-            transform var(--motion-fast) var(--ease-standard)}
-        .hp-cta .btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-fg);border:1px solid transparent}
-        .hp-cta .btn-primary:hover{background:var(--btn-primary-bg-hover);transform:translateY(-1px)}
-        .hp-cta .btn-secondary{background:var(--btn-secondary-bg);color:var(--btn-secondary-fg);
-          border:1px solid var(--btn-secondary-border)}
-        .hp-cta .btn-secondary:hover{background:var(--btn-secondary-bg-hover);transform:translateY(-1px)}
-        .hp-pills{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-5)}
-        .hp-pill{display:inline-flex;align-items:center;padding:var(--space-1) var(--space-3);
-          background:var(--accent-soft);color:var(--accent);border-radius:var(--radius-pill);
-          font-size:var(--text-xs);font-weight:var(--weight-emph-cjk)}
-        @media(max-width:720px){
-          .hp-hero{padding:var(--space-6) var(--space-4)}
-          .hp-title{font-size:var(--text-2xl)}
-          .hp-cta{flex-direction:column;align-items:stretch}
-          .hp-cta .btn{justify-content:center}
-        }
-
-        /* ── 新手上路三步 ── */
-        .hp-steps{display:flex;align-items:stretch;gap:var(--space-3);margin-top:var(--space-6);
-          flex-wrap:wrap}
-        .hp-step{flex:1 1 200px;display:flex;align-items:center;gap:var(--space-3);
-          padding:var(--space-4);background:var(--surface);border:1px solid var(--border);
-          border-radius:var(--radius-md);text-decoration:none;color:var(--fg);
-          transition:border-color var(--motion-fast) var(--ease-standard),
-            box-shadow var(--motion-fast) var(--ease-standard)}
-        .hp-step:hover{border-color:var(--accent-border);box-shadow:var(--elev-card-hover)}
-        .hp-step-ic{display:inline-flex;align-items:center;justify-content:center;flex:none;
-          width:40px;height:40px;border-radius:var(--radius-md);background:var(--accent-soft);
-          color:var(--accent)}
-        .hp-step-body{display:flex;flex-direction:column;gap:2px;min-width:0}
-        .hp-step-title{font-size:var(--text-base);font-weight:var(--weight-announce-cjk);color:var(--brand-ink)}
-        .hp-step-desc{font-size:var(--text-xs);color:var(--muted);line-height:var(--leading-snug)}
-        .hp-step-arrow{display:flex;align-items:center;color:var(--border-strong);flex:none}
-        @media(max-width:720px){
-          .hp-step{flex:1 1 100%}
-          .hp-step-arrow{display:none}
-        }
-
-        /* ── 功能导览 ── */
-        .hp-section{margin-top:var(--space-10)}
-        .hp-section-head{margin-bottom:var(--space-5)}
-        .hp-section-title{margin:0;font-size:var(--text-xl);font-weight:var(--weight-announce-cjk);
-          color:var(--brand-ink);letter-spacing:var(--tracking-title)}
-        .hp-section-sub{margin:var(--space-2) 0 0;font-size:var(--text-sm);color:var(--muted)}
-        .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:var(--space-4)}
-        .hp-card{position:relative;display:flex;flex-direction:column;gap:var(--space-2);
-          padding:var(--space-5);background:var(--surface);border:1px solid var(--border);
-          border-radius:var(--radius-md);text-decoration:none;color:var(--fg);
-          transition:border-color var(--motion-fast) var(--ease-standard),
-            box-shadow var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard);
-          animation:hp-rise .42s var(--ease-out) both}
-        .hp-card:hover{border-color:var(--accent-border);box-shadow:var(--elev-card-hover);transform:translateY(-2px)}
-        .hp-card.is-featured{background:var(--accent-soft);border-color:var(--accent-border)}
-        .hp-card-ic{display:inline-flex;align-items:center;justify-content:center;flex:none;
-          width:44px;height:44px;border-radius:var(--radius-md);background:var(--surface);
-          color:var(--accent);border:1px solid var(--border)}
-        .hp-card.is-featured .hp-card-ic{background:var(--surface);color:var(--accent)}
-        .hp-card-title{font-size:var(--text-lg);font-weight:var(--weight-announce-cjk);color:var(--brand-ink)}
-        .hp-card-desc{font-size:var(--text-sm);color:var(--muted);line-height:var(--leading-body);flex:1}
-        .hp-card-go{display:inline-flex;align-items:center;gap:var(--space-1);margin-top:var(--space-1);
-          font-size:var(--text-sm);color:var(--accent);font-weight:var(--weight-emph-cjk);
-          transition:gap var(--motion-fast) var(--ease-standard)}
-        .hp-card:hover .hp-card-go{gap:var(--space-2)}
-        .hp-card-badge{position:absolute;top:var(--space-4);right:var(--space-4);
-          padding:2px var(--space-2);border-radius:var(--radius-pill);background:var(--accent);
-          color:var(--accent-on);font-size:var(--text-xs);font-weight:var(--weight-emph-cjk);
-          letter-spacing:.02em}
-        .hp-card:nth-child(1){animation-delay:.02s}
-        .hp-card:nth-child(2){animation-delay:.06s}
-        .hp-card:nth-child(3){animation-delay:.10s}
-        .hp-card:nth-child(4){animation-delay:.14s}
-        .hp-card:nth-child(5){animation-delay:.18s}
-        .hp-card:nth-child(6){animation-delay:.22s}
-        .hp-card:nth-child(7){animation-delay:.26s}
-        .hp-card:nth-child(8){animation-delay:.30s}
-        @keyframes hp-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-        @media(max-width:720px){
-          .hp-section{margin-top:var(--space-8)}
-          .hp-grid{grid-template-columns:1fr;gap:var(--space-3)}
-        }
-
-        /* ── 首页脊柱仪表盘 ── */
-        .hp-spine{margin-top:var(--space-6);padding:var(--space-6);
-          background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)}
-        .hp-spine-empty{background:var(--accent-soft);border-color:var(--accent-border)}
-        .hp-spine-head{display:flex;justify-content:space-between;align-items:baseline;
-          margin-bottom:var(--space-4)}
-        .hp-spine-label{font-size:var(--text-xs);color:var(--meta);
-          text-transform:uppercase;letter-spacing:var(--tracking-caps);font-weight:var(--weight-emph-cjk)}
-        .hp-spine-switch{font-size:var(--text-xs);color:var(--accent);
-          text-decoration:none;font-weight:var(--weight-emph-cjk)}
-        .hp-spine-switch:hover{text-decoration:underline}
-        .hp-spine-body{display:flex;align-items:center;gap:var(--space-6);
-          flex-wrap:wrap}
-        .hp-spine-path{font-size:var(--text-xl);font-weight:var(--weight-announce-cjk);
-          color:var(--brand-ink);letter-spacing:var(--tracking-title)}
-        .hp-spine-metrics{display:flex;align-items:center;gap:var(--space-5);flex:1;
-          flex-wrap:wrap}
-        .hp-spine-metric{display:flex;flex-direction:column;gap:2px}
-        .hp-spine-num{font-family:var(--font-mono);font-size:var(--text-3xl);
-          font-weight:var(--weight-announce);color:var(--fg);line-height:1}
-        .hp-spine-num span{font-size:var(--text-base);color:var(--meta);margin-left:2px}
-        .hp-spine-cap{font-size:var(--text-xs);color:var(--meta)}
-        /* 覆盖 next-card 默认样式以适配首页宽屏 */
-        .hp-spine .next-card{flex:1 1 280px;border-left-width:3px;
-          padding:var(--space-4) var(--space-5)}
-        .hp-spine-empty-text{margin:0 0 var(--space-4);font-size:var(--text-sm);
-          color:var(--fg-2);line-height:var(--leading-relaxed);max-width:48ch}
-        .hp-spine-factory{display:inline-flex;align-items:center;gap:var(--space-2);
-          margin-top:var(--space-4);padding:var(--space-2) var(--space-4);
-          background:var(--surface-2);border-radius:var(--radius-md);
-          font-size:var(--text-sm);color:var(--accent);text-decoration:none;
-          transition:background var(--motion-fast) var(--ease-standard)}
-        .hp-spine-factory:hover{background:var(--accent-soft)}
-        @media(max-width:720px){
-          .hp-spine{padding:var(--space-4)}
-          .hp-spine-body{flex-direction:column;align-items:stretch;gap:var(--space-3)}
-          .hp-spine-metrics{gap:var(--space-3)}
-          .hp-spine-num{font-size:var(--text-2xl)}
-        }
-      `}</style>
-
-      {/* ═══ 英雄区：身份 + 价值主张 + 主入口 ═══ */}
-      <header className="hp-hero">
-        <p className="hp-kicker">
-          <Icon name="factory" size={16} />
-          <span className="caps">MES 实训平台</span>
-        </p>
-        <h1 className="hp-title">零基础，把工厂和 MES 一次看明白</h1>
-        <p className="hp-sub">
-          课程 + 模拟器 + 练习，边看边玩边练。先看懂工厂怎么转，再动手调产线、跑流程。
-        </p>
-        <div className="hp-cta">
-          <Link to="/factory" className="btn btn-primary">
-            <Icon name="factory" size={20} /> 进入工厂全景
-          </Link>
-          <Link to="/courses" className="btn btn-secondary">
-            <Icon name="courses" size={20} /> 浏览课程
-          </Link>
+      {/* ═══ 工厂全景条：身份 + 真实产线态势 + 主入口（深色控制室锚点） ═══ */}
+      <header className="hp-pano">
+        <div className="hp-pano-head">
+          <div className="hp-pano-id">
+            <p className="hp-kicker">
+              <Icon name="factory" size={16} />
+              <span className="caps">MES 实训平台</span>
+              <span className={`hp-lamp ${live ? 'is-live' : 'is-fallback'}`}>
+                <span className="hp-lamp-dot" aria-hidden="true" />
+                {live ? '流程已连线' : '离线兜底流程'}
+              </span>
+            </p>
+            <h1 className="hp-title">零基础，把工厂和 MES 一次看明白</h1>
+            <p className="hp-sub">
+              下面这条线就是一张订单进厂到发货的 {factory.total} 个环节。
+              绿灯是你已经练通的，琥珀是正在做的——点任意一环直接进去看。
+            </p>
+            <div className="hp-pano-pills">
+              <span className="hp-pano-pill">会动的产线模拟器</span>
+              <span className="hp-pano-pill">订单到交付全流</span>
+              <span className="hp-pano-pill">AI 导师随时问</span>
+            </div>
+          </div>
+          <dl className="hp-counts">
+            <div className="hp-count">
+              <dt>已练通</dt>
+              <dd className="is-run">{runCount}</dd>
+            </div>
+            <div className="hp-count">
+              <dt>进行中</dt>
+              <dd className="is-wip">{wipCount}</dd>
+            </div>
+            <div className="hp-count">
+              <dt>未开工</dt>
+              <dd className="is-idle">{idleCount}</dd>
+            </div>
+          </dl>
         </div>
-        <div className="hp-pills">
-          <span className="hp-pill">12 环节工厂全景</span>
-          <span className="hp-pill">会动的产线模拟器</span>
-          <span className="hp-pill">订单到交付全流</span>
-          <span className="hp-pill">AI 导师随时问</span>
+
+        <ol className="hp-flow" aria-label={`工厂 ${factory.total} 环节进度`}>
+          {factory.nodes.map((n, i) => {
+            const tone = TONE_BY_STATUS[n.status];
+            const isNext = n.key === factory.nextKey;
+            return (
+              <li key={n.key} className="hp-flow-item">
+                <Link
+                  to={`/factory?node=${encodeURIComponent(n.key)}`}
+                  className={`hp-flow-node is-${tone}${isNext ? ' is-next' : ''}`}
+                  aria-label={`第 ${i + 1} 环节 ${n.label}：${TONE_TEXT[tone]}${isNext ? '（建议从这里继续）' : ''}`}
+                  title={`${n.label} · ${TONE_TEXT[tone]}`}
+                >
+                  <span className="hp-flow-idx" aria-hidden="true">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                </Link>
+                <span className="hp-flow-label">{n.label}</span>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="hp-pano-foot">
+          <Link to={primaryTo} className="hp-btn hp-btn-primary">
+            <Icon name="factory" size={20} /> {primaryLabel}
+          </Link>
+          <Link to="/courses" className="hp-btn hp-btn-ghost">
+            <Icon name="courses" size={20} /> 系统学课程
+          </Link>
+          <ul className="hp-legend">
+            <li>
+              <span className="hp-dot is-run" aria-hidden="true" />
+              已练通
+            </li>
+            <li>
+              <span className="hp-dot is-wip" aria-hidden="true" />
+              进行中
+            </li>
+            <li>
+              <span className="hp-dot is-idle" aria-hidden="true" />
+              未开工
+            </li>
+          </ul>
         </div>
       </header>
+
+      {/* ═══ 学情仪表：四个读数全部有真实来源 ═══ */}
+      <section className="hp-section hp-section-tight" aria-label="学情仪表">
+        <div className="hp-section-head">
+          <h2 className="hp-section-title">你的现场态势</h2>
+          <p className="hp-section-sub">
+            读数来自你自己的学习与练习记录，不是演示数据。
+          </p>
+        </div>
+        <div className="hp-gauges">
+          <GaugeCard
+            pct={factory.pct}
+            stroke="var(--accent)"
+            label="环节覆盖"
+            hint={`${factory.touched} / ${factory.total} 个环节走过`}
+          />
+          <GaugeCard
+            pct={drillPct}
+            stroke="var(--success)"
+            label="实战完成"
+            hint={
+              factory.practicableTotal > 0
+                ? `${factory.practiced} / ${factory.practicableTotal} 个环节练通`
+                : '实战内容还在播种中'
+            }
+          />
+          <GaugeCard
+            pct={spine.activePath != null ? spine.completion : 0}
+            stroke="var(--phase-production)"
+            label="主线进度"
+            hint={spine.activePath != null ? (spine.pathName ?? '已选路径') : '还没选学习路径'}
+          />
+          <div className="hp-gauge-card">
+            <div className="hp-gauge-body">
+              <div className="hp-tally">
+                <span className="hp-tally-item">
+                  <span className="hp-tally-n">{quizCount}</span>
+                  <span className="hp-tally-l">测验</span>
+                </span>
+                <span className="hp-tally-item">
+                  <span className="hp-tally-n">{practice.sqlPassed.length}</span>
+                  <span className="hp-tally-l">SQL</span>
+                </span>
+                <span className="hp-tally-item">
+                  <span className="hp-tally-n">{practice.sims.length}</span>
+                  <span className="hp-tally-l">演练</span>
+                </span>
+              </div>
+              <div className="hp-gauge-k">练习记录 · 累计通过数</div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ═══ 学习脊柱仪表盘（首页专属，侧栏不再放） ═══ */}
       {spine.activePath != null ? (
@@ -330,6 +356,57 @@ export default function HomePage() {
         </div>
       </section>
     </section>
+  );
+}
+
+/**
+ * 仪表环卡片。r 取 15.9155 是为了让周长正好等于 100，
+ * 这样 strokeDasharray 可以直接写百分数，不用再换算——避免「85% 画出来像 87%」。
+ */
+function GaugeCard({
+  pct,
+  stroke,
+  label,
+  hint,
+}: {
+  pct: number;
+  stroke: string;
+  label: string;
+  hint: string;
+}) {
+  const safe = Math.max(0, Math.min(100, Math.round(pct)));
+  return (
+    <div className="hp-gauge-card">
+      <svg className="hp-gauge" viewBox="0 0 36 36" role="img" aria-label={`${label} ${safe}%`}>
+        <circle cx="18" cy="18" r="15.9155" fill="none" stroke="var(--progress-track)" strokeWidth="3.5" />
+        <circle
+          cx="18"
+          cy="18"
+          r="15.9155"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeDasharray={`${safe} 100`}
+          transform="rotate(-90 18 18)"
+        />
+        <text
+          x="18"
+          y="21.5"
+          textAnchor="middle"
+          fontSize="9"
+          fontWeight="600"
+          fill="var(--fg)"
+          fontFamily="var(--font-mono)"
+        >
+          {safe}%
+        </text>
+      </svg>
+      <div className="hp-gauge-body">
+        <div className="hp-gauge-v">{label}</div>
+        <div className="hp-gauge-k">{hint}</div>
+      </div>
+    </div>
   );
 }
 

@@ -14,7 +14,7 @@ import { api } from '../../api/endpoints';
 import type { FlowNodeDTO, NodeResourceDTO } from '../../api/endpoints';
 import { DEFAULT_FLOW, PHASE_BY_KEY, buildSteps, type LaidNode, type Phase } from './factoryFlow.data';
 import { useNodeProgress } from './useNodeProgress';
-import { useNodeStatus } from './useNodeStatus';
+import { useNodeStatus, type NodeStatus } from './useNodeStatus';
 
 const SLUG = 'generic-factory';
 
@@ -24,6 +24,17 @@ export interface PhaseStat {
   practiced: number;
   /** 了解过（含只读知识卡）。 */
   touched: number;
+}
+
+/**
+ * 逐环节视图：流程顺序 + 真实完成态。首页工厂全景条按这个渲染状态节点，
+ * 不另造演示数据——全景条上每个点的颜色都是学员自己的真实进度。
+ */
+export interface NodeView {
+  key: string;
+  label: string;
+  phase: Phase;
+  status: NodeStatus;
 }
 
 export interface FactorySummary {
@@ -37,6 +48,13 @@ export interface FactorySummary {
   nextKey: string | null;
   /** 四阶段（plan→production→qc→logistics）进度，用于个人中心分布图。 */
   phaseStats: PhaseStat[];
+  /** 流程顺序的逐环节状态，给全景条/流程条用。 */
+  nodes: NodeView[];
+  /**
+   * 流程图数据来源。'api' = 后端已下发；'fallback' = 用前端静态 DEFAULT_FLOW 兜底
+   * （离线 / 接口失败 / 内容未播种）。UI 应当把这件事说出来，而不是假装一切正常。
+   */
+  source: 'api' | 'fallback';
 }
 
 const PHASE_ORDER: Phase[] = ['plan', 'production', 'qc', 'logistics'];
@@ -97,6 +115,12 @@ export function useFactorySummary(): FactorySummary {
     return PHASE_ORDER.map((p) => acc[p]);
   }, [nodes, status]);
 
+  // 逐环节视图：保持 buildSteps 拍平后的流程顺序，状态取 useNodeStatus 唯一真值。
+  const nodeViews = useMemo<NodeView[]>(
+    () => nodes.map((n) => ({ key: n.key, label: n.label, phase: n.phase, status: status.statusOf(n) })),
+    [nodes, status],
+  );
+
   return {
     total,
     touched: status.touchedCount,
@@ -105,5 +129,7 @@ export function useFactorySummary(): FactorySummary {
     pct,
     nextKey: status.nextKey,
     phaseStats,
+    nodes: nodeViews,
+    source: q.data && q.data.nodes?.length ? 'api' : 'fallback',
   };
 }
