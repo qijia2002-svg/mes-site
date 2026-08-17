@@ -194,14 +194,6 @@ CREATE TABLE IF NOT EXISTS media (
   created_at INTEGER NOT NULL
 );
 
--- 可复用 SQL 样例数据集（沙箱内置库，对应 v2 §4 浏览器端 sql.js）
-CREATE TABLE IF NOT EXISTS sql_datasets (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  name       TEXT NOT NULL UNIQUE,
-  build_sql  TEXT NOT NULL DEFAULT '',  -- 建表 + 插数 DDL/DML
-  created_at INTEGER NOT NULL
-);
-
 -- 工厂模拟器工艺方案存档（Phase 3 沙盒）
 CREATE TABLE IF NOT EXISTS mes_sandbox_save (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,

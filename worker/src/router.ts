@@ -127,18 +127,18 @@ export const routes: Route[] = [
 
   // Phase 2 题库 / SQL 实训（题面与答案分离，防缓存泄露 R6）
   //
-  // 判题接口**必须登录**：它是全站唯一会下发 correctAnswer + explanation 的出口。
-  // 取题面的 GET /quiz/questions 走默认管线本来就要登录，判题却曾挂 noAuth——
-  // 结果是「看不到题、却能把 90 道题的答案全撸走」。那是遗漏不是设计，已补齐。
-  // 顺序遵 §A3.2：鉴权在限流之前，避免匿名请求白白消耗令牌桶。
-  { method: 'GET', path: '/api/v1/quiz/questions/:id', handler: getQuestion },
-  { method: 'GET', path: '/api/v1/quiz/questions', handler: listQuestions },
-  { method: 'GET', path: '/api/v1/quiz/topic-questions', handler: listTopicQuestions },
+  // 答案只在判题出口下发：grade / ai-grade 仍**强制登录**（gradeAnswerSvc 内 if(!c.auth?.sub)
+  // 兜底），服务层 DTO 也只回 {stem, options} 不含答案——双保险。因此题面 GET 可安全对游客开放
+  // （试学即练、降低注册门槛），不会泄露答案。sql-exercises 的 submit 本就 noAuth，这里把
+  // list/get 一并放开，消除「能提交却看不到题」的不一致。顺序仍遵 §A3.2：鉴权在限流之前。
+  { method: 'GET', path: '/api/v1/quiz/questions/:id', handler: getQuestion, noAuth: true },
+  { method: 'GET', path: '/api/v1/quiz/questions', handler: listQuestions, noAuth: true },
+  { method: 'GET', path: '/api/v1/quiz/topic-questions', handler: listTopicQuestions, noAuth: true },
   { method: 'POST', path: '/api/v1/quiz/grade', middlewares: [trace, security, auth, guardAll, writeLimit(), validate], handler: gradeAnswer },
   // AI 判读同样要登录：它既读 reference_answer，又直接烧 Workers AI 配额
   { method: 'POST', path: '/api/v1/quiz/ai-grade', middlewares: [trace, security, auth, guardAll, aiLimit(), validate], handler: aiGrade },
-  { method: 'GET', path: '/api/v1/sql-exercises', handler: listSqlExercises },
-  { method: 'GET', path: '/api/v1/sql-exercises/:id', handler: getSqlExercise },
+  { method: 'GET', path: '/api/v1/sql-exercises', handler: listSqlExercises, noAuth: true },
+  { method: 'GET', path: '/api/v1/sql-exercises/:id', handler: getSqlExercise, noAuth: true },
   { method: 'POST', path: '/api/v1/sql-exercises/:id/submit', middlewares: [trace, security, writeLimit(), validate], handler: submitSql },
 
   // Phase 3 学习路径 / 证书
