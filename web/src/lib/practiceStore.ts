@@ -29,10 +29,12 @@ export interface PracticeProgress {
   standaloneQuiz: number;
   /** 已通过判题的 SQL 习题 id（去重） */
   sqlPassed: string[];
+  /** 已完成演练/模拟的标识（排产模拟 scheduling 等，去重）——v2 新增，治 N4 漏计脊柱 */
+  sims: string[];
 }
 
 function blank(): PracticeProgress {
-  return { chaptersQuiz: [], modulesQuiz: [], factoryQuiz: [], standaloneQuiz: 0, sqlPassed: [] };
+  return { chaptersQuiz: [], modulesQuiz: [], factoryQuiz: [], standaloneQuiz: 0, sqlPassed: [], sims: [] };
 }
 
 function read(): PracticeProgress {
@@ -43,6 +45,7 @@ function read(): PracticeProgress {
     factoryQuiz: Array.isArray(p?.factoryQuiz) ? p!.factoryQuiz : [],
     standaloneQuiz: typeof p?.standaloneQuiz === 'number' ? p!.standaloneQuiz : 0,
     sqlPassed: Array.isArray(p?.sqlPassed) ? p!.sqlPassed : [],
+    sims: Array.isArray(p?.sims) ? p!.sims : [],
   };
 }
 
@@ -87,6 +90,13 @@ export function recordQuiz(opts: {
 export function recordSqlPass(exerciseId: number | string): void {
   const p = read();
   p.sqlPassed = addUnique(p.sqlPassed, String(exerciseId));
+  save(p);
+}
+
+/** 记录一次演练/模拟完成（按标识去重，如 'scheduling'）。v2 新增，让模拟类模块也计入脊柱进度。 */
+export function recordSim(key: string): void {
+  const p = read();
+  p.sims = addUnique(p.sims, key);
   save(p);
 }
 

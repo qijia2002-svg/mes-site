@@ -9,7 +9,7 @@
  * 规范：图标走 Icon 体系（禁 emoji）；token 化样式（TutorWorkspace.css）；不硬编码颜色
  * （仅 #fff 作按钮文字例外）；无紫粉渐变、无弹性缓动。对话逻辑与 FAB 共用 tutor.shared。
  */
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type Ref } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from '../../components/Icon';
 import { api } from '../../api/endpoints';
@@ -21,7 +21,17 @@ import {
   clearTutorHistory,
   renderRich,
 } from './tutor.shared';
+import { useDraggable } from './useDraggable';
 import './TutorWorkspace.css';
+
+/** 桌面端竖排标签默认落点：右边缘、垂直居中。 */
+function wsTabDefaultPos() {
+  const w = 40;
+  const h = 92;
+  const x = window.innerWidth - w - 4;
+  const y = Math.max(8, window.innerHeight / 2 - h / 2);
+  return { x, y };
+}
 
 function sourceIcon(type: TutorSource['type']): IconName {
   switch (type) {
@@ -44,6 +54,9 @@ export function TutorWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // 桌面端收起态标签可拖动，落点持久化（用户要求）
+  const drag = useDraggable({ storageKey: 'tutor.ws.pos', defaultPos: wsTabDefaultPos });
 
   // 对话持久化（与移动端共用同一 localStorage key，跨端续接）
   useEffect(() => {
@@ -118,14 +131,22 @@ export function TutorWorkspace() {
 
   const disabled = busy || input.trim().length === 0;
 
-  // 未展开：右边缘常驻竖排标签（桌面专属入口）
+  // 未展开：右边缘常驻竖排标签（桌面专属入口，可拖动）
   if (!open) {
     return (
       <button
         type="button"
+        ref={drag.ref as Ref<HTMLButtonElement>}
         className="tutor-ws-tab only-desktop"
-        onClick={() => setOpen(true)}
-        aria-label="打开 AI 课程老师工作台"
+        style={drag.style}
+        onPointerDown={drag.onPointerDown}
+        onPointerMove={drag.onPointerMove}
+        onPointerUp={drag.onPointerUp}
+        onClick={() => {
+          if (drag.consumeDrag()) return; // 刚拖动过，不触发展开
+          setOpen(true);
+        }}
+        aria-label="打开 AI 课程老师工作台（可拖动位置）"
       >
         <Icon name="tutor" size={20} />
         <span>AI 导师</span>

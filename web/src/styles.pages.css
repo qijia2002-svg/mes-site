@@ -453,3 +453,33 @@ a.card:hover {
   border-bottom: 1px solid var(--border-soft);
   background: var(--surface-2);
 }
+
+/* ── 实训题缺位优雅降级（v2 · N3）── */
+.practice-gap {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.practice-gap-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.practice-gap-ic {
+  color: var(--accent);
+  flex: none;
+  margin-top: 2px;
+}
+.practice-gap-title {
+  margin: 0 0 2px;
+  font-weight: var(--weight-announce-cjk);
+  color: var(--fg);
+  font-size: var(--text-base);
+}
+.practice-gap-sub {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}

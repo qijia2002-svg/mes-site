@@ -26,6 +26,7 @@ const DictionaryPage = lazy(() => import('./pages/DictionaryPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 // v13 拆壳：搭建器恢复独立路由，课程/路径/职业各自成页，/factory 只画工厂全景。
 const SimulatorPage = lazy(() => import('./features/factory-sim/FactorySimPage'));
+const SchedulingSimPage = lazy(() => import('./features/factory-sim/SchedulingSimPage'));
 const OrderToDeliveryPage = lazy(() => import('./features/factory/OrderToDeliveryFlow'));
 const LearningPathsPage = lazy(() => import('./pages/LearningPathsPage'));
 const CareerPage = lazy(() => import('./pages/CareerPage'));
@@ -52,6 +53,7 @@ export default function App() {
                   <Route path="/knowledge-graph/concept/:concept" element={<KnowledgeGraphPage />} />
                   <Route path="/engine" element={<Navigate to="/factory" replace />} />
                   <Route path="/simulator" element={<SimulatorPage />} />
+                  <Route path="/scheduling" element={<SchedulingSimPage />} />
                   <Route path="/order-to-delivery" element={<OrderToDeliveryPage />} />
                   <Route path="/learning-paths" element={<LearningPathsPage />} />
                   <Route path="/roadmap" element={<CareerPage />} />

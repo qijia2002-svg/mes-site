@@ -9,6 +9,7 @@ import { Icon } from '../components/Icon';
 import { useCrumbTail } from '../components/Breadcrumb';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlock';
 import { QuizDeck } from '../components/QuizDeck';
+import { NextActionGroup, type NextAction } from '../components/NextAction';
 import { api, type CourseState, type PathSummary, type StageSummary } from '../api/endpoints';
 import { useActivePath } from '../lib/userData';
 
@@ -225,7 +226,7 @@ export default function CourseDetailPage() {
           <ErrorState error={exercises.error} onRetry={() => void exercises.refetch()} />
         )}
         {exercises.data?.length === 0 && (
-          <EmptyState title="这门课暂无实训题" hint="可以先到 SQL 工作台自由练习样例库。" icon="sql" />
+          <PracticeGap topicSlug={topic?.slug} nextChapter={firstIncomplete} />
         )}
         {exercises.data && exercises.data.length > 0 && (
           <ul className="row-list">
@@ -242,6 +243,72 @@ export default function CourseDetailPage() {
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * 实训题缺位优雅降级（v2 · 治 N3 软死胡同）。
+ * 不再给泛提示「先到 SQL 工作台自由练习样例库」，而是按课程相关性给真实下一步：
+ *   · 有下一章 → 继续学
+ *   · 按 slug 反链相关模拟/沙盒 → 去练手
+ *   · 都没有 → 换一条学习路线
+ * 让「无练习」从死胡同变成顺手去练/去学的平滑分流，不虚构任何内容。
+ */
+function PracticeGap({
+  topicSlug,
+  nextChapter,
+}: {
+  topicSlug?: string;
+  nextChapter: { id: number; title: string } | null;
+}) {
+  const slug = topicSlug?.toLowerCase() ?? '';
+  // slug 反链相关模拟/沙盒（均为真实存在的页面，不造假）
+  const related =
+    slug.includes('sql')
+      ? { to: '/sql-space', label: '去 SQL 沙盒自由练习', hint: '对着样例库写查询、即时看结果', icon: 'sql' as const }
+      : slug.includes('schedule') || slug.includes('aps') || slug.includes('排产')
+        ? { to: '/scheduling', label: '去排产模拟练手', hint: '亲手排工单、看瓶颈怎么卡住交期', icon: 'schedule' as const }
+        : slug.includes('mes') || slug.includes('factory') || slug.includes('产线') || slug.includes('车间')
+          ? { to: '/simulator', label: '去产线模拟器练手', hint: '把工厂环节变成会动的产线', icon: 'gauge' as const }
+          : { to: '/order-to-delivery', label: '看订单到交付全景', hint: '先建立完整业务流印象', icon: 'truck' as const };
+
+  const actions: NextAction[] = [
+    {
+      to: related.to,
+      label: related.label,
+      hint: related.hint,
+      icon: related.icon,
+      kind: 'practice',
+    },
+  ];
+  if (nextChapter) {
+    actions.push({
+      to: `/chapters/${nextChapter.id}`,
+      label: `继续学：${nextChapter.title}`,
+      hint: '先读完这章，再回头练',
+      icon: 'courses',
+      kind: 'learn',
+    });
+  }
+  actions.push({
+    to: '/learning-paths',
+    label: '换一条学习路线',
+    hint: '挑一条主线系统推进',
+    icon: 'paths',
+    kind: 'learn',
+  });
+
+  return (
+    <div className="practice-gap">
+      <div className="practice-gap-head">
+        <Icon name="sql" size={20} className="practice-gap-ic" />
+        <div>
+          <p className="practice-gap-title">这门课暂无实训题</p>
+          <p className="practice-gap-sub">没关系，下面这些同样能把知识练熟：</p>
+        </div>
+      </div>
+      <NextActionGroup actions={actions} />
+    </div>
   );
 }
 

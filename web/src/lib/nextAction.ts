@@ -34,6 +34,44 @@ export function simulatorNextActions(spine: {
   ];
 }
 
+/**
+ * 排产模拟完成后的跨模式下一步（v2 · 治 N4）：
+ *   演练 → 去练习中心看进度（记入脊柱）/ 接主线下一课 / 系统梳理学习主线。
+ * 与模拟器、章节页同构——每个「完成/演练」动作都给出真实下一步，不留断点。
+ */
+export function schedulingNextActions(spine: {
+  nextCourseId: number | null;
+  nextCourseName: string | null;
+}): NextAction[] {
+  const acts: NextAction[] = [
+    {
+      to: '/practice',
+      label: '去练习中心看进度',
+      hint: '刚完成的排产演练已记入进度',
+      icon: 'dashboard',
+      kind: 'practice',
+    },
+  ];
+  if (spine.nextCourseId != null) {
+    acts.push({
+      to: `/courses/${spine.nextCourseId}`,
+      label: `继续学：${spine.nextCourseName ?? '下一门课'}`,
+      hint: '把排产环节系统学一遍',
+      icon: 'courses',
+      kind: 'learn',
+    });
+  } else {
+    acts.push({
+      to: '/learning-paths',
+      label: '系统梳理学习主线',
+      hint: '选一条主线，排产演练会按主线推进',
+      icon: 'paths',
+      kind: 'learn',
+    });
+  }
+  return acts;
+}
+
 /** 订单到交付看完后的下一步：落回学习路径（系统学 16 步业务流）。 */
 export function otdNextActions(): NextAction[] {
   return [

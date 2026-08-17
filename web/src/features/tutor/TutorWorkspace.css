@@ -9,7 +9,6 @@
   position: fixed;
   right: 0;
   top: 50%;
-  transform: translateY(-50%);
   z-index: calc(var(--z-sticky) + 5);
   display: inline-flex;
   flex-direction: column;

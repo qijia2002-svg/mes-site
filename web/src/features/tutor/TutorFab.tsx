@@ -8,7 +8,7 @@
  * 规范：图标走 Icon 体系（tutor=MessageCircle，禁 emoji）；token 化样式（TutorFab.css）；
  * 不引第二个图标库、不硬编码颜色（仅 #fff 作按钮文字例外）；无紫粉渐变、无弹性缓动。
  */
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type Ref } from 'react';
 import { Icon } from '../../components/Icon';
 import { api } from '../../api/endpoints';
 import type { TutorMsg } from './tutor.types';
@@ -18,7 +18,19 @@ import {
   clearTutorHistory,
   renderRich,
 } from './tutor.shared';
+import { useDraggable } from './useDraggable';
 import './TutorFab.css';
+
+/** 移动端 FAB 默认落点：右下角，让出底栏高度。 */
+function fabDefaultPos() {
+  const size = 56;
+  const pad = 16;
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
+  const tabbar = isMobile ? 64 : 0;
+  const x = window.innerWidth - size - pad;
+  const y = window.innerHeight - size - pad - tabbar;
+  return { x, y };
+}
 
 export function TutorFab() {
   const [open, setOpen] = useState(false);
@@ -29,6 +41,9 @@ export function TutorFab() {
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const panelRef = useRef<HTMLElement>(null);
+
+  // AI 导师入口可拖动，落点持久化（用户要求）
+  const drag = useDraggable({ storageKey: 'tutor.fab.pos', defaultPos: fabDefaultPos });
 
   // 对话持久化（跨刷新保留，让「老师记得」）
   useEffect(() => {
@@ -49,13 +64,15 @@ export function TutorFab() {
   }, [open]);
 
   // 移动端软键盘遮挡：用 visualViewport 把面板整体抬到键盘上方（仅移动端生效，
-  // 桌面无软键盘且为右侧抽屉，不注入内联 top/height）
+  // 桌面无软键盘且为右侧抽屉，不注入内联 top/height）。并通过聚焦时把输入框滚入可视区，
+  // 修复「输入框对不齐输入法」的问题（输入法顶起时输入框被挡或错位）。
   useEffect(() => {
     if (!open) return;
     const panel = panelRef.current;
     const vv = typeof window !== 'undefined' ? window.visualViewport : null;
     if (!panel || !vv) return;
     const mq = window.matchMedia('(max-width: 640px)');
+    let raf = 0;
     const apply = () => {
       if (!mq.matches) {
         panel.style.removeProperty('top');
@@ -68,14 +85,32 @@ export function TutorFab() {
       panel.style.top = `${vv.offsetTop}px`;
       panel.style.height = `${vv.height}px`;
     };
-    apply();
-    vv.addEventListener('resize', apply);
-    vv.addEventListener('scroll', apply);
-    window.addEventListener('resize', apply);
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(apply);
+    };
+    schedule();
+    vv.addEventListener('resize', schedule);
+    vv.addEventListener('scroll', schedule);
+    window.addEventListener('resize', schedule);
+
+    // 聚焦输入框时，等输入法升起后再把输入框居中到可视区，避免错位/被挡
+    const ta = inputRef.current;
+    const onFocus = () => {
+      schedule();
+      window.setTimeout(() => {
+        ta?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        schedule();
+      }, 300);
+    };
+    ta?.addEventListener('focus', onFocus);
+
     return () => {
-      vv.removeEventListener('resize', apply);
-      vv.removeEventListener('scroll', apply);
-      window.removeEventListener('resize', apply);
+      cancelAnimationFrame(raf);
+      vv.removeEventListener('resize', schedule);
+      vv.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      ta?.removeEventListener('focus', onFocus);
       panel.style.removeProperty('top');
       panel.style.removeProperty('height');
     };
@@ -131,9 +166,17 @@ export function TutorFab() {
       {!open && (
         <button
           type="button"
+          ref={drag.ref as Ref<HTMLButtonElement>}
           className="tutor-fab only-mobile"
-          onClick={() => setOpen(true)}
-          aria-label="打开 AI 课程老师"
+          style={drag.style}
+          onPointerDown={drag.onPointerDown}
+          onPointerMove={drag.onPointerMove}
+          onPointerUp={drag.onPointerUp}
+          onClick={() => {
+            if (drag.consumeDrag()) return; // 刚拖动过，不触发打开
+            setOpen(true);
+          }}
+          aria-label="打开 AI 课程老师（可拖动位置）"
         >
           <Icon name="tutor" size={24} />
         </button>

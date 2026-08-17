@@ -159,12 +159,14 @@ function PracticeSummary({ progress }: { progress: ReturnType<typeof usePractice
     { icon: 'report', label: '模块考试', value: `${progress.modulesQuiz.length} 门通过` },
     { icon: 'workshop', label: '工厂内联自测', value: `${progress.factoryQuiz.length} 个节点` },
     { icon: 'sql', label: 'SQL 沙盒', value: `${progress.sqlPassed.length} 题通过` },
+    { icon: 'schedule', label: '演练模拟', value: `${progress.sims.length} 个完成` },
   ];
   const total =
     progress.chaptersQuiz.length +
     progress.modulesQuiz.length +
     progress.factoryQuiz.length +
-    progress.sqlPassed.length;
+    progress.sqlPassed.length +
+    progress.sims.length;
 
   return (
     <section className="pc-summary" aria-label="全站练习进度汇总">

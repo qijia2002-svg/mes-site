@@ -18,6 +18,7 @@ import { getNickname, subscribeProfile } from '../lib/profileStore';
 import { TopbarSearch } from './TopbarSearch';
 import { TutorFab } from '../features/tutor/TutorFab';
 import { TutorWorkspace } from '../features/tutor/TutorWorkspace';
+import { NAV_GROUPS, isNavActive } from '../lib/routeManifest';
 
 function HealthPill() {
   const health = useQuery({ queryKey: ['health'], queryFn: api.health, refetchInterval: 60_000, retry: 1 });
@@ -32,6 +33,11 @@ function HealthPill() {
   );
 }
 
+// 导航按学习意图重组（UX 重梳 Phase D）：看·工厂 / 学·课程 / 练·练习 / 我的。
+// 学习主线（Spine）已移至首页英雄区下方常驻，不单独占一级导航。
+// 一级组与子项全部来自 routeManifest（自注册体验总线，v2 根治 N1/N2）：
+//   新增模拟/演练类页面，只要在对应组加一条 children，便自动进导航 + 自动高亮，
+//   不再手写 match 字符串、不再出现孤儿路由。
 type NavChild = { to: To; label: string; icon: IconName };
 type NavDef = {
   to: To;
@@ -39,54 +45,14 @@ type NavDef = {
   icon: IconName;
   /** 子页：桌面侧栏平铺，移动端由各落地页进入。 */
   children?: NavChild[];
-  /** 命中任一子路由时，该一级区高亮。 */
-  match?: (p: string) => boolean;
 };
 
-// 导航按学习意图重组（UX 重梳 Phase D）：看·工厂 / 学·课程 / 练·练习 / 我的。
-// 学习主线（Spine）已移至首页英雄区下方常驻，不单独占一级导航。
-// 模拟器/订单到交付归「看·工厂」（本质是工厂下钻）；SQL 沙盒/测验/词典归「练·练习」，练习中心 /practice 为枢纽落地页。
-const NAV: NavDef[] = [
-  {
-    to: '/factory',
-    label: '看 · 工厂',
-    icon: 'factory',
-    match: (p) => p === '/factory' || p.startsWith('/simulator') || p.startsWith('/order-to-delivery'),
-    children: [
-      { to: '/simulator', label: '模拟器', icon: 'gauge' },
-      { to: '/order-to-delivery', label: '订单到交付', icon: 'truck' },
-    ],
-  },
-  {
-    to: '/courses',
-    label: '学 · 课程',
-    icon: 'courses',
-    match: (p) =>
-      p.startsWith('/courses') || p.startsWith('/learning-paths') || p.startsWith('/roadmap') || p.startsWith('/tracks'),
-    children: [
-      { to: '/learning-paths', label: '学习路径', icon: 'paths' },
-      { to: '/roadmap', label: '岗位路线', icon: 'stage' },
-    ],
-  },
-  {
-    to: '/practice',
-    label: '练 · 练习',
-    icon: 'tools',
-    match: (p) => p.startsWith('/practice') || p.startsWith('/sql-space') || p.startsWith('/quiz') || p.startsWith('/dictionary'),
-    children: [
-      { to: '/sql-space', label: 'SQL 沙盒', icon: 'sql' },
-      { to: '/quiz', label: '测验', icon: 'quiz' },
-      { to: '/dictionary', label: '词典', icon: 'dictionary' },
-    ],
-  },
-  {
-    to: '/profile',
-    label: '我的',
-    icon: 'user',
-    match: (p) => p.startsWith('/profile') || p.startsWith('/portfolio'),
-    children: [{ to: '/portfolio', label: '作品集', icon: 'portfolio' }],
-  },
-];
+const NAV: NavDef[] = NAV_GROUPS.map((g) => ({
+  to: g.to as To,
+  label: g.label,
+  icon: g.icon,
+  children: g.children.map((c) => ({ to: c.to as To, label: c.label, icon: c.icon })),
+}));
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   // 订阅资料变更：设置页保存昵称后，侧栏头像 / 名称即时刷新，无需刷新页面。
@@ -94,8 +60,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const userInitial = nickname ? nickname.charAt(0) : '学';
   const loc = useLocation();
 
-  const isActive = (item: NavDef, navActive: boolean) =>
-    navActive || (item.match ? item.match(loc.pathname) : false);
+  const isActive = (item: NavDef, navActive: boolean) => {
+    const group = NAV_GROUPS.find((g) => g.to === String(item.to));
+    return navActive || (group ? isNavActive(group, loc.pathname) : false);
+  };
 
   return (
     <div className="shell">
