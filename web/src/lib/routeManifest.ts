@@ -45,7 +45,8 @@ export const NAV_GROUPS: NavGroupDef[] = [
       { to: '/order-to-delivery', label: '订单到交付', icon: 'truck' },
       { to: '/scheduling', label: '排产模拟', icon: 'schedule', spine: true },
     ],
-    matchPrefixes: [],
+    // /knowledge-graph 直开（演练中深究概念）时归属「看·工厂」高亮
+    matchPrefixes: ['/knowledge-graph'],
   },
   {
     id: 'courses',
@@ -56,8 +57,8 @@ export const NAV_GROUPS: NavGroupDef[] = [
       { to: '/learning-paths', label: '学习路径', icon: 'paths' },
       { to: '/roadmap', label: '岗位路线', icon: 'stage' },
     ],
-    // /tracks 详情页也归属「学·课程」高亮，但不作为子项平铺
-    matchPrefixes: ['/tracks'],
+    // /tracks 详情页 + /chapters 章节阅读页也归属「学·课程」高亮，但不作为子项平铺
+    matchPrefixes: ['/tracks', '/chapters'],
   },
   {
     id: 'practice',
