@@ -32,10 +32,10 @@
      A1-identity · 品牌身份（品牌升级才动）
      ====================================================================== */
 
-  /* 品牌墨色：深森绿。保留给 SQL 沙箱深底 */
-  --brand-ink: #2d3a33;
-  /* 强调色：低饱和森系绿（参考李勃老师.com） */
-  --accent: #547C70;
+  /* 品牌墨色：枪灰墨蓝（工业运维控制台外壳，亦用于 SQL 沙箱深底）*/
+  --brand-ink: #1E2A33;
+  /* 强调色：钢蓝（Industrial Ops Console，仅用于可操作态）*/
+  --accent: #2F6DB0;
   --accent-on: #ffffff;
 
   /* 字体族 —— Latin/数字走 Archivo，CJK 自然回落 Noto Sans SC。
@@ -124,27 +124,27 @@
        surface    #ffffff  L 100.0%  ┘        ← 卡片（顶端）
      铁律：改这四个值时必须重算，任何一级倒置都会让画面重新变"平"。
      ====================================================================== */
-  --bg: #F3F3E9;          /* 暖米底色 */
-  --surface: #ffffff;     /* 卡片 / 面板 */
-  --surface-2: #F7F7EF;   /* 侧栏 / 表头 / hover 底（微米色，与主底色区分） */
-  --surface-3: #EAEAE0;   /* 选中底 / 进度槽 / 按下态 */
+  --bg: #E9EDF2;          /* 冷钢灰底（控制室中性底）*/
+  --surface: #ffffff;     /* 卡片 / 面板（实底抬升，保可读性）*/
+  --surface-2: #F1F4F8;   /* 表头 / hover 底（冷调微差）*/
+  --surface-3: #E1E7EE;   /* 选中底 / 进度槽 / 按下态 */
 
-  --fg: #222222;          /* 主文本 */
-  --fg-2: #3d4540;        /* 次级文本 / 正文段落 */
-  --muted: #606864;       /* 说明文字 */
-  --meta: #8a928d;        /* 时间戳 / 计数 */
+  --fg: #1F2A33;          /* 主文本（冷墨）*/
+  --fg-2: #3A4753;        /* 次级文本 / 正文段落 */
+  --muted: #5E6B78;       /* 说明文字 */
+  --meta: #8593A0;        /* 时间戳 / 计数 */
 
-  --border: #DDDFD6;      /* 卡片 / 输入框边框 */
-  --border-soft: #E8E9E0; /* 表格行分隔 */
-  --border-strong: #c5c7bb;/* 输入框 hover / 分栏拖拽条 */
+  --border: #D5DCE4;      /* 卡片 / 输入框边框 */
+  --border-soft: #E4E9EF; /* 表格行分隔 */
+  --border-strong: #BFC8D2;/* 输入框 hover / 分栏拖拽条 */
 
   /* ======================================================================
      A2 · 派生与语义（有默认值，可覆盖）
      ====================================================================== */
-  --accent-hover: #466B60;  /* hover 加深 */
-  --accent-active: #3a564d; /* 按下更深 */
-  --accent-soft: #E1EBE4;   /* 选中行底 / 轻量 Badge 底 */
-  --accent-border: #b8cfc0;
+  --accent-hover: #2A629E;  /* hover 加深 */
+  --accent-active: #245585; /* 按下更深 */
+  --accent-soft: #E3EDF6;   /* 选中行底 / 轻量 Badge 底（钢蓝微染）*/
+  --accent-border: #A9C5E0;
 
   /* 墨色实底组（SQL 沙箱深底用） */
   --ink-solid: var(--brand-ink);   /* #2d3a33 */
@@ -178,7 +178,7 @@
   --phase-plan: #3A6EA5;       /* 计划 / 仓储 */
   --phase-production: #A9701D; /* 生产执行 */
   --phase-qc: #5A7D2E;         /* 质量检验 */
-  --phase-logistics: #6B63A6;  /* 物流出库 */
+  --phase-logistics: #5B6B7A;  /* 物流出库（去紫，改钢灰蓝）*/
   --phase-plan-soft: color-mix(in srgb, var(--phase-plan) 10%, var(--surface));
   --phase-production-soft: color-mix(in srgb, var(--phase-production) 10%, var(--surface));
   --phase-qc-soft: color-mix(in srgb, var(--phase-qc) 10%, var(--surface));
@@ -329,11 +329,28 @@
   --syn-comment: #6b7a71;
   --syn-operator: #bcc8c0;
 
-  /* 设备 / 工单状态点（MES 语义，与通用语义色解耦以便单独调） */
-  --status-running: var(--success);
-  --status-idle: var(--meta);
-  --status-stopped: var(--warn);
-  --status-fault: var(--danger);
+  /* 设备 / 工单状态点（MES 语义，与通用语义色解耦 —— P1 颜色只编码状态）*/
+  --status-running: #1FA85A;   /* 运行中 */
+  --status-idle: var(--meta);  /* 空闲 */
+  --status-stopped: #E0920C;   /* 停机预警 / 待下达 */
+  --status-fault: #E5484D;     /* 故障 */
+  --status-maint: #0EA5B5;     /* 维护中（新增）*/
+
+  /* ── Industrial Ops Console · 深色控制台外壳（R1：侧栏暗色锚点）──
+     仅侧栏消费本组；内容区保持冷钢灰浅底，形成"单一深色锚点"。
+     裸色值只在此定义，组件一律 var(--console-*)。 */
+  --console-bg: #0F1620;            /* 外壳墨蓝黑 */
+  --console-bg-2: #131C28;          /* 抬升内块（进度槽 / 选中底）*/
+  --console-bg-3: #18222F;          /* hover */
+  --console-fg: #D7DEE6;            /* 主文本（对 --console-bg 约 11:1）*/
+  --console-fg-2: #9AA7B4;          /* 次级文本 */
+  --console-muted: #687687;         /* 说明 / 时间戳 */
+  --console-border: #1E2A38;        /* 分隔线 */
+  --console-border-strong: #2A3848; /* 滚动条 / 强分隔 */
+  --console-accent: var(--accent);  /* 钢蓝，仅可操作态（图标 / 左指示条）*/
+  --console-accent-text: #5B9BD5;   /* 暗底上的钢蓝文字（可读性优于 --console-accent）*/
+  --console-accent-soft: #16293B;   /* 选中底（钢蓝微染）*/
+  --iso-depth: 14px;                /* 数字孪生等距厚度（设计师 advisory）*/
 
   /* 学习进度 */
   --progress-track: var(--surface-3);
