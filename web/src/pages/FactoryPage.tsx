@@ -310,7 +310,7 @@ export default function FactoryPage() {
         onOpenPrologue={() => setPrologueOpen(true)}
       />
 
-      {/* ★ 主视觉：12 环节工厂全景（系统视角）—— 每步归 MES/ERP/WMS/QMS 哪套系统管 */}
+      {/* 主视觉：12 环节工厂全景（系统视角）—— 每步归 MES/ERP/WMS/QMS 哪套系统管 */}
       <section id="factory-panorama" className="factory-panorama" aria-label="工厂全景地图">
         <FactoryFlow
           nodes={nodes}
@@ -322,7 +322,7 @@ export default function FactoryPage() {
         />
       </section>
 
-      {/* ★ 英雄特色：工厂模拟器 */}
+      {/* 英雄特色：工厂模拟器 */}
       <SimulatorHero />
 
       {/* 底部入口导航 */}
