@@ -1,0 +1,49 @@
+name: API Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 生成测试用 .dev.vars（Miniflare 自动读取，提供 SESSION_SECRET / ADMIN_PASSWORD）
+      - name: Write .dev.vars for tests
+        run: |
+          ADMIN_PW="${{ secrets.TEST_ADMIN_PASSWORD || 'ci-admin-change-me' }}"
+          echo "SESSION_SECRET=${{ secrets.TEST_SESSION_SECRET || 'ci-dev-secret-change-me' }}" > .dev.vars
+          echo "ADMIN_PASSWORD=$ADMIN_PW" >> .dev.vars
+          echo "TEST_ADMIN_PASSWORD=$ADMIN_PW" >> .dev.vars
+          echo "NODE_ENV=test" >> .dev.vars
+
+      # Workers 测试池：进程内真实 D1 + DO，无需起 server
+      - name: Run API tests (Vitest + Workers pool)
+        run: npm run test --workspace worker -- --coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage
+          path: worker/coverage
