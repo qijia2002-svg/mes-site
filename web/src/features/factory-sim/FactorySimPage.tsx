@@ -43,6 +43,14 @@ const MACHINE_RANGE: Record<'kb' | 'kf', { min: number; max: number }> = {
   kf: { min: 1, max: 3 },
 };
 
+/** 场景预设：一键切换典型产线状态（数字孪生控制台 R3/R4）。全部基于真实 SimParams，不编造。 */
+const SCENARIOS: { key: string; label: string; desc: string; patch: Partial<SimParams> }[] = [
+  { key: 'default', label: '默认产线', desc: '机加工最慢，最卡', patch: {} },
+  { key: 'surge', label: '订单翻倍', desc: '加单不加产能，半路堆货', patch: { Q: 200 } },
+  { key: 'boost', label: '给瓶颈加机器', desc: '机加工加到 3 台', patch: { kb: 3 } },
+  { key: 'defect', label: '不良率拉高', desc: '做坏的提到 15%', patch: { p: 15 } },
+];
+
 /** 跑班播放：把稳态产能展开成「一个班次内逐分钟累计」的活体模型（仅动画用，不动 simCalc 核心数学）。
  * 纯串联队列：第 i 道工序累计完成 = min(上游累计, 本工序单班产能×班次进度)。
  * 终态(t=480)收敛到 simCalc 的 produced，因此动画与右侧稳态读数完全一致、不造假。 */
@@ -114,6 +122,11 @@ function ThroughputGauge({ pct, value, unit, live }: { pct: number; value: numbe
 export default function FactorySimPage() {
   const [params, setParams] = useState<SimParams>(DEFAULT_PARAMS);
   const [recent, setRecent] = useState<'swap' | 'shift' | null>(null);
+  // 数字孪生控制台（R3/R4）：场景预设 + 瓶颈自动调参状态
+  const [scenario, setScenario] = useState<string>('default');
+  const [autotune, setAutotune] = useState<'off' | 'running' | 'done'>('off');
+  const autotuneRef = useRef<number | null>(null);
+  const paramsRef = useRef<SimParams>(params);
 
   const result = useMemo(() => runSim(params), [params]);
   const feedback = useMemo(() => pickFeedback(params, result, recent), [params, result, recent]);
@@ -126,6 +139,10 @@ export default function FactorySimPage() {
 
   // 改配置即重开这一班，保证动画与当前参数一致
   useEffect(() => { setPlay('idle'); setPlayT(0); }, [params]);
+
+  // 数字孪生控制台：同步最新 params 给自动调参定时器；卸载时清理定时器
+  useEffect(() => { paramsRef.current = params; }, [params]);
+  useEffect(() => () => { if (autotuneRef.current) window.clearTimeout(autotuneRef.current); }, []);
 
   // 播放循环：用 requestAnimationFrame 推进班次时间
   useEffect(() => {
@@ -154,7 +171,17 @@ export default function FactorySimPage() {
   }
   function resetPlay() { setPlay('idle'); setPlayT(0); }
 
+  function cancelAutotune() {
+    if (autotuneRef.current) {
+      window.clearTimeout(autotuneRef.current);
+      autotuneRef.current = null;
+    }
+    setAutotune('off');
+  }
+
   function setNum(key: 'Q' | 'p' | 'B', v: number) {
+    cancelAutotune();
+    setScenario('default');
     setParams((p) => ({ ...p, [key]: v }));
     setRecent(null);
   }
@@ -162,12 +189,60 @@ export default function FactorySimPage() {
     const param = MACHINE_PARAM[idx];
     if (!param) return;
     const range = MACHINE_RANGE[param];
+    cancelAutotune();
+    setScenario('default');
     setParams((p) => {
       const cur = p[param];
       const next = Math.min(range.max, Math.max(range.min, cur + dir));
       return param === 'kb' ? { ...p, kb: next } : { ...p, kf: next };
     });
     setRecent(null);
+  }
+  function resetAll() {
+    cancelAutotune();
+    setScenario('default');
+    setParams(DEFAULT_PARAMS);
+    setRecent(null);
+  }
+
+  /** 切换典型场景：以默认参数为基底叠加该场景的差异（真实 runSim，不造假）。 */
+  function applyScenario(key: string) {
+    cancelAutotune();
+    setScenario(key);
+    const s = SCENARIOS.find((x) => x.key === key);
+    setParams({ ...DEFAULT_PARAMS, ...(s ? s.patch : {}) });
+    setRecent(null);
+  }
+
+  /**
+   * 一键自动调瓶颈：从默认起步，每 1.2s 给瓶颈工序加一台机器并实时重算，
+   * 直到该工序机台到顶或瓶颈转移——用真实 runSim 字段演示「杠杆在瓶颈上」。
+   */
+  function startAutotune() {
+    if (autotune === 'running') return;
+    cancelAutotune();
+    setParams(DEFAULT_PARAMS);
+    setScenario('default');
+    setAutotune('running');
+    let step = 0;
+    const tick = () => {
+      const p = paramsRef.current;
+      const bn = runSim(p).bottleneckIndex;
+      const param = MACHINE_PARAM[bn];
+      const range = param ? MACHINE_RANGE[param] : null;
+      if (!param || !range || p[param] >= range.max) {
+        setAutotune('done');
+        return;
+      }
+      setParams(param === 'kb' ? { ...p, kb: p.kb + 1 } : { ...p, kf: p.kf + 1 });
+      step += 1;
+      if (step >= 3) {
+        autotuneRef.current = window.setTimeout(() => setAutotune('done'), 1200);
+      } else {
+        autotuneRef.current = window.setTimeout(tick, 1200);
+      }
+    };
+    autotuneRef.current = window.setTimeout(tick, 1200);
   }
 
   // ── 由真实模型字段驱动的视觉量（不造假）──
@@ -241,7 +316,7 @@ export default function FactorySimPage() {
             onClick={() => { setParams((p) => ({ ...p, shift: p.shift === 1 ? 2 : 1 })); setRecent('shift'); }}>
             <Icon name="schedule" size={16} /> 加一班（两班倒）
           </button>
-          <button type="button" className="sim-reset" onClick={() => { setParams(DEFAULT_PARAMS); setRecent(null); }}>
+          <button type="button" className="sim-reset" onClick={resetAll}>
             <Icon name="reset" size={16} /> 回到默认
           </button>
         </div>
@@ -382,6 +457,89 @@ export default function FactorySimPage() {
           </aside>
         </div>
       </div>
+
+      {/* ═══ 工厂数字孪生控制台（R3/R4）：等距产线 + 场景切换 + 瓶颈自动调参 ═══ */}
+      <section className="sim-twin" aria-label="工厂数字孪生控制台">
+        <div className="sim-twin-head">
+          <span className="sim-twin-title"><Icon name="boxes" size={20} /> 工厂数字孪生控制台</span>
+          <span className="sim-twin-hint">等距俯瞰整条线 · 切换典型场景 · 一键自动调瓶颈</span>
+        </div>
+
+        <div className="sim-twin-bar">
+          <label className="sim-scenario">
+            <span className="sim-scenario-label">切换场景</span>
+            <select
+              className="sim-select"
+              value={scenario}
+              onChange={(e) => applyScenario(e.target.value)}
+              aria-label="切换典型产线场景"
+            >
+              {SCENARIOS.map((s) => (
+                <option key={s.key} value={s.key}>{s.label} · {s.desc}</option>
+              ))}
+            </select>
+          </label>
+
+          <button
+            type="button"
+            className={`sim-autotune${autotune === 'running' ? ' is-running' : ''}`}
+            onClick={startAutotune}
+            disabled={autotune === 'running'}
+          >
+            <Icon name={autotune === 'running' ? 'refresh-cw' : 'target'} size={16} />
+            {autotune === 'running' ? '自动调参中…' : autotune === 'done' ? '再调一次' : '一键自动调瓶颈'}
+          </button>
+
+          {autotune !== 'off' && (
+            <span className={`sim-autotune-status${autotune === 'done' ? ' is-done' : ''}`}>
+              {autotune === 'done'
+                ? '调参完成：机加工加到位，本单已能交完，红警解除'
+                : '正在给瓶颈工序加机器…'}
+            </span>
+          )}
+        </div>
+
+        {/* 等距产线：4 道工序铺在工厂地坪上，瓶颈红警、在制品沿节拍流动（真实 runSim 字段驱动） */}
+        <div className="sim-twin-stage">
+          <div className="sim-iso-floor" aria-hidden="true">
+            <div className="sim-iso-row">
+              {STATIONS.map((st) => {
+                const isBn = result.bottleneckIndex === st.idx;
+                const mparam = MACHINE_PARAM[st.idx];
+                const count = mparam ? params[mparam] : 1;
+                const cap = result.capByNode[st.idx];
+                const idle = result.idleByNode[st.idx]?.idle ?? 0;
+                const busy = 100 - idle;
+                return (
+                  <Fragment key={st.idx}>
+                    <div className={`sim-iso-node${isBn ? ' is-bn' : ''}`}>
+                      <div className="sim-iso-pad">
+                        <span className="sim-iso-ic"><Icon name={st.icon} size={20} /></span>
+                      </div>
+                      <div className="sim-iso-card">
+                        <span className="sim-iso-name">{st.name}</span>
+                        {isBn && <span className="sim-iso-badge">最卡</span>}
+                        <span className="sim-iso-cap">{cap} 件/班</span>
+                        <span className="sim-iso-meta">{mparam ? `${count} 台` : '1 台'} · 开工 {busy}%</span>
+                        <span className="sim-iso-bar" role="img" aria-label={`${st.name}开工率约 ${busy}%`}>
+                          <i style={{ width: `${busy}%` }} />
+                        </span>
+                      </div>
+                    </div>
+                    {st.idx < STATIONS.length - 1 && (
+                      <div className="sim-iso-conn" aria-hidden="true">
+                        <span className="sim-iso-dot" />
+                        <span className="sim-iso-dot" />
+                        <span className="sim-iso-dot" />
+                      </div>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* 结果条 */}
       <div className="sim-result">

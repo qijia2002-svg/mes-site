@@ -815,3 +815,233 @@
   .sim-play-progress { flex-basis: 100%; order: 3; }
   .sim-play-time { flex-basis: 100%; order: 4; text-align: center; }
 }
+
+/* ── 工厂数字孪生控制台（R3/R4）：等距产线 + 场景切换 + 瓶颈自动调参 ── */
+.sim-twin {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--card-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.sim-twin-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.sim-twin-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-announce-cjk);
+  color: var(--fg);
+}
+.sim-twin-title svg { color: var(--accent); }
+.sim-twin-hint { font-size: var(--text-xs); color: var(--meta); }
+
+.sim-twin-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.sim-scenario { display: inline-flex; align-items: center; gap: var(--space-2); }
+.sim-scenario-label { font-size: var(--text-sm); color: var(--muted); }
+.sim-select {
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--fg);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+.sim-select:hover { border-color: var(--accent-border); }
+.sim-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.sim-autotune {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard);
+}
+.sim-autotune:hover:not(:disabled) { filter: brightness(1.06); }
+.sim-autotune.is-running { background: var(--accent-active); }
+.sim-autotune:disabled { opacity: 0.85; cursor: default; }
+
+.sim-autotune-status { font-size: var(--text-sm); color: var(--muted); }
+.sim-autotune-status.is-done { color: var(--success); }
+
+/* 等距舞台：透视地坪 + 平铺机器 + 朝向镜头的工序卡 + 在制品流动 */
+.sim-twin-stage {
+  position: relative;
+  height: 360px;
+  perspective: 1400px;
+  perspective-origin: 50% 40%;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--console-bg-3, #18222F) 20%, transparent), transparent 70%),
+    var(--surface-2);
+}
+.sim-iso-floor {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  width: 520px;
+  height: 520px;
+  transform: translate(-50%, -50%) rotateX(55deg) rotateZ(45deg);
+  transform-style: preserve-3d;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--border) 50%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--border) 50%, transparent) 1px, transparent 1px);
+  background-size: 65px 65px;
+  background-position: center;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+}
+.sim-iso-row {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transform-style: preserve-3d;
+}
+.sim-iso-node {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  transform-style: preserve-3d;
+}
+.sim-iso-pad {
+  width: 84px;
+  height: 84px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 var(--iso-depth, 14px) 0 color-mix(in srgb, var(--console-bg-3, #18222F) 16%, transparent);
+  transition: border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+.sim-iso-pad .sim-iso-ic { color: var(--accent); }
+.sim-iso-node.is-bn .sim-iso-pad {
+  border-color: var(--danger);
+  box-shadow: 0 var(--iso-depth, 14px) 0 color-mix(in srgb, var(--danger) 20%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--danger) 28%, transparent);
+}
+.sim-iso-node.is-bn .sim-iso-pad .sim-iso-ic { color: var(--danger); }
+
+/* 工序卡：用「反向旋转」抵消地坪旋转，始终朝向镜头，保证中文可读（设计中文字体反向锯齿保护） */
+.sim-iso-card {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  width: 132px;
+  transform: translateX(-50%) rotateZ(-45deg) rotateX(-55deg);
+  transform-origin: bottom center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--console-bg-3, #18222F) 16%, transparent);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  white-space: nowrap;
+}
+.sim-iso-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-announce-cjk);
+  color: var(--fg);
+}
+.sim-iso-badge {
+  font-size: 10px;
+  font-weight: var(--weight-emph-cjk);
+  color: #fff;
+  background: var(--danger);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+}
+.sim-iso-cap {
+  font-size: var(--text-xs);
+  color: var(--fg-2);
+  font-variant-numeric: tabular-nums;
+}
+.sim-iso-meta { font-size: 10px; color: var(--meta); }
+.sim-iso-bar {
+  width: 100%;
+  height: 6px;
+  margin-top: 2px;
+  background: var(--surface-3);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.sim-iso-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+  transition: width var(--motion-base) var(--ease-standard);
+}
+.sim-iso-node.is-bn .sim-iso-bar i { background: var(--danger); }
+
+/* 工序之间的流动光点（在制品在跑） */
+.sim-iso-conn {
+  width: 40px;
+  height: 84px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sim-iso-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: isoFlow 2.4s linear infinite;
+}
+.sim-iso-conn.is-bn-from .sim-iso-dot { background: var(--danger); }
+.sim-iso-dot:nth-child(2) { animation-delay: -0.8s; }
+.sim-iso-dot:nth-child(3) { animation-delay: -1.6s; }
+@keyframes isoFlow {
+  from { transform: translate(-28px, 28px); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  to { transform: translate(28px, -28px); opacity: 0; }
+}
+
+@media (max-width: 768px) {
+  .sim-twin-stage { height: 300px; }
+  .sim-iso-floor { transform: translate(-50%, -50%) rotateX(55deg) rotateZ(45deg) scale(0.7); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sim-iso-dot { animation: none !important; }
+}
